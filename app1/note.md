@@ -1,3 +1,6 @@
+諧音梗app
+
+根據圖片來猜測題目
 風格: 簡約, 可愛, 長眼睛嘴巴
 每個question 會有兩個照片, 存在pictures/, 命名方式為1-1.png, 1-2.png, 2-1.png ...
 問題內容: 動詞, 名詞, 形容詞
@@ -7,7 +10,7 @@ page1:
 
 page2:
 說明:
-成功失敗都在同個視窗顯示 不另開了
+答對答錯都在同個視窗顯示 不另開
 成功就 下一關 的按鈕available 進到下一個question
 obj:
 - picture1: 提示
@@ -15,3 +18,5 @@ obj:
 - picture2: 猜測
 - 提示: 放右邊
 - 填字欄: 讓user 填字, 用底線數量
+
+"based on the note, try to implement a ios app, and can run npm run start to get the app demo"
