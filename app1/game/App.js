@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import LoginScreen from './src/screens/LoginScreen';
+import StartScreen from './src/screens/StartScreen';
 import GameScreen from './src/screens/GameScreen';
 
 export default function App() {
-  const [player, setPlayer] = useState(null);
+  const [started, setStarted] = useState(false);
 
   return (
     <>
       <StatusBar style="dark" />
-      {player === null ? (
-        <LoginScreen onLogin={setPlayer} />
+      {started ? (
+        <GameScreen />
       ) : (
-        <GameScreen playerName={player} />
+        <StartScreen onStart={() => setStarted(true)} />
       )}
     </>
   );
