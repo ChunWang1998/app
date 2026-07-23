@@ -20,6 +20,12 @@ import { isLevelUnlocked, saveProgress } from '../storage/progress';
 
 const SWIPE_THRESHOLD = 56;
 
+const DIFFICULTY_STYLE = {
+  易: { bg: colors.greenSoft, text: colors.green },
+  中: { bg: colors.hintYellowSoft, text: colors.hintYellow },
+  難: { bg: colors.accentSoft, text: colors.accent },
+};
+
 export default function GameScreen({
   initialIndex = 0,
   initialCompleted = [],
@@ -166,11 +172,29 @@ export default function GameScreen({
                 <Text style={styles.appTitle}>看圖猜字</Text>
                 <Text style={styles.appSubtitle}>FUN WORD GUESSING</Text>
               </View>
-              <View style={styles.levelPill}>
-                <Mascot size={26} color="#B9E3A8" happy />
-                <Text style={styles.levelText}>
-                  第 {index + 1}/{total} 關
-                </Text>
+              <View style={styles.headerMeta}>
+                <View
+                  style={[
+                    styles.difficultyCol,
+                    { backgroundColor: (DIFFICULTY_STYLE[q.difficulty] || DIFFICULTY_STYLE['中']).bg },
+                  ]}
+                >
+                  <Text style={styles.difficultyLabel}>難度</Text>
+                  <Text
+                    style={[
+                      styles.difficultyValue,
+                      { color: (DIFFICULTY_STYLE[q.difficulty] || DIFFICULTY_STYLE['中']).text },
+                    ]}
+                  >
+                    {q.difficulty || '中'}
+                  </Text>
+                </View>
+                <View style={styles.levelPill}>
+                  <Mascot size={26} color="#B9E3A8" happy />
+                  <Text style={styles.levelText}>
+                    第 {index + 1}/{total} 關
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -290,6 +314,30 @@ const styles = StyleSheet.create({
   },
   appTitle: { fontSize: 26, fontWeight: '800', color: colors.textDark, letterSpacing: 2 },
   appSubtitle: { fontSize: 11, fontWeight: '700', color: colors.textMuted, letterSpacing: 2 },
+  headerMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  difficultyCol: {
+    minWidth: 40,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: radius.inner,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  difficultyLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: 1,
+  },
+  difficultyValue: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
   levelPill: {
     flexDirection: 'row',
     alignItems: 'center',
