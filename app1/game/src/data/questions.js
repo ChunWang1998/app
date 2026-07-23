@@ -242,4 +242,14 @@ export const questions = [
     answer: '方向',
     hint: '方型的大象——方象',
   },
+  {
+    id: 25,
+    type: '名詞',
+    difficulty: '難',
+    hintImage: require('../../assets/pictures/25-1.jpg'),
+    hintText: '這是一隻咖波',
+    guessImage: require('../../assets/pictures/25-2.jpg'),
+    answer: '新加坡',
+    hint: '全新的咖波——新咖波',
+  },
 ];
