@@ -13,14 +13,11 @@ illustration style is typical of animated characters or kawaii art, characterize
 there are some desicription for the new questions, and for each question is: first picture desicription, second picture discription, answer, and level.
 
 generate the photo first, and the naming is following 1-1.png, 1-2.png, 2-1.png...
+don't update the existed picture, added after the latest picture.
 
 finish the question.js as well
 
 description:
-一隻咖波
-全新的咖波
-新加坡
-難
 
 page1:
 登入頁面

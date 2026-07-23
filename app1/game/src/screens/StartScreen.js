@@ -12,6 +12,7 @@ export default function StartScreen({ onStart }) {
           <Mascot size={110} color="#B9E3A8" happy />
           <Text style={styles.title}>看圖猜字</Text>
           <Text style={styles.subtitle}>FUN WORD GUESSING</Text>
+          <Text style={styles.motto}>嘿對 認真你就輸了：）</Text>
           <Text style={styles.tagline}>看圖猜諧音梗，一起動動腦！</Text>
         </View>
 
@@ -52,7 +53,14 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
     marginTop: 4,
   },
-  tagline: { fontSize: 15, color: colors.textDark, marginTop: 16 },
+  motto: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.accent,
+    marginTop: 16,
+    letterSpacing: 1,
+  },
+  tagline: { fontSize: 15, color: colors.textDark, marginTop: 8 },
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.card,
