@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,33 +9,127 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  PanResponder,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
 import Mascot from '../components/Mascot';
+import LevelDirectory from '../components/LevelDirectory';
 import { questions } from '../data/questions';
+import { isLevelUnlocked, saveProgress } from '../storage/progress';
 
-export default function GameScreen({ playerName }) {
+const SWIPE_THRESHOLD = 56;
+
+export default function GameScreen({
+  initialIndex = 0,
+  initialCompleted = [],
+  onProgressChange,
+}) {
   const total = questions.length;
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(initialIndex);
+  const [completed, setCompleted] = useState(initialCompleted);
   const [value, setValue] = useState('');
   const [status, setStatus] = useState('idle'); // idle | wrong | solved
   const [showHint, setShowHint] = useState(false);
 
+  const indexRef = useRef(index);
+  const completedRef = useRef(completed);
+  indexRef.current = index;
+  completedRef.current = completed;
+
   const q = questions[index];
   const solved = status === 'solved';
   const isLast = index === total - 1;
+  const allDone = completed.length >= total;
 
-  // 依答案長度產生填字格；已解出時直接顯示答案。
+  const persist = useCallback(
+    async (nextIndex, nextCompleted) => {
+      const payload = {
+        currentIndex: nextIndex,
+        completed: nextCompleted,
+        started: true,
+      };
+      onProgressChange?.(payload);
+      await saveProgress(payload);
+    },
+    [onProgressChange],
+  );
+
+  const resetLocalForLevel = useCallback((levelIndex, completedList) => {
+    const done = completedList.includes(levelIndex);
+    const question = questions[levelIndex];
+    setValue(done ? question.answer : '');
+    setStatus(done ? 'solved' : 'idle');
+    setShowHint(false);
+  }, []);
+
+  // 首次進入時依進度還原該關狀態
+  useEffect(() => {
+    resetLocalForLevel(initialIndex, initialCompleted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const goToLevel = useCallback(
+    (nextIndex) => {
+      if (nextIndex < 0 || nextIndex >= total) return;
+      if (!isLevelUnlocked(nextIndex, completedRef.current)) return;
+      if (nextIndex === indexRef.current) return;
+      setIndex(nextIndex);
+      resetLocalForLevel(nextIndex, completedRef.current);
+      persist(nextIndex, completedRef.current);
+    },
+    [total, resetLocalForLevel, persist],
+  );
+
+  const unlockedNeighbors = useCallback(() => {
+    const list = completedRef.current;
+    let prev = -1;
+    let next = -1;
+    for (let i = indexRef.current - 1; i >= 0; i -= 1) {
+      if (isLevelUnlocked(i, list)) {
+        prev = i;
+        break;
+      }
+    }
+    for (let i = indexRef.current + 1; i < total; i += 1) {
+      if (isLevelUnlocked(i, list)) {
+        next = i;
+        break;
+      }
+    }
+    return { prev, next };
+  }, [total]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, g) =>
+          Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2,
+        onPanResponderRelease: (_, g) => {
+          if (Math.abs(g.dx) < SWIPE_THRESHOLD) return;
+          const { prev, next } = unlockedNeighbors();
+          // 右滑 → 上一關；左滑 → 下一關（僅已解鎖／通關可達）
+          if (g.dx > 0 && prev >= 0) goToLevel(prev);
+          else if (g.dx < 0 && next >= 0) goToLevel(next);
+        },
+      }),
+    [goToLevel, unlockedNeighbors],
+  );
+
   const boxes = useMemo(() => {
     const chars = Array.from(q.answer);
     const source = solved ? q.answer : value;
     return chars.map((_, i) => Array.from(source)[i] || '');
   }, [q.answer, value, solved]);
 
-  const check = () => {
+  const check = async () => {
     if (value.trim() === q.answer) {
       setStatus('solved');
+      const nextCompleted = completed.includes(index)
+        ? completed
+        : [...completed, index];
+      setCompleted(nextCompleted);
+      await persist(index, nextCompleted);
     } else {
       setStatus('wrong');
     }
@@ -43,14 +137,17 @@ export default function GameScreen({ playerName }) {
 
   const next = () => {
     if (isLast) {
-      setIndex(0);
-    } else {
-      setIndex(index + 1);
+      // 全部通關後「再玩一次」回到第 1 關（仍保留通關進度）
+      goToLevel(0);
+      return;
     }
-    setValue('');
-    setStatus('idle');
-    setShowHint(false);
+    const target = index + 1;
+    if (isLevelUnlocked(target, completed)) {
+      goToLevel(target);
+    }
   };
+
+  const canGoNext = solved && (isLast || isLevelUnlocked(index + 1, completed));
 
   return (
     <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={styles.fill}>
@@ -58,115 +155,120 @@ export default function GameScreen({ playerName }) {
         style={styles.fill}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.appTitle}>看圖猜字</Text>
-              <Text style={styles.appSubtitle}>FUN WORD GUESSING</Text>
-            </View>
-            <View style={styles.levelPill}>
-              <Mascot size={26} color="#B9E3A8" happy />
-              <Text style={styles.levelText}>
-                第 {index + 1}/{total} 關
-              </Text>
-            </View>
-          </View>
-
-          {/* Hint image card */}
-          <View style={styles.card}>
-            <View style={styles.cardHead}>
-              <Text style={styles.cardTitle}>🔖 提示圖片</Text>
-              <Text style={styles.cardTag}>HINT IMAGE</Text>
-            </View>
-            <Image source={q.hintImage} style={styles.image} resizeMode="cover" />
-            <Text style={styles.caption}>{q.hintText}</Text>
-          </View>
-
-          {/* Guess image card */}
-          <View style={styles.card}>
-            <View style={styles.cardHead}>
-              <Text style={styles.cardTitle}>🖼 猜測圖片</Text>
-              <TouchableOpacity
-                style={styles.hintBtn}
-                activeOpacity={0.8}
-                onPress={() => setShowHint((s) => !s)}
-              >
-                <Text style={styles.hintBtnText}>💡 提示</Text>
-              </TouchableOpacity>
-            </View>
-            <Image source={q.guessImage} style={styles.image} resizeMode="cover" />
-            {showHint && <Text style={styles.hintReveal}>提示：{q.hint}</Text>}
-          </View>
-
-          {/* Answer card */}
-          <View style={styles.card}>
-            <View style={styles.answerRow}>
-              <Text style={styles.answerLead}>這是</Text>
-              {boxes.map((ch, i) => (
-                <View key={i} style={styles.charSlot}>
-                  <Text style={styles.charText}>{ch}</Text>
-                  <View style={styles.charLine} />
-                </View>
-              ))}
-            </View>
-
-            {status === 'wrong' && (
-              <Text style={[styles.feedback, styles.feedbackWrong]}>
-                再想想看～不是這個喔！
-              </Text>
-            )}
-            {solved && (
-              <Text style={[styles.feedback, styles.feedbackOk]}>
-                答對了！這是「{q.answer}」🎉
-              </Text>
-            )}
-
-            <View style={styles.inputRow}>
-              <View style={styles.inputBox}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="在這裡填字"
-                  placeholderTextColor={colors.textMuted}
-                  value={value}
-                  onChangeText={(t) => {
-                    setValue(t);
-                    if (status === 'wrong') setStatus('idle');
-                  }}
-                  editable={!solved}
-                  returnKeyType="done"
-                  onSubmitEditing={check}
-                />
-                <Text style={styles.pencil}>✏️</Text>
+        <View style={styles.fill} {...panResponder.panHandlers}>
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.appTitle}>看圖猜字</Text>
+                <Text style={styles.appSubtitle}>FUN WORD GUESSING</Text>
               </View>
+              <View style={styles.levelPill}>
+                <Mascot size={26} color="#B9E3A8" happy />
+                <Text style={styles.levelText}>
+                  第 {index + 1}/{total} 關
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.card}>
+              <View style={styles.cardHead}>
+                <Text style={styles.cardTitle}>🔖 提示圖片</Text>
+                <Text style={styles.cardTag}>HINT IMAGE</Text>
+              </View>
+              <Image source={q.hintImage} style={styles.image} resizeMode="cover" />
+              <Text style={styles.caption}>{q.hintText}</Text>
+            </View>
+
+            <View style={styles.card}>
+              <View style={styles.cardHead}>
+                <Text style={styles.cardTitle}>🖼 猜測圖片</Text>
+                <TouchableOpacity
+                  style={styles.hintBtn}
+                  activeOpacity={0.8}
+                  onPress={() => setShowHint((s) => !s)}
+                >
+                  <Text style={styles.hintBtnText}>💡 提示</Text>
+                </TouchableOpacity>
+              </View>
+              <Image source={q.guessImage} style={styles.image} resizeMode="cover" />
+              {showHint && <Text style={styles.hintReveal}>提示：{q.hint}</Text>}
+            </View>
+
+            <View style={styles.card}>
+              <View style={styles.answerRow}>
+                <Text style={styles.answerLead}>這是</Text>
+                {boxes.map((ch, i) => (
+                  <View key={i} style={styles.charSlot}>
+                    <Text style={styles.charText}>{ch}</Text>
+                    <View style={styles.charLine} />
+                  </View>
+                ))}
+              </View>
+
+              {status === 'wrong' && (
+                <Text style={[styles.feedback, styles.feedbackWrong]}>
+                  再想想看～不是這個喔！
+                </Text>
+              )}
+              {solved && (
+                <Text style={[styles.feedback, styles.feedbackOk]}>
+                  答對了！這是「{q.answer}」🎉
+                </Text>
+              )}
+
+              <View style={styles.inputRow}>
+                <View style={styles.inputBox}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="在這裡填字"
+                    placeholderTextColor={colors.textMuted}
+                    value={value}
+                    onChangeText={(t) => {
+                      setValue(t);
+                      if (status === 'wrong') setStatus('idle');
+                    }}
+                    editable={!solved}
+                    returnKeyType="done"
+                    onSubmitEditing={check}
+                  />
+                  <Text style={styles.pencil}>✏️</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.confirmBtn, solved && styles.confirmBtnDone]}
+                  activeOpacity={0.85}
+                  onPress={check}
+                  disabled={solved}
+                >
+                  <Text style={styles.confirmText}>確認</Text>
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity
-                style={[styles.confirmBtn, solved && styles.confirmBtnDone]}
-                activeOpacity={0.85}
-                onPress={check}
-                disabled={solved}
+                style={[styles.nextBtn, !canGoNext && styles.nextBtnDisabled]}
+                activeOpacity={canGoNext ? 0.85 : 1}
+                onPress={next}
+                disabled={!canGoNext}
               >
-                <Text style={styles.confirmText}>確認</Text>
+                <Text style={[styles.nextText, !canGoNext && styles.nextTextDisabled]}>
+                  {isLast ? (allDone ? '再玩一次' : '下一關') : '下一關'}
+                </Text>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={[styles.nextBtn, !solved && styles.nextBtnDisabled]}
-              activeOpacity={solved ? 0.85 : 1}
-              onPress={next}
-              disabled={!solved}
-            >
-              <Text style={[styles.nextText, !solved && styles.nextTextDisabled]}>
-                {isLast ? '再玩一次' : '下一關'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+            <Text style={styles.footer}>💬 遇到困難？分享給好友幫忙猜看吧！</Text>
+          </ScrollView>
+        </View>
 
-          <Text style={styles.footer}>💬 遇到困難？分享給好友幫忙猜看吧！</Text>
-        </ScrollView>
+        <LevelDirectory
+          total={total}
+          currentIndex={index}
+          completed={completed}
+          onSelect={goToLevel}
+        />
       </KeyboardAvoidingView>
     </LinearGradient>
   );
@@ -177,7 +279,7 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 18,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 40,
+    paddingBottom: 24,
   },
   header: {
     flexDirection: 'row',
