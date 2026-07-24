@@ -1,5 +1,7 @@
 # Kaohsiung Nearby Price — local demo
 
+> **Expo SDK 54.** Full step-by-step run commands (incl. zsh pitfalls) live in [`note.md`](./note.md) → section **「本機 Demo 怎麼跑」**.
+
 ## Structure
 
 ```

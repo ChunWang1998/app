@@ -175,12 +175,74 @@ geocode_cache(address_text UNIQUE, lat, lng, provider, updated_at)
 
 | 層 | 選擇 |
 |---|---|
-| 前端 | Expo / React Native（**iOS**） |
+| 前端 | Expo SDK **54** / React Native（**iOS**） |
 | 地圖 | `react-native-maps`（Apple Maps） |
 | 後端 | FastAPI |
 | DB | PostgreSQL + PostGIS（本機 / Docker） |
 | 匯入 | Python script：CSV → 清洗 → NLSC geocode → upsert |
-| Geocode | **免費 NLSC** + `geocode_cache` |
+| Geocode | **免費 NLSC** + `geocode_cache`（本機 demo 可先用 `--provider demo`） |
+
+---
+
+## 本機 Demo 怎麼跑（逐步指令）
+
+先開 **Docker Desktop**，再開 **3 個終端機**依序執行。  
+**注意（zsh）：不要貼含 `~500` 的註解行**；zsh 會把 `~500` 當成「使用者 500 的家目錄」而報錯 `no such user or named directory: 500`。下列指令請只複製程式碼區塊內的命令。
+
+### Step 1 — 資料庫（PostGIS）
+
+```bash
+cd /Users/leo_1/Documents/GitHub/superpredict/app/app2
+docker compose up -d
+```
+
+確認容器起來：`docker compose ps`（應看到 `kaohsiung-price-db` healthy / running）。
+
+### Step 2 — 後端（venv → 安裝 → 匯入 → API）
+
+在**同一個終端機**依序執行（每次只跑一段）：
+
+```bash
+cd /Users/leo_1/Documents/GitHub/superpredict/app/app2/backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+匯入 CSV（demo geocode：行政區中心 + 穩定抖動；**不需**先申請 NLSC/TGOS）：
+
+```bash
+source .venv/bin/activate
+python scripts/import_csv.py --csv ../115-1-K.csv --limit 500 --provider demo
+```
+
+看到 `Done: {...}` / `Finished at ...` 後，啟動 API（**此終端機保持開著**）：
+
+```bash
+source .venv/bin/activate
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+瀏覽器檢查：http://127.0.0.1:8000/health → 應為 `{"status":"ok"}`。
+
+可選之後換成真實門牌座標：申請 TGOS「批次門牌地址比對」（免費、一次匯入），或進階 `APPID`/`APIKEY` 後設 `GEOCODE_PROVIDER=nlsc` 再重跑 import。簡單 UI demo **不必申請**。
+
+### Step 3 — iOS App（Expo）
+
+開**新終端機**（API 那個不要關）：
+
+```bash
+cd /Users/leo_1/Documents/GitHub/superpredict/app/app2/mobile
+npm install
+EXPO_PUBLIC_FORCE_LAT=22.6273 EXPO_PUBLIC_FORCE_LNG=120.3014 npm run ios
+```
+
+- 模擬器通常不在高雄，所以用 `EXPO_PUBLIC_FORCE_LAT/LNG` 強制前金一帶座標，否則會被「僅支援高雄市」擋住。  
+- 或改在 Simulator：Features → Location → Custom Location（高雄）。  
+- 真機：把 API 指到 Mac LAN IP，例如  
+  `EXPO_PUBLIC_API_URL=http://192.168.x.x:8000 EXPO_PUBLIC_FORCE_LAT=22.6273 EXPO_PUBLIC_FORCE_LNG=120.3014 npm run start`
+
+快捷腳本（同目錄）：`./run.sh db` / `./run.sh import` / `./run.sh api` / `./run.sh ios`。
 
 ---
 
