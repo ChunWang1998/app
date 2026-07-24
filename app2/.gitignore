@@ -1,9 +1,0 @@
-backend/.venv/
-backend/.env
-**/__pycache__/
-**/*.pyc
-mobile/node_modules/
-mobile/.expo/
-mobile/dist/
-.DS_Store
-*.log
