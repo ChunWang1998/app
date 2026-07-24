@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "高雄附近房價",
+    "slug": "kaohsiung-nearby-price",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F3EFE7"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.superpredict.kaohsiungprice",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "需要定位才能顯示你附近的實價登錄成交點。拒絕定位將無法使用本 App。",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "需要定位才能顯示你附近的實價登錄成交點。"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F3EFE7",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      "package": "com.superpredict.kaohsiungprice"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
