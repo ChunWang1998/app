@@ -16,7 +16,8 @@
       "bundleIdentifier": "com.superpredict.toiletgo",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "需要你的位置來找出附近有廁所的超商／咖啡廳。",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["comgooglemaps"]
       }
     },
     "android": {

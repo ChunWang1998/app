@@ -31,12 +31,16 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-function mapsUrl(place) {
-  const label = encodeURIComponent(`${place.type}${place.name ? ` ${place.name}` : ''} ${place.地址}`);
-  if (Platform.OS === 'ios') {
-    return `http://maps.apple.com/?daddr=${place.lat},${place.lng}&q=${label}`;
+async function openGoogleMaps(place) {
+  const dest = `${place.lat},${place.lng}`;
+  const appUrl = `comgooglemaps://?daddr=${dest}&directionsmode=walking`;
+  const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=walking`;
+  try {
+    const canOpenApp = await Linking.canOpenURL(appUrl);
+    await Linking.openURL(canOpenApp ? appUrl : webUrl);
+  } catch {
+    await Linking.openURL(webUrl);
   }
-  return `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}&travelmode=walking`;
 }
 
 export default function MapScreen({ onBack }) {
@@ -206,7 +210,7 @@ export default function MapScreen({ onBack }) {
               <TouchableOpacity
                 style={styles.navBtn}
                 activeOpacity={0.85}
-                onPress={() => Linking.openURL(mapsUrl(place))}
+                onPress={() => openGoogleMaps(place)}
               >
                 <Text style={styles.navText}>導航</Text>
               </TouchableOpacity>
