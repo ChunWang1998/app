@@ -9,6 +9,11 @@
 前端：`mobile/`（Expo，對齊 app1 的 `npm start` demo 流程）
 舊版 web demo 仍在 `web/`（可選）
 
+## 定位（MapScreen）
+- 先 `getLastKnownPositionAsync` 立刻出圖，再 `getCurrentPositionAsync`（Low accuracy + 約 6s timeout）精修
+- 地圖一定畫「我的位置」Marker（不只靠 `showsUserLocation`，避免 Web／模擬器看不到藍點）
+- 權限拒絕或定位失敗 → 改用高雄市中心示範座標
+
 # 資料來源
 可從 fetchData/ run 各個 python script 取得 json 到 data/ , 再集合到 dataSet.json
 admin 會定期去更新 dataSet.json 內容
@@ -105,7 +110,7 @@ for each slot:
 ```bash
 # 1) 抓資料
 python3 fetchData/get711List.py
-python3 fetchData/getLuisaList.py   # 可選
+python3 fetchData/getLuisaList.py
 
 # 2) 合併 → data/dataSet.json（並同步到 mobile/assets/ 與 web/public/）
 python3 fetchData/buildDataSet.py

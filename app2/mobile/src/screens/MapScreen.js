@@ -16,6 +16,20 @@ import { formatDistance, formatHours, nearestOpen } from '../lib/geo';
 import places from '../../assets/dataSet.json';
 
 const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 }; // Kaohsiung
+const LOCATE_TIMEOUT_MS = 6000;
+
+function coordsFrom(loc) {
+  return { lat: loc.coords.latitude, lng: loc.coords.longitude };
+}
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('location timeout')), ms);
+    }),
+  ]);
+}
 
 function mapsUrl(place) {
   const label = encodeURIComponent(`${place.type}${place.name ? ` ${place.name}` : ''} ${place.地址}`);
@@ -46,15 +60,33 @@ export default function MapScreen({ onBack }) {
           setStatus('denied');
           return;
         }
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
+
+        // Show map ASAP from last-known cache (often instant).
+        const last = await Location.getLastKnownPositionAsync();
         if (!alive) return;
-        setUserPos({
-          lat: loc.coords.latitude,
-          lng: loc.coords.longitude,
-        });
-        setStatus('ready');
+        if (last) {
+          setUserPos(coordsFrom(last));
+          setStatus('ready');
+        }
+
+        try {
+          const loc = await withTimeout(
+            Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Low,
+            }),
+            LOCATE_TIMEOUT_MS,
+          );
+          if (!alive) return;
+          setUserPos(coordsFrom(loc));
+          setStatus('ready');
+        } catch {
+          if (!alive) return;
+          // Keep last-known if we already have it; otherwise fall back.
+          if (!last) {
+            setUserPos(DEFAULT_CENTER);
+            setStatus('error');
+          }
+        }
       } catch {
         if (!alive) return;
         setUserPos(DEFAULT_CENTER);
@@ -123,13 +155,11 @@ export default function MapScreen({ onBack }) {
             showsUserLocation={status === 'ready'}
             showsMyLocationButton={false}
           >
-            {status !== 'ready' && (
-              <Marker
-                coordinate={{ latitude: userPos.lat, longitude: userPos.lng }}
-                title="示範位置"
-                pinColor={colors.accent}
-              />
-            )}
+            <Marker
+              coordinate={{ latitude: userPos.lat, longitude: userPos.lng }}
+              title={status === 'ready' ? '我的位置' : '示範位置'}
+              pinColor={colors.accent}
+            />
             {nearest.map((place, index) => (
               <Marker
                 key={place.id}
