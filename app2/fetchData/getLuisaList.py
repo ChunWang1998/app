@@ -39,6 +39,9 @@ COUNTIES = [
     "連江縣",
 ]
 
+# temporary: only Kaohsiung (remove this line to scrape all counties)
+COUNTIES = [c for c in COUNTIES if c == "高雄市"]
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
