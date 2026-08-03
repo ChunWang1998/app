@@ -61,17 +61,16 @@ export default function GameScreen({
     [onProgressChange],
   );
 
-  const resetLocalForLevel = useCallback((levelIndex, completedList) => {
-    const done = completedList.includes(levelIndex);
-    const question = questions[levelIndex];
-    setValue(done ? question.answer : '');
-    setStatus(done ? 'solved' : 'idle');
+  // 切換關卡時一律清空輸入，不還原已答過的答案
+  const resetLocalForLevel = useCallback(() => {
+    setValue('');
+    setStatus('idle');
     setShowHint(false);
   }, []);
 
-  // 首次進入時依進度還原該關狀態
+  // 首次進入時清空輸入欄
   useEffect(() => {
-    resetLocalForLevel(initialIndex, initialCompleted);
+    resetLocalForLevel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -81,7 +80,7 @@ export default function GameScreen({
       if (!isLevelUnlocked(nextIndex, completedRef.current)) return;
       if (nextIndex === indexRef.current) return;
       setIndex(nextIndex);
-      resetLocalForLevel(nextIndex, completedRef.current);
+      resetLocalForLevel();
       persist(nextIndex, completedRef.current);
     },
     [total, resetLocalForLevel, persist],
@@ -160,7 +159,10 @@ export default function GameScreen({
     }
   };
 
-  const canGoNext = solved && (isLast || isLevelUnlocked(index + 1, completed));
+  // 本關剛答對，或先前已通關，都可進下一關（回上一關時輸入已清空，不必重答才能離開）
+  const canGoNext =
+    (solved || completed.includes(index)) &&
+    (isLast || isLevelUnlocked(index + 1, completed));
 
   return (
     <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={styles.fill}>
