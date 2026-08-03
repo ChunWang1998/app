@@ -122,14 +122,21 @@ export default function GameScreen({
     [goToLevel, unlockedNeighbors],
   );
 
+  const acceptedAnswers = useMemo(
+    () => q.answers || [q.answer],
+    [q.answer, q.answers],
+  );
+
   const boxes = useMemo(() => {
     const chars = Array.from(q.answer);
-    const source = solved ? q.answer : value;
+    const source = solved ? value || q.answer : value;
     return chars.map((_, i) => Array.from(source)[i] || '');
   }, [q.answer, value, solved]);
 
   const check = async () => {
-    if (value.trim() === q.answer) {
+    const guess = value.trim();
+    if (acceptedAnswers.includes(guess)) {
+      setValue(guess);
       setStatus('solved');
       const nextCompleted = completed.includes(index)
         ? completed
@@ -173,6 +180,10 @@ export default function GameScreen({
                 <Text style={styles.appSubtitle}>FUN WORD GUESSING</Text>
               </View>
               <View style={styles.headerMeta}>
+                <View style={styles.typeCol}>
+                  <Text style={styles.typeLabel}>詞性</Text>
+                  <Text style={styles.typeValue}>{q.type || '名詞'}</Text>
+                </View>
                 <View
                   style={[
                     styles.difficultyCol,
@@ -240,7 +251,7 @@ export default function GameScreen({
               )}
               {solved && (
                 <Text style={[styles.feedback, styles.feedbackOk]}>
-                  答對了！這是「{q.answer}」🎉
+                  答對了！這是「{value || q.answer}」🎉
                 </Text>
               )}
 
@@ -317,6 +328,28 @@ const styles = StyleSheet.create({
   headerMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  typeCol: {
+    minWidth: 44,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: radius.inner,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+    backgroundColor: '#EFEAF6',
+  },
+  typeLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: 1,
+  },
+  typeValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.textDark,
   },
   difficultyCol: {
     minWidth: 40,
