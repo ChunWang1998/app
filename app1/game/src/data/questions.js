@@ -10,7 +10,7 @@ export const questions = [
     hintText: '這是一隻大象',
     guessImage: require('../../assets/pictures/1-2.jpg'),
     answer: '相機',
-    hint: '長得像雞的大象……像雞？',
+    hint: '長得像雞的大象',
   },
   {
     id: 2,
@@ -20,7 +20,7 @@ export const questions = [
     hintText: '這是一個囚犯',
     guessImage: require('../../assets/pictures/2-2.jpg'),
     answer: '籃球',
-    hint: '全身變藍的囚犯——藍囚',
+    hint: '全身變藍的囚犯',
   },
   {
     id: 3,
@@ -30,7 +30,7 @@ export const questions = [
     hintText: '這是一隻襪子',
     guessImage: require('../../assets/pictures/3-2.jpg'),
     answer: '青蛙',
-    hint: '比羽毛還輕的襪子——輕襪',
+    hint: '比羽毛還輕的襪子',
   },
   {
     id: 4,
@@ -40,7 +40,7 @@ export const questions = [
     hintText: '這是一雙靴子',
     guessImage: require('../../assets/pictures/4-2.jpg'),
     answer: '學校',
-    hint: '笑得很開心的靴子——笑靴',
+    hint: '笑得很開心的靴子',
   },
   {
     id: 5,
@@ -50,7 +50,7 @@ export const questions = [
     hintText: '這是一把劍',
     guessImage: require('../../assets/pictures/5-2.jpg'),
     answer: '健身',
-    hint: '劍深深插進土裡——劍深',
+    hint: '劍深深插進土裡',
   },
   {
     id: 6,
@@ -60,7 +60,7 @@ export const questions = [
     hintText: '這是一隻熊',
     guessImage: require('../../assets/pictures/6-2.jpg'),
     answer: '高雄',
-    hint: '站得比人還高的熊——高熊',
+    hint: '站得比人還高的熊',
   },
   {
     id: 7,
@@ -70,7 +70,7 @@ export const questions = [
     hintText: '這是台灣',
     guessImage: require('../../assets/pictures/7-2.jpg'),
     answer: '颱風',
-    hint: '台灣瘋掉了、眼睛轉圈圈——台瘋',
+    hint: '台灣瘋掉了、眼睛轉圈圈',
   },
   {
     id: 8,
@@ -80,7 +80,7 @@ export const questions = [
     hintText: '兩個人在擁抱',
     guessImage: require('../../assets/pictures/8-2.jpg'),
     answer: '報紙',
-    hint: '有人阻止擁抱——抱止',
+    hint: '有人阻止擁抱',
   },
   {
     id: 9,
@@ -90,7 +90,7 @@ export const questions = [
     hintText: '這是一個柿子',
     guessImage: require('../../assets/pictures/9-2.jpg'),
     answer: '巴士',
-    hint: '八個同樣的柿子——八柿',
+    hint: '八個同樣的柿子',
   },
   {
     id: 10,
@@ -100,7 +100,7 @@ export const questions = [
     hintText: '這是一隻狐狸',
     guessImage: require('../../assets/pictures/10-2.jpg'),
     answer: '胡說',
-    hint: '狐狸在說話——狐說',
+    hint: '狐狸在說話',
   },
   {
     id: 11,
@@ -110,7 +110,7 @@ export const questions = [
     hintText: '這是一個叉子',
     guessImage: require('../../assets/pictures/11-2.jpg'),
     answer: '茶葉',
-    hint: '開心比 YA 的叉子——叉耶',
+    hint: '開心比 YA 的叉子',
   },
   {
     id: 12,
@@ -120,7 +120,7 @@ export const questions = [
     hintText: '這是一個蛹',
     guessImage: require('../../assets/pictures/12-2.jpg'),
     answer: '游泳',
-    hint: '被潑了一身油的蛹——油蛹',
+    hint: '被潑了一身油的蛹',
   },
   {
     id: 13,
@@ -130,7 +130,7 @@ export const questions = [
     hintText: '這是一隻羊',
     guessImage: require('../../assets/pictures/13-2.jpg'),
     answer: '太陽',
-    hint: '在泰國的羊——泰羊',
+    hint: '在泰國的羊',
   },
   {
     id: 14,
@@ -140,7 +140,7 @@ export const questions = [
     hintText: '這是一個大便',
     guessImage: require('../../assets/pictures/14-2.jpg'),
     answer: '天使',
-    hint: '有人在舔大便——舔屎',
+    hint: '有人在舔大便',
   },
   {
     id: 15,
@@ -150,7 +150,7 @@ export const questions = [
     hintText: '這是一隻槳',
     guessImage: require('../../assets/pictures/15-2.jpg'),
     answer: '獎狀',
-    hint: '用槳去撞牆壁——槳撞',
+    hint: '用槳去撞牆壁',
   },
   {
     id: 16,
@@ -160,7 +160,7 @@ export const questions = [
     hintText: '這是一把斧頭',
     guessImage: require('../../assets/pictures/16-2.jpg'),
     answer: '豆腐',
-    hint: '一直在逗弄斧頭——逗斧',
+    hint: '一直在逗弄斧頭',
   },
   {
     id: 17,
@@ -170,7 +170,7 @@ export const questions = [
     hintText: '這是一個外國人',
     guessImage: require('../../assets/pictures/17-2.jpg'),
     answer: '洋芋片',
-    hint: '外國人遇到詐騙了——洋遇騙',
+    hint: '外國人遇到詐騙了',
   },
   {
     id: 18,
@@ -180,7 +180,7 @@ export const questions = [
     hintText: '這是一個奴婢',
     guessImage: require('../../assets/pictures/18-2.jpg'),
     answer: 'Snoopy',
-    hint: '奴婢死掉、靈魂升天——死奴婢',
+    hint: '奴婢死掉、靈魂升天',
   },
   {
     id: 19,
@@ -190,7 +190,7 @@ export const questions = [
     hintText: '一群細胞（cell）',
     guessImage: require('../../assets/pictures/19-2.jpg'),
     answer: 'Excel',
-    hint: '一群 cell 變成一個 cell——X cell',
+    hint: '一群 cell 變成一個 cell',
   },
   {
     id: 20,
@@ -200,7 +200,7 @@ export const questions = [
     hintText: '這是一隻老鼠',
     guessImage: require('../../assets/pictures/20-2.jpg'),
     answer: '不好意思',
-    hint: '很有禮貌、鞠躬的老鼠——有禮鼠',
+    hint: '很有禮貌、鞠躬的老鼠',
   },
   {
     id: 21,
@@ -210,7 +210,7 @@ export const questions = [
     hintText: '一個人問：什麼是世俗',
     guessImage: require('../../assets/pictures/21-2.jpg'),
     answer: '四十四隻石獅子',
-    hint: '問什麼是「世俗」，對方空白……世＋空俗？',
+    hint: '問什麼是「世俗」，對方空白',
   },
   {
     id: 22,
@@ -220,7 +220,7 @@ export const questions = [
     hintText: '這是火影忍者的小李',
     guessImage: require('../../assets/pictures/22-2.jpg'),
     answer: '伴手禮',
-    hint: '小李的一隻手變成一半——半手李',
+    hint: '小李的一隻手變成一半',
   },
   {
     id: 23,
@@ -230,7 +230,7 @@ export const questions = [
     hintText: '這是一匹狼',
     guessImage: require('../../assets/pictures/23-2.jpg'),
     answer: '蟑螂',
-    hint: '很髒的狼——髒狼',
+    hint: '很髒的狼',
   },
   {
     id: 24,
@@ -240,7 +240,7 @@ export const questions = [
     hintText: '這是一隻大象',
     guessImage: require('../../assets/pictures/24-2.jpg'),
     answer: '方向',
-    hint: '方型的大象——方象',
+    hint: '方型的大象',
   },
   {
     id: 25,
@@ -250,7 +250,7 @@ export const questions = [
     hintText: '這是一隻咖波',
     guessImage: require('../../assets/pictures/25-2.jpg'),
     answer: '新加坡',
-    hint: '全新的咖波——新咖波',
+    hint: '全新的咖波',
   },
   {
     id: 26,
@@ -260,7 +260,7 @@ export const questions = [
     hintText: '一家人（一個人在房子前面）',
     guessImage: require('../../assets/pictures/26-2.jpg'),
     answer: '八加九',
-    hint: '八瓶酒在八個房子前——八家酒',
+    hint: '八瓶酒在八個房子前',
   },
   {
     id: 28,
@@ -270,7 +270,7 @@ export const questions = [
     hintText: '有兩個弟弟',
     guessImage: require('../../assets/pictures/28-2.jpg'),
     answer: '地獄',
-    hint: '兩個弟弟相遇了——弟遇弟',
+    hint: '兩個弟弟相遇了',
   },
   {
     id: 29,
@@ -280,7 +280,7 @@ export const questions = [
     hintText: '一匹驢子',
     guessImage: require('../../assets/pictures/29-2.jpg'),
     answer: '旅館',
-    hint: '驢子變成管狀——驢管',
+    hint: '驢子變成管狀',
   },
   {
     id: 30,
@@ -290,7 +290,7 @@ export const questions = [
     hintText: '一隻 iPhone',
     guessImage: require('../../assets/pictures/30-2.jpg'),
     answer: '鳳梨',
-    hint: 'iPhone 離開一個人——鳳離',
+    hint: 'iPhone 離開一個人',
   },
   {
     id: 31,
@@ -300,7 +300,7 @@ export const questions = [
     hintText: '有一個法師',
     guessImage: require('../../assets/pictures/31-2.jpg'),
     answer: '髮圈',
-    hint: '很多法師圍成一圈——法圈',
+    hint: '很多法師圍成一圈',
   },
   {
     id: 32,
@@ -310,7 +310,7 @@ export const questions = [
     hintText: '一個士兵',
     guessImage: require('../../assets/pictures/32-2.jpg'),
     answer: '冰島',
-    hint: '士兵跌倒了——兵倒',
+    hint: '士兵跌倒了',
   },
   {
     id: 33,
@@ -320,7 +320,7 @@ export const questions = [
     hintText: '一個人往西邊走',
     guessImage: require('../../assets/pictures/33-2.jpg'),
     answer: '毛澤東',
-    hint: '全身長毛改往東邊走——毛＋往東',
+    hint: '全身長毛改往東邊走',
   },
   {
     id: 34,
@@ -330,7 +330,7 @@ export const questions = [
     hintText: '有紅白綠藍四個顏色方塊',
     guessImage: require('../../assets/pictures/34-2.jpg'),
     answer: '宜蘭',
-    hint: '藍色方塊往下面移動——藍下',
+    hint: '藍色方塊往下面移動',
   },
   {
     id: 35,
@@ -340,7 +340,7 @@ export const questions = [
     hintText: '有一隻猩猩',
     guessImage: require('../../assets/pictures/35-2.jpg'),
     answer: '流星',
-    hint: '猩猩要走了被人叫住——留猩',
+    hint: '猩猩要走了被人叫住',
   },
   {
     id: 36,
@@ -350,7 +350,7 @@ export const questions = [
     hintText: '有一間店',
     guessImage: require('../../assets/pictures/36-2.jpg'),
     answer: '台積電',
-    hint: '很多人在店裡抬著一隻雞——抬雞店',
+    hint: '很多人在店裡抬著一隻雞',
   },
   {
     id: 37,
@@ -360,7 +360,7 @@ export const questions = [
     hintText: '有一個小丸子',
     guessImage: require('../../assets/pictures/37-2.jpg'),
     answer: '玩具',
-    hint: '很多小丸子——玩（丸）具',
+    hint: '很多小丸子',
   },
   {
     id: 38,
@@ -370,7 +370,7 @@ export const questions = [
     hintText: '有一個寶寶',
     guessImage: require('../../assets/pictures/38-2.jpg'),
     answer: '寶特瓶',
-    hint: '一排成年人中間有個很平很扁的寶寶——扁寶寶',
+    hint: '一排成年人中間有個很平很扁的寶寶',
   },
   {
     id: 39,
@@ -380,7 +380,7 @@ export const questions = [
     hintText: '有一頂帽子',
     guessImage: require('../../assets/pictures/39-2.jpg'),
     answer: '冒失',
-    hint: '帽子被弄濕了——帽濕',
+    hint: '帽子被弄濕了',
   },
   {
     id: 40,
@@ -390,7 +390,7 @@ export const questions = [
     hintText: '一隻雞',
     guessImage: require('../../assets/pictures/40-2.jpg'),
     answer: '飲水機',
-    hint: '雞在喝水——飲水雞',
+    hint: '雞在喝水',
   },
   {
     id: 41,
@@ -401,7 +401,7 @@ export const questions = [
     guessImage: require('../../assets/pictures/41-2.jpg'),
     answer: '聖靈',
     answers: ['聖靈', '森林'],
-    hint: '0 在很深的地道裡——深零／深林',
+    hint: '0 在很深的地道裡',
   },
   {
     id: 42,
@@ -411,7 +411,7 @@ export const questions = [
     hintText: '這是一隻老鼠',
     guessImage: require('../../assets/pictures/42-2.jpg'),
     answer: '蕃薯',
-    hint: '老鼠被翻過來——翻鼠',
+    hint: '老鼠被翻過來',
   },
   {
     id: 43,
@@ -421,7 +421,7 @@ export const questions = [
     hintText: '這是一個母親',
     guessImage: require('../../assets/pictures/43-2.jpg'),
     answer: '保母',
-    hint: '孩子在保護母親——保母',
+    hint: '孩子在保護母親',
   },
   {
     id: 44,
@@ -431,7 +431,7 @@ export const questions = [
     hintText: '這是一個榴槤',
     guessImage: require('../../assets/pictures/44-2.jpg'),
     answer: '流連忘返',
-    hint: '榴槤忘記回家——榴連忘返',
+    hint: '榴槤忘記回家',
   },
   {
     id: 45,
@@ -441,7 +441,7 @@ export const questions = [
     hintText: '這是一個香蕉',
     guessImage: require('../../assets/pictures/45-2.jpg'),
     answer: '四目相交',
-    hint: '香蕉有四個眼睛——四目＋相交',
+    hint: '香蕉有四個眼睛',
   },
   {
     id: 46,
@@ -451,7 +451,7 @@ export const questions = [
     hintText: '這是一個柚子',
     guessImage: require('../../assets/pictures/46-2.jpg'),
     answer: '欲言又止',
-    hint: '柚子是大預言師卻說不出口——欲言柚止',
+    hint: '柚子是大預言師卻說不出口',
   },
   {
     id: 47,
@@ -461,7 +461,7 @@ export const questions = [
     hintText: '這是一隻鴨子',
     guessImage: require('../../assets/pictures/47-2.jpg'),
     answer: '南瓜',
-    hint: '鴨子叫不出來——難呱',
+    hint: '鴨子叫不出來',
   },
   {
     id: 48,
@@ -471,7 +471,7 @@ export const questions = [
     hintText: '這是一隻雞',
     guessImage: require('../../assets/pictures/48-2.jpg'),
     answer: '司機',
-    hint: '雞被撕成兩半——撕雞',
+    hint: '雞被撕成兩半',
   },
   {
     id: 49,
@@ -481,7 +481,7 @@ export const questions = [
     hintText: '這是瘦子',
     guessImage: require('../../assets/pictures/49-2.jpg'),
     answer: '接受',
-    hint: '從樓上丟瘦子下來被接住——接瘦',
+    hint: '從樓上丟瘦子下來被接住',
   },
   {
     id: 50,
@@ -491,7 +491,7 @@ export const questions = [
     hintText: '這是一個 5',
     guessImage: require('../../assets/pictures/50-2.jpg'),
     answer: '端午',
-    hint: '盤子端著 5——端五',
+    hint: '盤子端著 5',
   },
   {
     id: 51,
@@ -501,6 +501,6 @@ export const questions = [
     hintText: '這是一隻猴子',
     guessImage: require('../../assets/pictures/51-2.jpg'),
     answer: '喉嚨',
-    hint: '猴子變成龍——猴龍',
+    hint: '猴子變成龍',
   },
 ];
