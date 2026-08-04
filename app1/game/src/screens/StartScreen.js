@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
 import Mascot from '../components/Mascot';
+import { RELEASED_LEVEL_COUNT } from '../data/questions';
 
 export default function StartScreen({ onStart }) {
   return (
@@ -10,10 +11,13 @@ export default function StartScreen({ onStart }) {
       <View style={styles.container}>
         <View style={styles.hero}>
           <Mascot size={110} color="#B9E3A8" happy />
-          <Text style={styles.title}>看圖猜字</Text>
-          <Text style={styles.subtitle}>FUN WORD GUESSING</Text>
+          <Text style={styles.title}>諧音猜猜</Text>
+          <Text style={styles.subtitle}>SoundAlike</Text>
           <Text style={styles.motto}>嘿對 認真你就輸了：）</Text>
           <Text style={styles.tagline}>看圖猜諧音梗，一起動動腦！</Text>
+          <Text style={styles.trialNote}>
+            試玩開放前 {RELEASED_LEVEL_COUNT} 關，後續將持續更新
+          </Text>
         </View>
 
         <View style={styles.card}>
@@ -50,7 +54,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.textMuted,
-    letterSpacing: 3,
+    letterSpacing: 2,
     marginTop: 4,
   },
   motto: {
@@ -61,6 +65,15 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   tagline: { fontSize: 15, color: colors.textDark, marginTop: 8 },
+  trialNote: {
+    marginTop: 12,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    maxWidth: 280,
+  },
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.card,

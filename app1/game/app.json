@@ -1,19 +1,20 @@
 {
   "expo": {
-    "name": "game",
-    "slug": "game",
+    "name": "諧音猜猜",
+    "slug": "soundalike",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.superpredict.game",
+      "bundleIdentifier": "com.soundalike.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
+      "package": "com.soundalike.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

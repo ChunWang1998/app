@@ -65,7 +65,6 @@ export default function GameScreen({
   const q = questions[index];
   const solved = status === 'solved';
   const isLast = index === total - 1;
-  const allDone = completed.length >= total;
   // card padding 16×2 + scroll padding 18×2
   const cardInnerWidth = windowWidth - 36 - 32;
   const slotMetrics = useMemo(
@@ -203,8 +202,8 @@ export default function GameScreen({
           >
             <View style={styles.header}>
               <View>
-                <Text style={styles.appTitle}>看圖猜字</Text>
-                <Text style={styles.appSubtitle}>FUN WORD GUESSING</Text>
+                <Text style={styles.appTitle}>諧音猜猜</Text>
+                <Text style={styles.appSubtitle}>SoundAlike</Text>
               </View>
               <View style={styles.headerMeta}>
                 <View style={styles.typeCol}>
@@ -346,9 +345,16 @@ export default function GameScreen({
                 disabled={!canGoNext}
               >
                 <Text style={[styles.nextText, !canGoNext && styles.nextTextDisabled]}>
-                  {isLast ? (allDone ? '再玩一次' : '下一關') : '下一關'}
+                  {isLast ? '再玩一次' : '下一關'}
                 </Text>
               </TouchableOpacity>
+
+              {isLast && (solved || completed.includes(index)) && (
+                <View style={styles.trialBanner}>
+                  <Text style={styles.trialTitle}>目前為試玩階段</Text>
+                  <Text style={styles.trialBody}>後續將持續更新，敬請期待更多關卡！</Text>
+                </View>
+              )}
             </View>
 
             <Text style={styles.footer}>💬 遇到困難？分享給好友幫忙猜看吧！</Text>
@@ -569,5 +575,26 @@ const styles = StyleSheet.create({
   nextBtnDisabled: { backgroundColor: colors.disabled },
   nextText: { color: '#fff', fontWeight: '800', fontSize: 16, letterSpacing: 2 },
   nextTextDisabled: { color: colors.disabledText },
+  trialBanner: {
+    marginTop: 14,
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.inner,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  trialTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.accent,
+    marginBottom: 4,
+  },
+  trialBody: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textDark,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
   footer: { textAlign: 'center', color: colors.textMuted, fontSize: 12, marginTop: 4 },
 });

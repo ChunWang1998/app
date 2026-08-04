@@ -1,6 +1,6 @@
 # app
 
-## app1 — 諧音梗遊戲（Expo）
+## app1 — 諧音猜猜 / SoundAlike（Expo）
 
 ```bash
 cd app1/game
@@ -10,6 +10,8 @@ npm start
 Expo 啟動後：`i` iOS / `a` Android / `w` Web，或用 Expo Go 掃 QR。
 
 也可：`npm run ios` / `npm run android` / `npm run web`
+
+上架 checklist 見 `app1/NEXT_STEPS.md`。
 
 ---
 
