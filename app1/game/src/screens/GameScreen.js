@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   PanResponder,
+  useWindowDimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
@@ -19,6 +20,23 @@ import { questions } from '../data/questions';
 import { isLevelUnlocked, saveProgress } from '../storage/progress';
 
 const SWIPE_THRESHOLD = 56;
+
+/** Scale blank slots so long answers stay inside the card. */
+function getCharSlotMetrics(charCount, contentWidth) {
+  const leadApprox = 56; // 「這是」
+  const sidePad = 8;
+  const available = Math.max(120, contentWidth - leadApprox - sidePad);
+  const gap = charCount <= 4 ? 12 : charCount <= 6 ? 8 : 4;
+  const slot = Math.min(40, Math.floor((available - gap * charCount) / Math.max(charCount, 1)));
+  const width = Math.max(22, slot);
+  const fontSize = Math.min(30, Math.max(16, width - 8));
+  return {
+    width,
+    fontSize,
+    lineWidth: Math.max(16, width - 6),
+    marginHorizontal: gap / 2,
+  };
+}
 
 const DIFFICULTY_STYLE = {
   易: { bg: colors.greenSoft, text: colors.green },
@@ -43,10 +61,17 @@ export default function GameScreen({
   indexRef.current = index;
   completedRef.current = completed;
 
+  const { width: windowWidth } = useWindowDimensions();
   const q = questions[index];
   const solved = status === 'solved';
   const isLast = index === total - 1;
   const allDone = completed.length >= total;
+  // card padding 16×2 + scroll padding 18×2
+  const cardInnerWidth = windowWidth - 36 - 32;
+  const slotMetrics = useMemo(
+    () => getCharSlotMetrics(Array.from(q.answer).length, cardInnerWidth),
+    [q.answer, cardInnerWidth],
+  );
 
   const persist = useCallback(
     async (nextIndex, nextCompleted) => {
@@ -213,8 +238,12 @@ export default function GameScreen({
 
             <View style={styles.card}>
               <View style={styles.cardHead}>
-                <Text style={styles.cardTitle}>🔖 提示圖片</Text>
-                <Text style={styles.cardTag}>HINT IMAGE</Text>
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  🔖 提示圖片
+                </Text>
+                <Text style={styles.cardTag} numberOfLines={1}>
+                  HINT IMAGE
+                </Text>
               </View>
               <Image source={q.hintImage} style={styles.image} resizeMode="cover" />
               <Text style={styles.caption}>{q.hintText}</Text>
@@ -222,7 +251,9 @@ export default function GameScreen({
 
             <View style={styles.card}>
               <View style={styles.cardHead}>
-                <Text style={styles.cardTitle}>🖼 猜測圖片</Text>
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  🖼 猜測圖片
+                </Text>
                 <TouchableOpacity
                   style={styles.hintBtn}
                   activeOpacity={0.8}
@@ -239,9 +270,33 @@ export default function GameScreen({
               <View style={styles.answerRow}>
                 <Text style={styles.answerLead}>這是</Text>
                 {boxes.map((ch, i) => (
-                  <View key={i} style={styles.charSlot}>
-                    <Text style={styles.charText}>{ch}</Text>
-                    <View style={styles.charLine} />
+                  <View
+                    key={i}
+                    style={[
+                      styles.charSlot,
+                      {
+                        width: slotMetrics.width,
+                        marginHorizontal: slotMetrics.marginHorizontal,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.charText,
+                        {
+                          fontSize: slotMetrics.fontSize,
+                          height: slotMetrics.fontSize + 10,
+                        },
+                      ]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.6}
+                    >
+                      {ch}
+                    </Text>
+                    <View
+                      style={[styles.charLine, { width: slotMetrics.lineWidth }]}
+                    />
                   </View>
                 ))}
               </View>
@@ -320,16 +375,21 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
     paddingHorizontal: 4,
+    gap: 8,
   },
   appTitle: { fontSize: 26, fontWeight: '800', color: colors.textDark, letterSpacing: 2 },
   appSubtitle: { fontSize: 11, fontWeight: '700', color: colors.textMuted, letterSpacing: 2 },
   headerMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 1,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
   },
   typeCol: {
     minWidth: 44,
@@ -403,8 +463,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  cardTitle: { fontSize: 14, fontWeight: '800', color: colors.textDark },
-  cardTag: { fontSize: 11, fontWeight: '700', color: colors.textMuted, letterSpacing: 1 },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.textDark,
+    flexShrink: 1,
+    marginRight: 8,
+  },
+  cardTag: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 1,
+    flexShrink: 0,
+  },
   image: { width: '100%', height: 170, borderRadius: radius.inner, backgroundColor: '#EFEAF6' },
   caption: {
     textAlign: 'center',
@@ -412,12 +484,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textDark,
     marginTop: 12,
+    paddingHorizontal: 4,
+    flexShrink: 1,
   },
   hintBtn: {
     backgroundColor: colors.hintYellowSoft,
     borderRadius: radius.pill,
     paddingVertical: 5,
     paddingHorizontal: 12,
+    flexShrink: 0,
   },
   hintBtnText: { color: colors.hintYellow, fontWeight: '800', fontSize: 12 },
   hintReveal: {
@@ -426,18 +501,38 @@ const styles = StyleSheet.create({
     color: colors.hintYellow,
     fontWeight: '700',
     fontSize: 14,
+    paddingHorizontal: 4,
   },
   answerRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'flex-end',
     justifyContent: 'center',
     marginBottom: 6,
   },
-  answerLead: { fontSize: 22, fontWeight: '800', color: colors.textDark, marginRight: 8, marginBottom: 6 },
-  charSlot: { alignItems: 'center', marginHorizontal: 6, width: 40 },
-  charText: { fontSize: 30, fontWeight: '800', color: colors.accent, height: 40 },
-  charLine: { width: 34, height: 4, borderRadius: 2, backgroundColor: colors.line, marginTop: 2 },
-  feedback: { textAlign: 'center', fontSize: 14, fontWeight: '700', marginTop: 6, marginBottom: 4 },
+  answerLead: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.textDark,
+    marginRight: 8,
+    marginBottom: 6,
+  },
+  charSlot: { alignItems: 'center', marginBottom: 6 },
+  charText: {
+    fontWeight: '800',
+    color: colors.accent,
+    textAlign: 'center',
+    width: '100%',
+  },
+  charLine: { height: 4, borderRadius: 2, backgroundColor: colors.line, marginTop: 2 },
+  feedback: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 6,
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
   feedbackWrong: { color: colors.accent },
   feedbackOk: { color: colors.green },
   inputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
