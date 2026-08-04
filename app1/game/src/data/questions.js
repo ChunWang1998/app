@@ -493,4 +493,14 @@ export const questions = [
     answer: '喉嚨',
     hint: '猴子變成龍',
   },
+  {
+    id: 50,
+    type: '名詞',
+    difficulty: '易',
+    hintImage: require('../../assets/pictures/50-1.jpg'),
+    hintText: '這是一隻馬',
+    guessImage: require('../../assets/pictures/50-2.jpg'),
+    answer: '螞蟻',
+    hint: '馬變成椅子',
+  },
 ];
