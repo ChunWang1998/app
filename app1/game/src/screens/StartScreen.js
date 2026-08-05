@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
 import Mascot from '../components/Mascot';
-import { RELEASED_LEVEL_COUNT } from '../data/questions';
 
 export default function StartScreen({ onStart }) {
   return (
@@ -15,9 +14,6 @@ export default function StartScreen({ onStart }) {
           <Text style={styles.subtitle}>SoundAlike</Text>
           <Text style={styles.motto}>嘿對 認真你就輸了：）</Text>
           <Text style={styles.tagline}>看圖猜諧音梗，一起動動腦！</Text>
-          <Text style={styles.trialNote}>
-            試玩開放前 {RELEASED_LEVEL_COUNT} 關，後續將持續更新
-          </Text>
         </View>
 
         <View style={styles.card}>
@@ -65,15 +61,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   tagline: { fontSize: 15, color: colors.textDark, marginTop: 8 },
-  trialNote: {
-    marginTop: 12,
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 280,
-  },
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.card,

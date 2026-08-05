@@ -13,14 +13,17 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.superpredict.toiletgo",
+      "bundleIdentifier": "com.toiletgo.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "需要你的位置來找出附近有廁所的超商／咖啡廳。",
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["comgooglemaps"]
+        "LSApplicationQueriesSchemes": [
+          "comgooglemaps"
+        ]
       }
     },
     "android": {
+      "package": "com.toiletgo.app",
       "adaptiveIcon": {
         "backgroundColor": "#E8FBF7",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -29,9 +32,10 @@
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
-      ],
-      "package": "com.superpredict.toiletgo"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -43,6 +47,12 @@
           "locationWhenInUsePermission": "需要你的位置來找出附近有廁所的超商／咖啡廳。"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "bc9c70d1-9edd-4380-aad4-172c45eb4fca"
+      }
+    },
+    "owner": "leowang1105"
   }
 }

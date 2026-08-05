@@ -26,6 +26,8 @@ npm start
 
 用法同 app1（`i` / `a` / `w` 或 Expo Go）。
 
+上架 checklist 見 `app2/NEXT_STEPS.md`（EAS 已設定，bundle：`com.toiletgo.app`）。
+
 ### 更新資料（可選）
 
 ```bash

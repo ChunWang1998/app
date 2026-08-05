@@ -1,10 +1,7 @@
 // 諧音梗題庫：picture1 給提示、picture2 為諧音變體，answer 為諧音答案。
 // difficulty: '易' | '中' | '難'
 // 圖片放在 assets/pictures/，命名為 1-1.jpg / 1-2.jpg / 2-1.jpg ...
-// 1.0.0 試玩：只開放前 RELEASED_LEVEL_COUNT 關；完整題庫保留在 allQuestions。
-export const RELEASED_LEVEL_COUNT = 10;
-
-export const allQuestions = [
+export const questions = [
   {
     id: 1,
     type: '名詞',
@@ -508,6 +505,3 @@ export const allQuestions = [
     hint: '馬變成椅子',
   },
 ];
-
-/** 目前版本實際可玩的題目（App Store 1.0.0 = 前 10 關） */
-export const questions = allQuestions.slice(0, RELEASED_LEVEL_COUNT);
