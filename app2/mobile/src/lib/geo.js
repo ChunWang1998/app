@@ -73,6 +73,10 @@ export function haversineMeters(a, b) {
   return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(h));
 }
 
+/**
+ * Open places sorted by distance. Pass a larger `n` as a refill pool
+ * (e.g. 25) when left-swipe hides a card and the next suggestion is needed.
+ */
 export function nearestOpen(user, places, n = 3) {
   return places
     .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
@@ -83,6 +87,32 @@ export function nearestOpen(user, places, n = 3) {
     }))
     .sort((a, b) => a.distance - b.distance)
     .slice(0, n);
+}
+
+/** Unique place types present in the dataset (for Help copy). */
+export function uniqueTypes(places) {
+  const seen = new Set();
+  const out = [];
+  for (const p of places) {
+    if (!p?.type || seen.has(p.type)) continue;
+    seen.add(p.type);
+    out.push(p.type);
+  }
+  return out;
+}
+
+/** Rough city labels from Taiwan-style addresses (前 3 字，如「高雄市」). */
+export function uniqueCities(places) {
+  const seen = new Set();
+  const out = [];
+  for (const p of places) {
+    const addr = String(p?.地址 || '');
+    const city = addr.match(/^(.{2,3}[縣市])/)?.[1];
+    if (!city || seen.has(city)) continue;
+    seen.add(city);
+    out.push(city);
+  }
+  return out;
 }
 
 export function formatDistance(meters) {

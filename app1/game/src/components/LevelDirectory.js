@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform } from 'react-native';
 import { colors, radius } from '../theme';
 import { isLevelUnlocked } from '../storage/progress';
+import { playClick } from '../audio/sfx';
 
 export default function LevelDirectory({
   total,
@@ -46,7 +47,11 @@ export default function LevelDirectory({
               ]}
               activeOpacity={unlocked ? 0.85 : 1}
               disabled={!unlocked}
-              onPress={() => unlocked && onSelect(i)}
+              onPress={() => {
+                if (!unlocked) return;
+                playClick();
+                onSelect(i);
+              }}
             >
               <Text
                 style={[

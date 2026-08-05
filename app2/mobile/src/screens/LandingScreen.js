@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
+import WcFlag from '../components/WcFlag';
 
 export default function LandingScreen({ onStart }) {
   return (
@@ -10,15 +11,9 @@ export default function LandingScreen({ onStart }) {
       <View style={styles.container}>
         <Text style={styles.brand}>急廁 Go</Text>
         <Text style={styles.headline}>趕快找到你附近的廁所！</Text>
-        <Text style={styles.sub}>
-          定位後立刻告訴你最近、還在營業的三間廁所。
-        </Text>
 
-        <View style={styles.doorWrap} accessibilityElementsHidden>
-          <View style={styles.door}>
-            <View style={styles.doorWindow} />
-            <View style={styles.doorKnob} />
-          </View>
+        <View style={styles.flagWrap}>
+          <WcFlag />
         </View>
 
         <TouchableOpacity
@@ -59,42 +54,8 @@ const styles = StyleSheet.create({
     color: colors.ink,
     textAlign: 'center',
   },
-  sub: {
-    marginTop: 12,
-    fontSize: 15,
-    color: colors.muted,
-    textAlign: 'center',
-    lineHeight: 22,
-    maxWidth: 280,
-  },
-  doorWrap: {
+  flagWrap: {
     marginVertical: 36,
-  },
-  door: {
-    width: 110,
-    height: 140,
-    borderRadius: 22,
-    backgroundColor: '#fff',
-    borderWidth: 3,
-    borderColor: colors.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doorWindow: {
-    width: 56,
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: '#D7F4EF',
-    borderWidth: 2,
-    borderColor: colors.brand,
-  },
-  doorKnob: {
-    position: 'absolute',
-    right: 16,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.brand,
   },
   cta: {
     backgroundColor: colors.brand,

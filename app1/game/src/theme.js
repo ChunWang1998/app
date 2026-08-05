@@ -1,20 +1,19 @@
 export const colors = {
-  bgTop: '#D9CBEF',
-  bgBottom: '#F7D6DE',
+  bgTop: '#F6E4D8',
+  bgBottom: '#F3C9C4',
   card: '#FFFFFF',
-  cardShadow: 'rgba(120, 90, 160, 0.18)',
-  textDark: '#5B4B6E',
-  textMuted: '#9A90AC',
-  accent: '#F08A9B',
-  accentSoft: '#FBD9DF',
-  pink: '#F08A9B',
+  cardShadow: 'rgba(140, 90, 80, 0.14)',
+  textDark: '#5A3F42',
+  textMuted: '#A8898C',
+  accent: '#E87A7A',
+  accentSoft: '#F8D4D4',
   green: '#6FB86F',
   greenSoft: '#D9EED2',
   hintYellow: '#F4B740',
   hintYellowSoft: '#FCEFCE',
   disabled: '#D5D0DD',
   disabledText: '#A79FB4',
-  line: '#C9BFDA',
+  line: '#E0C8C4',
 };
 
 export const radius = {

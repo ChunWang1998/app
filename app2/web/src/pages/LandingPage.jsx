@@ -12,9 +12,6 @@ export default function LandingPage() {
       <div className="landing__content">
         <p className="landing__brand">急廁 Go</p>
         <h1 className="landing__headline">趕快找到你附近的廁所！</h1>
-        <p className="landing__sub">
-          定位後立刻告訴你最近、還在營業的三間超商廁所。
-        </p>
         <button
           type="button"
           className="landing__cta"
@@ -27,10 +24,11 @@ export default function LandingPage() {
       <div className="landing__scene" aria-hidden="true">
         <svg className="landing__svg" viewBox="0 0 360 220" fill="none">
           <ellipse cx="180" cy="198" rx="140" ry="14" fill="rgba(26,155,142,0.12)" />
-          <rect x="118" y="58" width="124" height="128" rx="28" fill="#fff" stroke="#1a9b8e" strokeWidth="4" />
-          <rect x="142" y="88" width="76" height="58" rx="12" fill="#d7f4ef" stroke="#1a9b8e" strokeWidth="3" />
-          <circle cx="210" cy="120" r="7" fill="#1a9b8e" />
-          <path d="M150 170h60" stroke="#1a9b8e" strokeWidth="4" strokeLinecap="round" />
+          {/* Q wooden WC flag */}
+          <ellipse cx="180" cy="188" rx="48" ry="12" fill="#a67c52" opacity="0.9" />
+          <rect x="175" y="110" width="10" height="78" rx="3" fill="#8b5a2b" />
+          <rect x="132" y="72" width="96" height="52" rx="10" fill="#c4a574" stroke="#8b5a2b" strokeWidth="4" />
+          <text x="180" y="108" textAnchor="middle" fill="#0f6f66" fontSize="28" fontWeight="800" fontFamily="Fredoka, sans-serif">WC</text>
           <circle className="landing__dot" cx="72" cy="72" r="10" fill="#ffb703" />
           <circle className="landing__dot landing__dot--delay" cx="296" cy="96" r="8" fill="#ef6f6c" />
         </svg>

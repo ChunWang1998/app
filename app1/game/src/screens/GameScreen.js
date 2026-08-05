@@ -15,9 +15,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
 import Mascot from '../components/Mascot';
+import MusicToggle from '../components/MusicToggle';
 import LevelDirectory from '../components/LevelDirectory';
 import { questions } from '../data/questions';
 import { isLevelUnlocked, saveProgress } from '../storage/progress';
+import { playClick } from '../audio/sfx';
 
 const SWIPE_THRESHOLD = 56;
 
@@ -48,6 +50,8 @@ export default function GameScreen({
   initialIndex = 0,
   initialCompleted = [],
   onProgressChange,
+  bgmOn = false,
+  onToggleBgm,
 }) {
   const total = questions.length;
   const [index, setIndex] = useState(initialIndex);
@@ -158,6 +162,7 @@ export default function GameScreen({
   }, [q.answer, value, solved]);
 
   const check = async () => {
+    playClick();
     const guess = value.trim();
     if (acceptedAnswers.includes(guess)) {
       setValue(guess);
@@ -173,6 +178,7 @@ export default function GameScreen({
   };
 
   const next = () => {
+    playClick();
     if (isLast) {
       // 全部通關後「再玩一次」回到第 1 關（仍保留通關進度）
       goToLevel(0);
@@ -191,6 +197,7 @@ export default function GameScreen({
 
   return (
     <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={styles.fill}>
+      <MusicToggle on={bgmOn} onToggle={onToggleBgm} style={styles.musicBtn} />
       <KeyboardAvoidingView
         style={styles.fill}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -202,7 +209,7 @@ export default function GameScreen({
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.header}>
-              <View>
+              <View style={styles.headerLeft}>
                 <Text style={styles.appTitle}>諧音猜猜</Text>
                 <Text style={styles.appSubtitle}>SoundAlike</Text>
               </View>
@@ -257,7 +264,10 @@ export default function GameScreen({
                 <TouchableOpacity
                   style={styles.hintBtn}
                   activeOpacity={0.8}
-                  onPress={() => setShowHint((s) => !s)}
+                  onPress={() => {
+                    playClick();
+                    setShowHint((s) => !s);
+                  }}
                 >
                   <Text style={styles.hintBtnText}>💡 提示</Text>
                 </TouchableOpacity>
@@ -368,6 +378,12 @@ export default function GameScreen({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  musicBtn: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 52 : 36,
+    right: 16,
+    zIndex: 20,
+  },
   scroll: {
     paddingHorizontal: 18,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
@@ -380,8 +396,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     paddingHorizontal: 4,
+    paddingRight: 48,
     gap: 8,
   },
+  headerLeft: { flexShrink: 1, marginRight: 8 },
   appTitle: { fontSize: 26, fontWeight: '800', color: colors.textDark, letterSpacing: 2 },
   appSubtitle: { fontSize: 11, fontWeight: '700', color: colors.textMuted, letterSpacing: 2 },
   headerMeta: {
@@ -390,6 +408,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     flexWrap: 'wrap',
     justifyContent: 'flex-end',
+    gap: 6,
   },
   typeCol: {
     minWidth: 44,
@@ -398,8 +417,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.inner,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 6,
-    backgroundColor: '#EFEAF6',
+    backgroundColor: '#F5E8E4',
   },
   typeLabel: {
     fontSize: 9,
@@ -420,7 +438,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.inner,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
   },
   difficultyLabel: {
     fontSize: 9,
@@ -477,7 +494,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     flexShrink: 0,
   },
-  image: { width: '100%', height: 170, borderRadius: radius.inner, backgroundColor: '#EFEAF6' },
+  image: { width: '100%', height: 170, borderRadius: radius.inner, backgroundColor: '#F5E8E4' },
   caption: {
     textAlign: 'center',
     fontSize: 18,

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,32 @@ import {
   Linking,
   Platform,
   ActivityIndicator,
+  Share,
+  Alert,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { colors, radius } from '../theme';
-import { formatDistance, formatHours, nearestOpen } from '../lib/geo';
+import * as Clipboard from 'expo-clipboard';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { colors, radius, voteTone } from '../theme';
+import { nearestOpen } from '../lib/geo';
+import {
+  loadVotes,
+  saveVotes,
+  applyVote,
+  loadComments,
+  saveComments,
+  appendComment,
+} from '../lib/storage';
 import places from '../../assets/dataSet.json';
+import PlaceCard from '../components/PlaceCard';
+import PlaceDetailSheet from '../components/PlaceDetailSheet';
+import HelpModal from '../components/HelpModal';
+import PlaceActionsModal from '../components/PlaceActionsModal';
 
 const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 }; // Kaohsiung
 const LOCATE_TIMEOUT_MS = 6000;
+const POOL_SIZE = 25;
 
 function coordsFrom(loc) {
   return { lat: loc.coords.latitude, lng: loc.coords.longitude };
@@ -29,6 +46,14 @@ function withTimeout(promise, ms) {
       setTimeout(() => reject(new Error('location timeout')), ms);
     }),
   ]);
+}
+
+function placeLabel(place) {
+  return `${place.type}${place.name ? ` ${place.name}` : ''}`;
+}
+
+function shareMessage(place) {
+  return `${placeLabel(place)}\n${place.地址 || ''}`;
 }
 
 async function openGoogleMaps(place) {
@@ -47,11 +72,25 @@ export default function MapScreen({ onBack }) {
   const mapRef = useRef(null);
   const [status, setStatus] = useState('locating');
   const [userPos, setUserPos] = useState(null);
+  const [votes, setVotes] = useState({ scores: {}, myVotes: {} });
+  const [comments, setComments] = useState({});
+  const [hiddenIds, setHiddenIds] = useState(() => new Set());
+  const [selectedId, setSelectedId] = useState(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [actionPlace, setActionPlace] = useState(null);
 
-  const nearest = useMemo(() => {
-    if (!userPos) return [];
-    return nearestOpen(userPos, places, 3);
-  }, [userPos]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const [v, c] = await Promise.all([loadVotes(), loadComments()]);
+      if (!alive) return;
+      setVotes(v);
+      setComments(c);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -65,7 +104,6 @@ export default function MapScreen({ onBack }) {
           return;
         }
 
-        // Show map ASAP from last-known cache (often instant).
         const last = await Location.getLastKnownPositionAsync();
         if (!alive) return;
         if (last) {
@@ -85,7 +123,6 @@ export default function MapScreen({ onBack }) {
           setStatus('ready');
         } catch {
           if (!alive) return;
-          // Keep last-known if we already have it; otherwise fall back.
           if (!last) {
             setUserPos(DEFAULT_CENTER);
             setStatus('error');
@@ -101,6 +138,21 @@ export default function MapScreen({ onBack }) {
       alive = false;
     };
   }, []);
+
+  const pool = useMemo(() => {
+    if (!userPos) return [];
+    return nearestOpen(userPos, places, POOL_SIZE);
+  }, [userPos]);
+
+  const nearest = useMemo(
+    () => pool.filter((p) => !hiddenIds.has(p.id)).slice(0, 3),
+    [pool, hiddenIds],
+  );
+
+  const selected = useMemo(
+    () => pool.find((p) => p.id === selectedId) || nearest.find((p) => p.id === selectedId) || null,
+    [pool, nearest, selectedId],
+  );
 
   useEffect(() => {
     if (!mapRef.current || !userPos) return;
@@ -121,10 +173,91 @@ export default function MapScreen({ onBack }) {
       return;
     }
     mapRef.current.fitToCoordinates(coords, {
-      edgePadding: { top: 60, right: 40, bottom: 40, left: 40 },
+      edgePadding: { top: 60, right: 40, bottom: selected ? 280 : 40, left: 40 },
       animated: true,
     });
-  }, [userPos, nearest]);
+  }, [userPos, nearest, selected]);
+
+  const selectPlace = useCallback((place) => {
+    setSelectedId(place.id);
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(
+        {
+          latitude: place.lat,
+          longitude: place.lng,
+          latitudeDelta: 0.012,
+          longitudeDelta: 0.012,
+        },
+        350,
+      );
+    }
+  }, []);
+
+  const handleVoteUp = useCallback((place) => {
+    let applied = false;
+    setVotes((prev) => {
+      const result = applyVote(prev, place.id, 1);
+      applied = result.applied;
+      if (!result.applied) return prev;
+      saveVotes(result.state);
+      return result.state;
+    });
+    if (!applied) Alert.alert('已投過票', '每個廁所只能投票一次');
+  }, []);
+
+  const handleVoteDown = useCallback(
+    (place) => {
+      let applied = false;
+      setVotes((prev) => {
+        const result = applyVote(prev, place.id, -1);
+        applied = result.applied;
+        if (!result.applied) return prev;
+        saveVotes(result.state);
+        return result.state;
+      });
+      if (!applied) {
+        Alert.alert('已投過票', '每個廁所只能投票一次');
+        return;
+      }
+      setHiddenIds((ids) => {
+        const next = new Set(ids);
+        next.add(place.id);
+        return next;
+      });
+      if (selectedId === place.id) setSelectedId(null);
+    },
+    [selectedId],
+  );
+
+  const handleSubmitComment = useCallback(
+    async (text) => {
+      if (!selectedId) return;
+      setComments((prev) => {
+        const next = appendComment(prev, selectedId, text);
+        saveComments(next);
+        return next;
+      });
+    },
+    [selectedId],
+  );
+
+  const handleCopy = useCallback(async () => {
+    if (!actionPlace) return;
+    const payload = actionPlace.地址 || placeLabel(actionPlace);
+    await Clipboard.setStringAsync(payload);
+    setActionPlace(null);
+    Alert.alert('已複製地址', payload);
+  }, [actionPlace]);
+
+  const handleShare = useCallback(async () => {
+    if (!actionPlace) return;
+    try {
+      await Share.share({ message: shareMessage(actionPlace) });
+    } catch {
+      // user cancelled
+    }
+    setActionPlace(null);
+  }, [actionPlace]);
 
   const statusText = {
     locating: '正在定位…',
@@ -134,91 +267,119 @@ export default function MapScreen({ onBack }) {
   }[status];
 
   return (
-    <View style={styles.fill}>
-      <View style={styles.bar}>
-        <TouchableOpacity style={styles.back} onPress={onBack} activeOpacity={0.8}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.brand}>急廁 Go</Text>
-          <Text style={styles.status}>{statusText}</Text>
-        </View>
-      </View>
-
-      <View style={styles.mapWrap}>
-        {userPos ? (
-          <MapView
-            ref={mapRef}
-            style={StyleSheet.absoluteFill}
-            initialRegion={{
-              latitude: userPos.lat,
-              longitude: userPos.lng,
-              latitudeDelta: 0.04,
-              longitudeDelta: 0.04,
-            }}
-            showsUserLocation={status === 'ready'}
-            showsMyLocationButton={false}
+    <GestureHandlerRootView style={styles.fill}>
+      <View style={styles.fill}>
+        <View style={styles.bar}>
+          <TouchableOpacity style={styles.back} onPress={onBack} activeOpacity={0.8}>
+            <Text style={styles.backText}>←</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.brand}>急廁 Go</Text>
+            <Text style={styles.status}>{statusText}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.helpBtn}
+            onPress={() => setHelpOpen(true)}
+            activeOpacity={0.85}
           >
-            <Marker
-              coordinate={{ latitude: userPos.lat, longitude: userPos.lng }}
-              title={status === 'ready' ? '我的位置' : '示範位置'}
-              pinColor={colors.accent}
-            />
-            {nearest.map((place, index) => (
-              <Marker
-                key={place.id}
-                coordinate={{ latitude: place.lat, longitude: place.lng }}
-                title={`${index + 1}. ${place.type}${place.name ? ` ${place.name}` : ''}`}
-                description={place.地址}
-                pinColor={colors.brand}
-              />
-            ))}
-          </MapView>
-        ) : (
-          <View style={styles.loading}>
-            <ActivityIndicator size="large" color={colors.brand} />
+            <Text style={styles.helpText}>說明</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.mapWrap}>
+          {userPos ? (
+            <MapView
+              ref={mapRef}
+              style={StyleSheet.absoluteFill}
+              initialRegion={{
+                latitude: userPos.lat,
+                longitude: userPos.lng,
+                latitudeDelta: 0.04,
+                longitudeDelta: 0.04,
+              }}
+              showsUserLocation={status === 'ready'}
+              showsMyLocationButton={false}
+            >
+              {nearest.map((place, index) => {
+                const tone = voteTone(votes.scores?.[place.id] || 0);
+                return (
+                  <Marker
+                    key={place.id}
+                    coordinate={{ latitude: place.lat, longitude: place.lng }}
+                    title={`${index + 1}. ${placeLabel(place)}`}
+                    description={place.地址}
+                    pinColor={tone.sparkle ? '#FFD700' : tone.fill}
+                    onPress={() => selectPlace(place)}
+                  />
+                );
+              })}
+            </MapView>
+          ) : (
+            <View style={styles.loading}>
+              <ActivityIndicator size="large" color={colors.brand} />
+            </View>
+          )}
+        </View>
+
+        {!selected && (
+          <View style={styles.sheet}>
+            <ScrollView contentContainerStyle={styles.sheetContent}>
+              {status === 'locating' && (
+                <Text style={styles.empty}>定位中，請稍候…</Text>
+              )}
+              {status !== 'locating' && nearest.length === 0 && (
+                <Text style={styles.empty}>附近找不到營業中的廁所</Text>
+              )}
+              {nearest.map((place, index) => (
+                <PlaceCard
+                  key={place.id}
+                  place={place}
+                  index={index}
+                  vote={votes.scores?.[place.id] || 0}
+                  hasVoted={!!votes.myVotes?.[place.id]}
+                  onPress={selectPlace}
+                  onLongPress={setActionPlace}
+                  onVoteUp={handleVoteUp}
+                  onVoteDown={handleVoteDown}
+                  onNavigate={openGoogleMaps}
+                />
+              ))}
+              {nearest.length > 0 && (
+                <Text style={styles.hint}>
+                  右滑讚 · 左滑倒讚換下一間 · 長按可複製／分享 · 點選看詳情
+                </Text>
+              )}
+            </ScrollView>
           </View>
         )}
-      </View>
 
-      <View style={styles.sheet}>
-        <ScrollView contentContainerStyle={styles.sheetContent}>
-          {status === 'locating' && (
-            <Text style={styles.empty}>定位中，請稍候…</Text>
-          )}
-          {status !== 'locating' && nearest.length === 0 && (
-            <Text style={styles.empty}>附近找不到營業中的廁所</Text>
-          )}
-          {nearest.map((place, index) => (
-            <View key={place.id} style={styles.card}>
-              <View style={styles.rank}>
-                <Text style={styles.rankText}>{index + 1}</Text>
-              </View>
-              <View style={styles.cardBody}>
-                <Text style={styles.cardTitle}>
-                  {place.type}
-                  {place.name ? ` ${place.name}` : ''}
-                </Text>
-                <Text style={styles.cardAddr}>{place.地址}</Text>
-                <View style={styles.metaRow}>
-                  <Text style={styles.meta}>{formatDistance(place.distance)}</Text>
-                  <Text style={styles.meta}>
-                    {formatHours(place.營業時間)}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={styles.navBtn}
-                activeOpacity={0.85}
-                onPress={() => openGoogleMaps(place)}
-              >
-                <Text style={styles.navText}>導航</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </ScrollView>
+        {selected && (
+          <PlaceDetailSheet
+            key={selected.id}
+            place={selected}
+            vote={votes.scores?.[selected.id] || 0}
+            comments={comments[selected.id] || []}
+            seedNotes={selected.備註 || []}
+            onClose={() => setSelectedId(null)}
+            onNavigate={openGoogleMaps}
+            onSubmitComment={handleSubmitComment}
+          />
+        )}
+
+        <HelpModal
+          visible={helpOpen}
+          onClose={() => setHelpOpen(false)}
+        />
+
+        <PlaceActionsModal
+          visible={!!actionPlace}
+          place={actionPlace}
+          onCopy={handleCopy}
+          onShare={handleShare}
+          onClose={() => setActionPlace(null)}
+        />
       </View>
-    </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -261,6 +422,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.muted,
   },
+  helpBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: '#E7F6F3',
+  },
+  helpText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.brandDeep,
+  },
   mapWrap: {
     flex: 1.1,
     backgroundColor: colors.mapBg,
@@ -281,77 +453,22 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: -4 },
     elevation: 8,
+    zIndex: 1,
   },
   sheetContent: {
     padding: 14,
     paddingBottom: 28,
-    gap: 10,
   },
   empty: {
     textAlign: 'center',
     color: colors.muted,
     marginVertical: 12,
   },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: radius.card,
-    backgroundColor: '#F7FFFC',
-    borderWidth: 1,
-    borderColor: 'rgba(26,155,142,0.12)',
-  },
-  rank: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rankText: {
-    color: '#fff',
-    fontWeight: '800',
-  },
-  cardBody: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.ink,
-  },
-  cardAddr: {
-    marginTop: 2,
-    fontSize: 13,
+  hint: {
+    textAlign: 'center',
     color: colors.muted,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 6,
-  },
-  meta: {
-    fontSize: 11,
-    color: colors.brandDeep,
-    backgroundColor: '#E8F7F4',
-    overflow: 'hidden',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    maxWidth: '100%',
-  },
-  navBtn: {
-    backgroundColor: colors.ink,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-  },
-  navText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 13,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
   },
 });
