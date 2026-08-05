@@ -11,7 +11,7 @@ import {
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { colors, radius, voteTone } from '../theme';
 import { formatDistance, formatHours } from '../lib/geo';
-import { MAX_COMMENT_LEN, MAX_COMMENTS_PER_PLACE } from '../lib/storage';
+import { MAX_COMMENT_LEN, MAX_COMMENTS_PER_PLACE } from '../lib/community';
 
 export default function PlaceDetailSheet({
   place,

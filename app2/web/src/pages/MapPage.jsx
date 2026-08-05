@@ -141,7 +141,6 @@ export default function MapPage() {
           <p className="map-page__brand">急廁 Go</p>
           <p className="map-page__status">
             {status === 'locating' && '正在定位…'}
-            {status === 'ready' && '附近營業中的廁所'}
             {status === 'denied' && '無法取得定位，改用高雄市中心示範'}
             {status === 'error' && '此裝置不支援定位'}
           </p>

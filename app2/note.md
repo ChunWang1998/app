@@ -31,14 +31,18 @@
 ### 左右滑投票
 - **右滑** → 顯示讚 icon，`vote +1`
 - **左滑** → 顯示倒讚 icon，`vote -1`，該卡從目前三間移除，並從距離 pool（25 間）補下一間建議
-- **一裝置一地一票**（`myVotes`；無登入）：已投過不可再滑
-- 顏色依本地累計分數：`> 0` **金色發光**、`= 0` 綠、`< 0` 淡紅
+- **一裝置一地一票**（匿名 `device_id`；無登入）：DB 唯一鍵保證
+- 顏色依**全局**分數：`> 0` **金色發光**、`= 0` 綠、`< 0` 淡紅
 
-### 本機儲存（尚無後端／無登入）
-- AsyncStorage key：
-  - `toiletgo:votes:v2` → `{ scores, myVotes }`（舊 `toiletgo:votes` 已清掉；評論 key 不變）
-  - `toiletgo:comments` → `{ [placeId]: [{ id, text, createdAt }] }`（text ≤ 30；每店 ≤ 10）
-- 左右滑圖示：`assets/vote-icons.jpeg`（綠讚／紅倒讚圓標，滑動時裁切顯示）
+### 雲端（Supabase，全局投票／留言）
+- Schema：`app2/supabase/schema.sql`（Dashboard → SQL Editor 執行一次）
+- API Keys（anon / publishable）：https://supabase.com/dashboard/project/xrsikhytiuirliabldmg/settings/api-keys
+- App 設定：`mobile/.env`（參考 `.env.example`）
+  - `EXPO_PUBLIC_SUPABASE_URL` = `https://xxxx.supabase.co`（**不要**加 `/rest/v1/`）
+  - `EXPO_PUBLIC_SUPABASE_ANON_KEY` = anon 或 publishable key
+- 本機只存匿名 `toiletgo:device_id`（AsyncStorage）
+- 程式：`src/lib/supabase.js`、`community.js`、`deviceId.js`
+- 左右滑圖示：`assets/vote-icons.jpeg`
 
 # 資料來源
 可從 `fetchData/` run 各個 python script 取得 json 到 `data/`，再集合到 `dataSet.json`。  
@@ -142,7 +146,10 @@ for each slot:
 | `src/components/PlaceDetailSheet.js` | 兩段式詳情＋留言 |
 | `src/components/HelpModal.js` | 右上角說明 |
 | `src/components/PlaceActionsModal.js` | 長按：複製／分享 |
-| `src/lib/storage.js` | 本機 votes（scores＋myVotes）／comments（≤30 字） |
+| `src/lib/community.js` | Supabase 全局 votes／comments |
+| `src/lib/supabase.js` | Supabase client |
+| `src/lib/deviceId.js` | 匿名裝置 ID |
+| `supabase/schema.sql` | DB schema（SQL Editor 執行） |
 | `src/lib/geo.js` | 距離、營業、`nearestOpen(pool)` |
 
 依賴：`@gorhom/bottom-sheet`、`react-native-gesture-handler`、`react-native-reanimated`、`@react-native-async-storage/async-storage`、`expo-clipboard`

@@ -18,13 +18,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { colors, radius, voteTone } from '../theme';
 import { nearestOpen } from '../lib/geo';
 import {
-  loadVotes,
-  saveVotes,
-  applyVote,
-  loadComments,
-  saveComments,
-  appendComment,
-} from '../lib/storage';
+  fetchVoteState,
+  fetchComments,
+  submitVote,
+  submitComment,
+  mergeVoteState,
+} from '../lib/community';
+import { isSupabaseConfigured } from '../lib/supabase';
 import places from '../../assets/dataSet.json';
 import PlaceCard from '../components/PlaceCard';
 import PlaceDetailSheet from '../components/PlaceDetailSheet';
@@ -68,7 +68,7 @@ async function openGoogleMaps(place) {
   }
 }
 
-export default function MapScreen({ onBack }) {
+export default function MapScreen() {
   const mapRef = useRef(null);
   const [status, setStatus] = useState('locating');
   const [userPos, setUserPos] = useState(null);
@@ -80,17 +80,35 @@ export default function MapScreen({ onBack }) {
   const [actionPlace, setActionPlace] = useState(null);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      const [v, c] = await Promise.all([loadVotes(), loadComments()]);
-      if (!alive) return;
-      setVotes(v);
-      setComments(c);
-    })();
-    return () => {
-      alive = false;
-    };
+    if (!isSupabaseConfigured) {
+      Alert.alert(
+        '尚未連接雲端',
+        '請在 mobile/.env 設定 EXPO_PUBLIC_SUPABASE_URL 與 EXPO_PUBLIC_SUPABASE_ANON_KEY，並在 Supabase 執行 supabase/schema.sql。投票與留言需連線後才會同步給所有人。',
+      );
+    }
   }, []);
+
+  const refreshCommunity = useCallback(async (placeIds) => {
+    if (!isSupabaseConfigured || !placeIds?.length) return;
+    try {
+      const [v, c] = await Promise.all([
+        fetchVoteState(placeIds),
+        fetchComments(placeIds),
+      ]);
+      setVotes((prev) => mergeVoteState(prev, v));
+      setComments((prev) => ({ ...prev, ...c }));
+    } catch (e) {
+      const msg = e?.message || String(e);
+      const details = e?.details || e?.hint || '';
+      console.warn('community refresh failed', msg, details || '');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!userPos || !isSupabaseConfigured) return;
+    const ids = nearestOpen(userPos, places, POOL_SIZE).map((p) => p.id);
+    refreshCommunity(ids);
+  }, [userPos, refreshCommunity]);
 
   useEffect(() => {
     let alive = true;
@@ -193,50 +211,73 @@ export default function MapScreen({ onBack }) {
     }
   }, []);
 
-  const handleVoteUp = useCallback((place) => {
-    let applied = false;
-    setVotes((prev) => {
-      const result = applyVote(prev, place.id, 1);
-      applied = result.applied;
-      if (!result.applied) return prev;
-      saveVotes(result.state);
-      return result.state;
-    });
-    if (!applied) Alert.alert('已投過票', '每個廁所只能投票一次');
-  }, []);
-
-  const handleVoteDown = useCallback(
-    (place) => {
-      let applied = false;
-      setVotes((prev) => {
-        const result = applyVote(prev, place.id, -1);
-        applied = result.applied;
-        if (!result.applied) return prev;
-        saveVotes(result.state);
-        return result.state;
-      });
-      if (!applied) {
+  const handleVoteUp = useCallback(
+    async (place) => {
+      if (!isSupabaseConfigured) {
+        Alert.alert('尚未連接雲端', '請先設定 Supabase 後再投票。');
+        return;
+      }
+      if (votes.myVotes?.[place.id]) {
         Alert.alert('已投過票', '每個廁所只能投票一次');
         return;
       }
-      setHiddenIds((ids) => {
-        const next = new Set(ids);
-        next.add(place.id);
-        return next;
-      });
-      if (selectedId === place.id) setSelectedId(null);
+      try {
+        const result = await submitVote(place.id, 1);
+        if (!result.applied) {
+          Alert.alert('已投過票', '每個廁所只能投票一次');
+        }
+        setVotes((prev) => mergeVoteState(prev, result));
+      } catch (e) {
+        Alert.alert('投票失敗', e?.message || '請稍後再試');
+      }
     },
-    [selectedId],
+    [votes.myVotes],
+  );
+
+  const handleVoteDown = useCallback(
+    async (place) => {
+      if (!isSupabaseConfigured) {
+        Alert.alert('尚未連接雲端', '請先設定 Supabase 後再投票。');
+        return;
+      }
+      if (votes.myVotes?.[place.id]) {
+        Alert.alert('已投過票', '每個廁所只能投票一次');
+        return;
+      }
+      try {
+        const result = await submitVote(place.id, -1);
+        if (!result.applied) {
+          Alert.alert('已投過票', '每個廁所只能投票一次');
+          setVotes((prev) => mergeVoteState(prev, result));
+          return;
+        }
+        setVotes((prev) => mergeVoteState(prev, result));
+        setHiddenIds((ids) => {
+          const next = new Set(ids);
+          next.add(place.id);
+          return next;
+        });
+        if (selectedId === place.id) setSelectedId(null);
+      } catch (e) {
+        Alert.alert('投票失敗', e?.message || '請稍後再試');
+      }
+    },
+    [votes.myVotes, selectedId],
   );
 
   const handleSubmitComment = useCallback(
     async (text) => {
       if (!selectedId) return;
-      setComments((prev) => {
-        const next = appendComment(prev, selectedId, text);
-        saveComments(next);
-        return next;
-      });
+      if (!isSupabaseConfigured) {
+        Alert.alert('尚未連接雲端', '請先設定 Supabase 後再留言。');
+        return;
+      }
+      try {
+        const list = await submitComment(selectedId, text);
+        setComments((prev) => ({ ...prev, [selectedId]: list }));
+      } catch (e) {
+        Alert.alert('留言失敗', e?.message || '請稍後再試');
+      }
     },
     [selectedId],
   );
@@ -261,7 +302,7 @@ export default function MapScreen({ onBack }) {
 
   const statusText = {
     locating: '正在定位…',
-    ready: '附近營業中的廁所',
+    ready: '',
     denied: '無法取得定位，改用高雄市中心示範',
     error: '定位失敗，改用高雄市中心示範',
   }[status];
@@ -270,12 +311,9 @@ export default function MapScreen({ onBack }) {
     <GestureHandlerRootView style={styles.fill}>
       <View style={styles.fill}>
         <View style={styles.bar}>
-          <TouchableOpacity style={styles.back} onPress={onBack} activeOpacity={0.8}>
-            <Text style={styles.backText}>←</Text>
-          </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={styles.brand}>急廁 Go</Text>
-            <Text style={styles.status}>{statusText}</Text>
+            {!!statusText && <Text style={styles.status}>{statusText}</Text>}
           </View>
           <TouchableOpacity
             style={styles.helpBtn}
@@ -399,18 +437,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(26,155,142,0.15)',
     zIndex: 2,
-  },
-  back: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E7F6F3',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backText: {
-    fontSize: 18,
-    color: colors.ink,
   },
   brand: {
     fontSize: 18,

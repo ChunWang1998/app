@@ -6,6 +6,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@supabase/supabase-js": "^2.112.1",
     "babel-preset-expo": "~54.0.10",
     "expo": "~54.0.0",
     "expo-clipboard": "~8.0.7",
@@ -18,6 +19,7 @@
     "react-native-maps": "1.20.1",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
+    "react-native-url-polyfill": "^4.0.0",
     "react-native-worklets": "^0.5.1"
   },
   "scripts": {

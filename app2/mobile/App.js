@@ -13,7 +13,7 @@ export default function App() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <StatusBar style="dark" />
         {started ? (
-          <MapScreen onBack={() => setStarted(false)} />
+          <MapScreen />
         ) : (
           <LandingScreen onStart={() => setStarted(true)} />
         )}
