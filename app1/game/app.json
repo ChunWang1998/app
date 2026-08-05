@@ -25,9 +25,10 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "owner": "leowang1105",
     "extra": {
       "eas": {
-        "projectId": "50131a07-3872-4b82-8d7b-7d103a3ac48a"
+        "projectId": "0478ac67-b060-408b-8286-de2732d8bc79"
       }
     }
   }
