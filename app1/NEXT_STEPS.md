@@ -9,9 +9,11 @@
 | 中文名（App 顯示名） | **諧音猜猜** |
 | 英文名 | **SoundAlike** |
 | Bundle ID | `com.soundalike.app` |
-| 首發版本 | `1.0.0` |
+| ASC App ID | `6798265759` |
+| 首發版本 | `1.0.0`（目前 EAS production build **4** 已打好） |
 | 內容 | **開放全部關卡**（目前 50 關） |
 | 商店宣傳文案 | 見 `STORE_COPY.md` |
+| 隱私／支援頁 | 見 `store/privacy.html`、`store/support.html` |
 
 ---
 
@@ -33,56 +35,45 @@
 
 ---
 
-## Step 3 — 商店素材（可與後續並行）
-
-準備：
+## Step 3 — 商店素材
 
 - [x] App Icon 1024×1024（`assets/icon.png`）
-- [x] 商店文案（`STORE_COPY.md`）
+- [x] 商店文案（`STORE_COPY.md`，含 ASO 關鍵字）
+- [x] 隱私權／支援 HTML（`store/`，需部署成 HTTPS）
+- [ ] **部署** `store/privacy.html`、`store/support.html` 取得公開網址
 - [ ] iPhone 截圖（至少 6.7" 一組）：開場、答題、通關
-- [ ] 隱私權政策網址（即使無帳號／無追蹤，Apple 仍常要求一頁說明）
-- [ ] 支援網址或聯絡 email
+- [ ] 把網址填進 App Store Connect（隱私權政策、支援網址）
 
 ---
 
-## Step 4 — Apple 帳號與 App ID
+## Step 4 — Apple 帳號與 App ID ✅
 
-1. 確認已加入 **Apple Developer Program**
-2. Developer → Identifiers → 註冊 App ID：`com.soundalike.app`
-3. App Store Connect → 新建 App
-   - 名稱：諧音猜猜
-   - Bundle ID：選剛註冊的 `com.soundalike.app`
-   - 主要語言：繁體中文
+- [x] Bundle ID / ASC App 已存在（`eas.json` → `ascAppId: 6798265759`）
+- [x] EAS production build 已上傳（1.0.0 / build 4）
 
 ---
 
-## Step 5 — 用 EAS 打 iOS 包並上傳
+## Step 5 — EAS 建置 ✅（目前）
 
-`app1/game` 已有 `eas.json`。大致指令：
+最新包已在 Expo：
 
-```bash
-cd app1/game
-npm install -g eas-cli   # 若尚未安裝
-eas login
-eas build --platform ios --profile production
-eas submit --platform ios --latest
-```
-
-或先丟 **TestFlight** 實機測，再送審。
-
-每次上傳 build number 要遞增（production profile 已設 `autoIncrement`）。
+- Version `1.0.0` · Build number `4`
+- 若程式有改再重打：`cd app1/game && eas build --platform ios --profile production && eas submit --platform ios --latest`
 
 ---
 
-## Step 6 — 送審
+## Step 6 — 送審（你現在要做的）
 
-App Store Connect：
+App Store Connect → **諧音猜猜** → iOS App 1.0.0：
 
-1. 填完截圖、文案、年齡分級、隱私問卷
-2. 選剛上傳的 build
-3. Submit for Review
+1. 貼上 `STORE_COPY.md` 的名稱／副標／說明／關鍵字／What’s New
+2. 上傳截圖
+3. 填隱私權政策網址、支援網址
+4. App 隱私選 **Data Not Collected**；年齡分級 4+
+5. 選 build **4**（或最新）
+6. 貼 Review Notes → **Submit for Review**
 
-首審通常數天；被拒就依回覆改再送（版號可用 `1.0.1`）。
+詳細步驟見 `store/SUBMIT.md`。
 
 ---
 
@@ -96,16 +87,6 @@ App Store Connect：
 
 ---
 
-## 和 app2 的關係（提醒）
+## 和 app2 的關係
 
-App2（急廁 Go）是**另一個** App Store 項目，bundle ID 另定（建議去掉 `superpredict`，例如 `com.toiletgo.app`）。  
-可等 app1 走完本機驗證與素材後，再用同一套「EAS → TestFlight → 送審」流程上 app2。
-
----
-
-## 你接下來要做的事
-
-1. 準備截圖／隱私權頁／支援連絡（Step 3 剩餘）  
-2. 註冊 Apple App ID / 開 App Store Connect 草稿（Step 4）  
-3. EAS build → TestFlight → 送審（Step 5–6）  
-4. 上架時把 `STORE_COPY.md` 文案貼進 App Store Connect
+App2（急廁 Go）另案上架。先完成 app1 送審即可。
