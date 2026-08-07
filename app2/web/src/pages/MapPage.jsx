@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { formatDistance, formatHours, nearestOpen } from '../lib/geo.js'
-import places from '../../../data/dataSet.json'
+import { cellKey, loadPlacesNear } from '@shared/places.js'
 
 const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 } // Kaohsiung
+const PLACES_BASE = '/places'
 
 function mapsUrl(place) {
   const q = encodeURIComponent(`${place.name || place.type} ${place.地址}`)
@@ -19,11 +20,35 @@ export default function MapPage() {
 
   const [status, setStatus] = useState('locating') // locating | ready | denied | error
   const [userPos, setUserPos] = useState(null)
+  const [places, setPlaces] = useState([])
+  const [placesStatus, setPlacesStatus] = useState('idle') // idle | loading | ready | error
+
+  const userCell = userPos ? cellKey(userPos.lat, userPos.lng) : null
+
+  useEffect(() => {
+    if (!userPos) return
+    let cancelled = false
+    setPlacesStatus('loading')
+    loadPlacesNear(userPos.lat, userPos.lng, { baseUrl: PLACES_BASE })
+      .then((rows) => {
+        if (cancelled) return
+        setPlaces(rows)
+        setPlacesStatus('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setPlaces([])
+        setPlacesStatus('error')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [userCell])
 
   const nearest = useMemo(() => {
     if (!userPos || places.length === 0) return []
     return nearestOpen(userPos, places, 3)
-  }, [userPos])
+  }, [userPos, places])
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -112,6 +137,11 @@ export default function MapPage() {
     }
   }, [userPos, nearest])
 
+  const sheetEmpty =
+    status !== 'locating' &&
+    placesStatus !== 'loading' &&
+    nearest.length === 0
+
   return (
     <div className="map-page">
       <header className="map-page__bar">
@@ -124,6 +154,8 @@ export default function MapPage() {
             {status === 'locating' && '正在定位…'}
             {status === 'denied' && '無法取得定位，改用高雄市中心示範'}
             {status === 'error' && '此裝置不支援定位'}
+            {status !== 'locating' && placesStatus === 'loading' && '載入附近地點…'}
+            {placesStatus === 'error' && '地點資料載入失敗'}
           </p>
         </div>
       </header>
@@ -131,10 +163,12 @@ export default function MapPage() {
       <div className="map-page__map" ref={mapRef} />
 
       <section className="map-page__sheet" aria-label="最近三間廁所">
-        {status === 'locating' && (
-          <p className="map-page__empty">定位中，請稍候…</p>
+        {(status === 'locating' || placesStatus === 'loading') && (
+          <p className="map-page__empty">
+            {status === 'locating' ? '定位中，請稍候…' : '載入附近地點…'}
+          </p>
         )}
-        {status !== 'locating' && nearest.length === 0 && (
+        {sheetEmpty && (
           <p className="map-page__empty">附近找不到營業中的廁所</p>
         )}
         {nearest.map((place, index) => (

@@ -25,7 +25,8 @@ import {
   mergeVoteState,
 } from '../lib/community';
 import { isSupabaseConfigured } from '../lib/supabase';
-import places from '../../../data/dataSet.json';
+import { cellKey, loadPlacesNear } from '@shared/places';
+import { loadCellSync } from '../data/cellRegistry';
 import PlaceCard from '../components/PlaceCard';
 import PlaceDetailSheet from '../components/PlaceDetailSheet';
 import HelpModal from '../components/HelpModal';
@@ -34,6 +35,7 @@ import PlaceActionsModal from '../components/PlaceActionsModal';
 const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 }; // Kaohsiung
 const LOCATE_TIMEOUT_MS = 6000;
 const POOL_SIZE = 25;
+const PLACES_BASE_URL = (process.env.EXPO_PUBLIC_PLACES_URL || '').replace(/\/$/, '');
 
 function coordsFrom(loc) {
   return { lat: loc.coords.latitude, lng: loc.coords.longitude };
@@ -72,12 +74,16 @@ export default function MapScreen() {
   const mapRef = useRef(null);
   const [status, setStatus] = useState('locating');
   const [userPos, setUserPos] = useState(null);
+  const [places, setPlaces] = useState([]);
+  const [placesStatus, setPlacesStatus] = useState('idle');
   const [votes, setVotes] = useState({ scores: {}, myVotes: {} });
   const [comments, setComments] = useState({});
   const [hiddenIds, setHiddenIds] = useState(() => new Set());
   const [selectedId, setSelectedId] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [actionPlace, setActionPlace] = useState(null);
+
+  const userCell = userPos ? cellKey(userPos.lat, userPos.lng) : null;
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -87,6 +93,30 @@ export default function MapScreen() {
       );
     }
   }, []);
+
+  useEffect(() => {
+    if (!userPos) return;
+    let cancelled = false;
+    setPlacesStatus('loading');
+    loadPlacesNear(userPos.lat, userPos.lng, {
+      baseUrl: PLACES_BASE_URL,
+      loadCellSync: PLACES_BASE_URL ? undefined : loadCellSync,
+    })
+      .then((rows) => {
+        if (cancelled) return;
+        setPlaces(rows);
+        setPlacesStatus('ready');
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        console.warn('places load failed', e?.message || e);
+        setPlaces([]);
+        setPlacesStatus('error');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userCell]);
 
   const refreshCommunity = useCallback(async (placeIds) => {
     if (!isSupabaseConfigured || !placeIds?.length) return;
@@ -105,10 +135,10 @@ export default function MapScreen() {
   }, []);
 
   useEffect(() => {
-    if (!userPos || !isSupabaseConfigured) return;
+    if (!userPos || !places.length || !isSupabaseConfigured) return;
     const ids = nearestOpen(userPos, places, POOL_SIZE).map((p) => p.id);
     refreshCommunity(ids);
-  }, [userPos, refreshCommunity]);
+  }, [userPos, places, refreshCommunity]);
 
   useEffect(() => {
     let alive = true;
@@ -158,9 +188,9 @@ export default function MapScreen() {
   }, []);
 
   const pool = useMemo(() => {
-    if (!userPos) return [];
+    if (!userPos || !places.length) return [];
     return nearestOpen(userPos, places, POOL_SIZE);
-  }, [userPos]);
+  }, [userPos, places]);
 
   const nearest = useMemo(
     () => pool.filter((p) => !hiddenIds.has(p.id)).slice(0, 3),
@@ -300,12 +330,14 @@ export default function MapScreen() {
     setActionPlace(null);
   }, [actionPlace]);
 
-  const statusText = {
-    locating: '正在定位…',
-    ready: '',
-    denied: '無法取得定位，改用高雄市中心示範',
-    error: '定位失敗，改用高雄市中心示範',
-  }[status];
+  const statusText = (() => {
+    if (status === 'locating') return '正在定位…';
+    if (placesStatus === 'loading') return '載入附近地點…';
+    if (placesStatus === 'error') return '地點資料載入失敗';
+    if (status === 'denied') return '無法取得定位，改用高雄市中心示範';
+    if (status === 'error') return '定位失敗，改用高雄市中心示範';
+    return '';
+  })();
 
   return (
     <GestureHandlerRootView style={styles.fill}>
@@ -362,11 +394,19 @@ export default function MapScreen() {
         {!selected && (
           <View style={styles.sheet}>
             <ScrollView contentContainerStyle={styles.sheetContent}>
-              {status === 'locating' && (
-                <Text style={styles.empty}>定位中，請稍候…</Text>
+              {(status === 'locating' || placesStatus === 'loading') && (
+                <Text style={styles.empty}>
+                  {status === 'locating' ? '定位中，請稍候…' : '載入附近地點…'}
+                </Text>
               )}
-              {status !== 'locating' && nearest.length === 0 && (
-                <Text style={styles.empty}>附近找不到營業中的廁所</Text>
+              {status !== 'locating' &&
+                placesStatus !== 'loading' &&
+                nearest.length === 0 && (
+                <Text style={styles.empty}>
+                  {placesStatus === 'error'
+                    ? '地點資料載入失敗'
+                    : '附近找不到營業中的廁所'}
+                </Text>
               )}
               {nearest.map((place, index) => (
                 <PlaceCard

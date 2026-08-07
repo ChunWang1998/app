@@ -9,9 +9,13 @@ const app2Root = path.resolve(webRoot, '..')
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@shared': path.resolve(app2Root, 'shared'),
+    },
+  },
   server: {
     fs: {
-      // Allow importing shared dataset from app2/data/
       allow: [app2Root],
     },
   },

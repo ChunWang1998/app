@@ -1,0 +1,7 @@
+# Generated place shards (rebuild: python3 fetchData/buildDataSet.py)
+data/dist/
+
+# Synced copies of data/dist for web static hosting / mobile offline registry
+web/public/places/
+mobile/assets/places/
+mobile/src/data/cellRegistry.js

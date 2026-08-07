@@ -5,7 +5,7 @@
 模式類似 Ubike 或 GoShare：就近找到離你最近、且還在營業的三個有廁所地點。
 
 - 頁面 1：可愛輕鬆的 Landing：「趕快找到你附近的廁所！」＋ Q 版木頭 WC 旗
-- 頁面 2：即時地圖，依 `dataSet.json` 顯示最近三間；支援投票、評論、說明
+- 頁面 2：即時地圖，依定位載入附近格子的地點，顯示最近三間；支援投票、評論、說明
 
 前端：`mobile/`（Expo，對齊 app1 的 `npm start` demo 流程）  
 舊版 web demo 仍在 `web/`（可選；互動功能以 mobile 為準）
@@ -45,8 +45,8 @@
 - 左右滑圖示：`assets/vote-icons.jpeg`
 
 # 資料來源
-可從 `fetchData/` run 各個 python script 取得 json 到 `data/`，再集合到 `dataSet.json`。  
-admin 會定期去更新 `dataSet.json` 內容。
+可從 `fetchData/` run 各個 python script 取得 json 到 `data/`，再集合到 `dataSet.json`，並切成空間格子到 `data/dist/`（同步 `web/public/places/`、`mobile/assets/places/`）。  
+admin 會定期重跑 `buildDataSet.py`。客戶端只載入使用者附近 9 格，不再整包 import `dataSet.json`。
 
 ## json schema
 ```json
@@ -161,9 +161,11 @@ for each slot:
 python3 fetchData/get711List.py
 python3 fetchData/getLuisaList.py
 
-# 2) 合併 → data/dataSet.json（web / mobile 皆直接讀這份）
+# 2) 合併 → data/dataSet.json + 空間格子 shards（同步到 web/public、mobile assets；已 gitignore）
 python3 fetchData/buildDataSet.py
+# clone / 更新資料後務必重跑，否則 web/mobile 沒有 cells
 
 # 3) Expo demo（同 app1）
 cd mobile && npm install && npm start
+# 可選：EXPO_PUBLIC_PLACES_URL 指向 CDN 或本機 Vite /places（見 mobile/.env.example）
 ```
