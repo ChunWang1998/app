@@ -21,7 +21,7 @@ export default function HelpModal({ visible, onClose }) {
           <Text style={styles.note}>陸續開放路易莎、全家等等</Text>
 
           <Text style={[styles.label, { marginTop: 14 }]}>支援地點</Text>
-          <Text style={styles.body}>高雄市</Text>
+          <Text style={styles.body}>高雄市、台南市、新北市、台北市</Text>
           <Text style={styles.note}>陸續開放其他縣市</Text>
 
           <TouchableOpacity style={styles.btn} onPress={onClose} activeOpacity={0.85}>

@@ -67,7 +67,7 @@ for line in r.text.split("\n"):
             city_list.append({"name": parts[1], "code": parts[3]})
 
 # temporary: only selected cities (remove this line to scrape all cities)
-TARGET_CITIES = {"高雄市", "台南市", "台北市"}
+TARGET_CITIES = {"高雄市", "台南市", "新北市", "台北市"}
 city_list = [city for city in city_list if city["name"] in TARGET_CITIES]
 
 all_stores_with_toilet = []

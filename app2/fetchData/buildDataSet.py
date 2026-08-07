@@ -25,9 +25,9 @@ WEB_PLACES = ROOT / "web" / "public" / "places"
 MOBILE_PLACES = ROOT / "mobile" / "assets" / "places"
 MOBILE_REGISTRY = ROOT / "mobile" / "src" / "data" / "cellRegistry.js"
 
+# MVP release: 7-11 only. Keep other source JSONs in data/ but do not merge yet.
 SOURCE_FILES = [
     "711_with_toilet.json",
-    "louisa_stores.json",
 ]
 
 REQUIRED = ("id", "type", "地址", "lat", "lng", "營業時間")
