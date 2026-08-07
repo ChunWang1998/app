@@ -304,7 +304,7 @@ export const questions = [
   },
   {
     id: 31,
-    type: '地名',
+    type: '人名',
     difficulty: '難',
     hintImage: require('../../assets/pictures/31-1.jpg'),
     hintText: '一個人往西邊走',
@@ -314,7 +314,7 @@ export const questions = [
   },
   {
     id: 32,
-    type: '宜蘭',
+    type: '地名',
     difficulty: '中',
     hintImage: require('../../assets/pictures/32-1.jpg'),
     hintText: '有四個顏色',

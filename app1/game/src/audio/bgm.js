@@ -32,7 +32,7 @@ async function persistPreference(on) {
 async function ensureAudioMode() {
   if (modeReady) return;
   await Audio.setAudioModeAsync({
-    playsInSilentModeIOS: false,
+    playsInSilentModeIOS: true,
     staysActiveInBackground: false,
     shouldDuckAndroid: true,
     playThroughEarpieceAndroid: false,
