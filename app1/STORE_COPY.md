@@ -8,6 +8,15 @@
 
 ---
 
+## 預覽和截圖 → iPad → 12.9 吋或 13 吋顯示器
+
+上傳 2 張即可（2048×2732）：
+
+1. `store/screenshots/ipad/01-play.png`
+2. `store/screenshots/ipad/02-play.png`
+
+---
+
 ## 預覽和截圖 → iPhone → 6.5 吋顯示器
 
 上傳（順序）：
