@@ -25,7 +25,7 @@ import {
   mergeVoteState,
 } from '../lib/community';
 import { isSupabaseConfigured } from '../lib/supabase';
-import places from '../../assets/dataSet.json';
+import places from '../../../data/dataSet.json';
 import PlaceCard from '../components/PlaceCard';
 import PlaceDetailSheet from '../components/PlaceDetailSheet';
 import HelpModal from '../components/HelpModal';

@@ -1,4 +1,4 @@
-"""Merge source JSON files under data/ into data/dataSet.json and app bundles."""
+"""Merge source JSON files under data/ into data/dataSet.json (single source of truth)."""
 
 from __future__ import annotations
 
@@ -9,10 +9,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 OUT_PATH = DATA_DIR / "dataSet.json"
-SYNC_TARGETS = [
-    ROOT / "web" / "public" / "dataSet.json",
-    ROOT / "mobile" / "assets" / "dataSet.json",
-]
 
 SOURCE_FILES = [
     "711_with_toilet.json",
@@ -82,13 +78,6 @@ def main() -> None:
     payload = json.dumps(merged, ensure_ascii=False, indent=2)
     OUT_PATH.write_text(payload, encoding="utf-8")
     print(f"wrote {len(merged)} places → {OUT_PATH}")
-
-    for target in SYNC_TARGETS:
-        if not target.parent.exists():
-            print(f"skip sync (missing dir): {target}")
-            continue
-        target.write_text(payload, encoding="utf-8")
-        print(f"synced → {target}")
 
 
 if __name__ == "__main__":

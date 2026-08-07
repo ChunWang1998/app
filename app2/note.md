@@ -161,7 +161,7 @@ for each slot:
 python3 fetchData/get711List.py
 python3 fetchData/getLuisaList.py
 
-# 2) 合併 → data/dataSet.json（並同步到 mobile/assets/ 與 web/public/）
+# 2) 合併 → data/dataSet.json（web / mobile 皆直接讀這份）
 python3 fetchData/buildDataSet.py
 
 # 3) Expo demo（同 app1）

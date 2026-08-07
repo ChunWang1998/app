@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { formatDistance, formatHours, nearestOpen } from '../lib/geo.js'
+import places from '../../../data/dataSet.json'
 
 const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 } // Kaohsiung
 
@@ -18,31 +19,11 @@ export default function MapPage() {
 
   const [status, setStatus] = useState('locating') // locating | ready | denied | error
   const [userPos, setUserPos] = useState(null)
-  const [places, setPlaces] = useState([])
-  const [dataError, setDataError] = useState('')
 
   const nearest = useMemo(() => {
     if (!userPos || places.length === 0) return []
     return nearestOpen(userPos, places, 3)
-  }, [userPos, places])
-
-  useEffect(() => {
-    let cancelled = false
-    fetch('/dataSet.json')
-      .then((r) => {
-        if (!r.ok) throw new Error('無法載入 dataSet.json')
-        return r.json()
-      })
-      .then((data) => {
-        if (!cancelled) setPlaces(Array.isArray(data) ? data : [])
-      })
-      .catch((err) => {
-        if (!cancelled) setDataError(err.message || '資料載入失敗')
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  }, [userPos])
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -150,11 +131,10 @@ export default function MapPage() {
       <div className="map-page__map" ref={mapRef} />
 
       <section className="map-page__sheet" aria-label="最近三間廁所">
-        {dataError && <p className="map-page__empty">{dataError}</p>}
-        {!dataError && status === 'locating' && (
+        {status === 'locating' && (
           <p className="map-page__empty">定位中，請稍候…</p>
         )}
-        {!dataError && status !== 'locating' && nearest.length === 0 && (
+        {status !== 'locating' && nearest.length === 0 && (
           <p className="map-page__empty">附近找不到營業中的廁所</p>
         )}
         {nearest.map((place, index) => (
