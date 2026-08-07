@@ -10,13 +10,27 @@ const config = getDefaultConfig(projectRoot);
 
 // Shared places loader + optional assets under app2/
 config.watchFolders = [app2Root];
-config.resolver.extraNodeModules = {
-  ...(config.resolver.extraNodeModules || {}),
-  '@shared': sharedRoot,
-};
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   ...((config.resolver.nodeModulesPaths) || []),
 ];
+
+// Metro treats @shared/places as a scoped package name; rewrite to app2/shared/*
+const defaultResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === '@shared' || moduleName.startsWith('@shared/')) {
+    const sub =
+      moduleName === '@shared' ? 'index' : moduleName.slice('@shared/'.length);
+    return context.resolveRequest(
+      context,
+      path.resolve(sharedRoot, sub),
+      platform,
+    );
+  }
+  if (defaultResolveRequest) {
+    return defaultResolveRequest(context, moduleName, platform);
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
 
 module.exports = config;
