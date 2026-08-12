@@ -31,7 +31,7 @@ python3 fetchData/buildDataSet.py   # → data/dataSet.json，並同步到 mobil
 
 ---
 
-## app3 — 答禮（問卷配對／禮券）
+## app3 — Questi（問卷配對／禮券）
 
 第一刀：Email 登入、瀏覽案件、開始填答、貼完成碼領獎。詳見 [`app3/README.md`](./app3/README.md)。
 
