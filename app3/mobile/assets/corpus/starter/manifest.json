@@ -1,0 +1,70 @@
+{
+  "packId": "starter",
+  "version": "2026-starter-1",
+  "label": "精選入門包",
+  "kind": "starter",
+  "catalogPath": "catalog.json",
+  "files": [
+    {
+      "workId": "T0251",
+      "path": "units/T0251.json",
+      "bytes": 4028,
+      "sha256": "1f1e71beda7d96808bd2238390cd233016996c6862233d861cbf3a56edbfa4f8"
+    },
+    {
+      "workId": "T0235",
+      "path": "units/T0235.json",
+      "bytes": 5233,
+      "sha256": "20d8ec960d38b4101037402ccf457fa3f1ed5c0ea36e17ac1558405b1d1a5ae1"
+    },
+    {
+      "workId": "T0366",
+      "path": "units/T0366.json",
+      "bytes": 3885,
+      "sha256": "ffc09a54122b5f30042ab7297e3fb680db16b604056d8a5b4a308dc717efedd8"
+    },
+    {
+      "workId": "T0450",
+      "path": "units/T0450.json",
+      "bytes": 3823,
+      "sha256": "ca16468f004c83e2694e2d869c7dd27a63f4ef03aa0b03fa9a87ea057bc48804"
+    },
+    {
+      "workId": "T0262",
+      "path": "units/T0262.json",
+      "bytes": 3334,
+      "sha256": "934cb7b13b246431b0a1f044260805c311c0a29b27b6747ed2b9963acb99d0e4"
+    },
+    {
+      "workId": "T0412",
+      "path": "units/T0412.json",
+      "bytes": 2939,
+      "sha256": "f8b74a6c0749ae09f1f15226dd98e5612c4a38939fc0fed14283412ecdf241dd"
+    },
+    {
+      "workId": "T0779",
+      "path": "units/T0779.json",
+      "bytes": 4274,
+      "sha256": "442127f3dc19250473a1aacdd27cebd049e6da292e7b505f8ff3df06a7b430a8"
+    },
+    {
+      "workId": "T0784",
+      "path": "units/T0784.json",
+      "bytes": 3340,
+      "sha256": "87f054a6dc6bdaafa46d67ad1032dbc1b691823aa305cc9a674603413d0292c0"
+    },
+    {
+      "workId": "rebirth-mantra",
+      "path": "units/rebirth-mantra.json",
+      "bytes": 1382,
+      "sha256": "afb241a8e8c59c4e707c771cfbc6fa3b4c10b2e5123383a361842be99e4149eb"
+    },
+    {
+      "workId": "T1060",
+      "path": "units/T1060.json",
+      "bytes": 1590,
+      "sha256": "2d10624001866081c9357f8447d4c45a69aa5a6a22ba16f7ddc8feb1f167df1d"
+    }
+  ],
+  "totalBytes": 33828
+}

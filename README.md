@@ -31,13 +31,12 @@ python3 fetchData/buildDataSet.py   # → data/dataSet.json，並同步到 mobil
 
 ---
 
-## app3 — Questi（問卷配對／禮券）
+## app3 — 共抄（念經抄經）
 
-第一刀：Email 登入、瀏覽案件、開始填答、貼完成碼領獎。詳見 [`app3/README.md`](./app3/README.md)。
+群組共抄：免登入房間碼、句單元點選、精選繁體離線經。詳見 [`app3/note.md`](./app3/note.md)、[`app3/README.md`](./app3/README.md)。
 
 ```bash
 cd app3/mobile
-cp .env.example .env   # 填 Supabase
 npm install
 npm start
 ```
