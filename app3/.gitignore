@@ -1,5 +1,0 @@
-# CBETA build artifacts (large, deployed to CDN)
-corpus-dist/
-
-# CBETA raw download + extracted files
-tools/cbeta-build/input/

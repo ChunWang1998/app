@@ -1,9 +1,0 @@
-{
-  "name": "gongchao-cbeta-build",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "build:starter": "node build-starter.mjs",
-    "build:full": "node build-full.mjs"
-  }
-}
