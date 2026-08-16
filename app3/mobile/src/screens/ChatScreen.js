@@ -11,7 +11,8 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radius } from '../theme';
+import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../theme';
 import { MAX_CHAT } from '../data/constants';
 import { listMessages, sendMessage, confirmMeet, demoOtherConfirm } from '../lib/store';
 
@@ -102,7 +103,7 @@ export default function ChatScreen({
               placeholder="最多 20 句"
             />
             <TouchableOpacity style={styles.send} onPress={send}>
-              <Text style={styles.sendTxt}>送</Text>
+              <Ionicons name="paper-plane" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         )}
@@ -141,9 +142,10 @@ const styles = StyleSheet.create({
   },
   send: {
     backgroundColor: colors.brand,
-    borderRadius: radius.pill,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: 22,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sendTxt: { color: '#fff', fontWeight: '800' },
 });

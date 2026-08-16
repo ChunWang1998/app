@@ -23,14 +23,14 @@ export default function SubscribeScreen({ founderCount, onBack, onDemoPay }) {
           創始白名單 {founderCount}/{FOUNDER_CAP}
           {full
             ? ' 已滿。不在名單內需 LINE Pay 月繳。下次升級後，名單內仍免付費。'
-            : ' 仍有空位：到「我的」填手機號即可，不必驗證碼。'}
+            : ' 仍有空位：到右上角個人頁填手機號即可，不必驗證碼。'}
         </Text>
         {full ? (
           <TouchableOpacity style={styles.cta} onPress={onDemoPay}>
             <Text style={styles.ctaText}>LINE Pay 月繳（示範開通）</Text>
           </TouchableOpacity>
         ) : (
-          <Text style={styles.note}>請到「我的」填手機號佔白名單，不必驗證碼。</Text>
+          <Text style={styles.note}>請到右上角個人頁填手機號佔白名單，不必驗證碼。</Text>
         )}
       </View>
     </LinearGradient>

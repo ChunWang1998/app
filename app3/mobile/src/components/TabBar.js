@@ -7,7 +7,7 @@ export default function TabBar({ tab, onChange }) {
     <View style={styles.bar}>
       {[
         { id: 'explore', label: '探索' },
-        { id: 'me', label: '我的' },
+        { id: 'gatherings', label: '聚會' },
       ].map((t) => {
         const on = tab === t.id;
         return (

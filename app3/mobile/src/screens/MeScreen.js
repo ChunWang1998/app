@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
 import { FOUNDER_CAP } from '../data/constants';
@@ -19,6 +20,9 @@ export default function MeScreen({
   founderCount,
   connects,
   ownersById,
+  myGatherings = [],
+  hiddenChats = [],
+  onBack,
   onRegister,
   onCreateProfile,
   onSubscribe,
@@ -26,6 +30,9 @@ export default function MeScreen({
   onAccept,
   onDecline,
   onDemoAccept,
+  onCreateGathering,
+  onOpenGathering,
+  onHideChat,
 }) {
   const insets = useSafeAreaInsets();
   const [phone, setPhone] = useState('');
@@ -41,14 +48,19 @@ export default function MeScreen({
       c.status === 'accepted' &&
       (c.fromId === session?.id || c.toId === session?.id),
   );
+  const chats = accepted.filter((c) => !hiddenChats.includes(c.id));
 
   const nameOf = (id) => ownersById[id]?.dogName || id;
+  const subscribed = hasValidSub(session);
 
   return (
     <ScrollView
       contentContainerStyle={[styles.pad, { paddingTop: insets.top + 12 }]}
     >
-      <Text style={styles.h}>我的</Text>
+      <TouchableOpacity onPress={onBack}>
+        <Text style={styles.back}>← 返回</Text>
+      </TouchableOpacity>
+      <Text style={styles.h}>個人頁</Text>
 
       {!session ? (
         <View style={styles.card}>
@@ -81,6 +93,16 @@ export default function MeScreen({
               : ' · 同一支號碼下次升級仍免費用'}
           </Text>
         </View>
+      ) : !subscribed ? (
+        <View style={styles.card}>
+          <Text style={styles.v}>未訂閱</Text>
+          <Text style={styles.p}>
+            未訂閱只能看清單。看詳情、Connect、創辦／報名聚會都要先訂閱。
+          </Text>
+          <TouchableOpacity style={styles.btn} onPress={onSubscribe}>
+            <Text style={styles.btnText}>去訂閱</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <>
           <View style={styles.card}>
@@ -88,9 +110,7 @@ export default function MeScreen({
             <Text style={styles.v}>
               {session.subscription === 'founder'
                 ? '白名單：已事先訂閱（永久免費）'
-                : session.subscription === 'paid'
-                  ? '訂閱中（月繳示範）'
-                  : '未訂閱'}
+                : '訂閱中（月繳示範）'}
             </Text>
             {profile ? (
               <>
@@ -98,20 +118,52 @@ export default function MeScreen({
                   {profile.dogName} · 出去 {profile.outingCount || 0} · Connect{' '}
                   {profile.connectCount || 0}
                 </Text>
+                <Text style={styles.stats}>
+                  汪汪大隊長 {profile.captainCount || 0} 次 · 分數{' '}
+                  {profile.captainScore || 0}
+                </Text>
+                <Text style={styles.stats}>
+                  汪汪隊員 {profile.memberCount || 0} 次
+                </Text>
                 <TouchableOpacity onPress={onCreateProfile}>
                   <Text style={styles.link}>編輯檔案</Text>
                 </TouchableOpacity>
               </>
-            ) : hasValidSub(session) ? (
+            ) : (
               <TouchableOpacity style={styles.btn} onPress={onCreateProfile}>
                 <Text style={styles.btnText}>請先完成狗檔案（註冊未完成）</Text>
               </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.btn} onPress={onSubscribe}>
-                <Text style={styles.btnText}>訂閱後才能建立檔案</Text>
-              </TouchableOpacity>
             )}
           </View>
+
+          {profile ? (
+            <TouchableOpacity style={styles.btn} onPress={onCreateGathering}>
+              <Text style={styles.btnText}>創辦汪汪聚會</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <Text style={styles.section}>參加的聚會</Text>
+          {myGatherings.length === 0 ? (
+            <Text style={styles.empty}>還沒有報名或創辦的聚會</Text>
+          ) : (
+            myGatherings.map((g) => (
+              <TouchableOpacity
+                key={g.id}
+                style={styles.card}
+                onPress={() => onOpenGathering(g)}
+              >
+                <Text style={styles.v}>
+                  {g.name} · {g.type}
+                </Text>
+                <Text style={styles.hint}>
+                  {g.dateLabel} · {g.place}
+                  {g.iHost ? ' · 主辦' : ''}
+                  {g.ended ? ' · 已結束' : ''}
+                </Text>
+                <Text style={styles.link}>看 LINE 群組邀請</Text>
+              </TouchableOpacity>
+            ))
+          )}
 
           <Text style={styles.section}>待回覆</Text>
           {incoming.length === 0 ? (
@@ -149,6 +201,37 @@ export default function MeScreen({
             ))
           )}
 
+          <Text style={styles.section}>聊天</Text>
+          <Text style={styles.hint}>右滑刪除對話</Text>
+          {chats.length === 0 ? (
+            <Text style={styles.empty}>還沒有對話</Text>
+          ) : (
+            chats.map((c) => (
+              <Swipeable
+                key={c.id}
+                overshootLeft={false}
+                renderLeftActions={() => (
+                  <TouchableOpacity
+                    style={styles.del}
+                    onPress={() => onHideChat(c.id)}
+                  >
+                    <Text style={styles.delTxt}>刪除</Text>
+                  </TouchableOpacity>
+                )}
+              >
+                <TouchableOpacity
+                  style={styles.card}
+                  onPress={() => onOpenChat(c.id)}
+                >
+                  <Text style={styles.v}>
+                    與 {nameOf(c.fromId === session.id ? c.toId : c.fromId)} 聊天
+                  </Text>
+                  <Text style={styles.hint}>最多 20 句 · 右滑刪除</Text>
+                </TouchableOpacity>
+              </Swipeable>
+            ))
+          )}
+
           <Text style={styles.section}>已接受／歷史</Text>
           {accepted.length === 0 ? (
             <Text style={styles.empty}>還沒有成功的 Connect</Text>
@@ -160,9 +243,8 @@ export default function MeScreen({
                 onPress={() => onOpenChat(c.id)}
               >
                 <Text style={styles.v}>
-                  與 {nameOf(c.fromId === session.id ? c.toId : c.fromId)} 聊天
+                  與 {nameOf(c.fromId === session.id ? c.toId : c.fromId)}
                 </Text>
-                <Text style={styles.hint}>最多 20 句</Text>
               </TouchableOpacity>
             ))
           )}
@@ -174,6 +256,7 @@ export default function MeScreen({
 
 const styles = StyleSheet.create({
   pad: { paddingHorizontal: 16, paddingBottom: 40 },
+  back: { color: colors.brandDeep, fontWeight: '800', marginBottom: 8 },
   h: { fontSize: 24, fontWeight: '800', color: colors.ink, marginBottom: 12 },
   card: {
     backgroundColor: colors.card,
@@ -198,11 +281,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 4,
+    marginBottom: 10,
   },
   btnText: { color: '#fff', fontWeight: '800' },
   hint: { marginTop: 8, fontSize: 12, color: colors.muted, lineHeight: 18 },
   k: { fontSize: 12, color: colors.muted },
   v: { fontSize: 16, fontWeight: '700', color: colors.ink, marginTop: 4 },
+  stats: { marginTop: 4, fontSize: 13, color: colors.muted },
   link: { marginTop: 8, color: colors.brandDeep, fontWeight: '800' },
   section: {
     marginTop: 16,
@@ -220,4 +305,12 @@ const styles = StyleSheet.create({
   },
   ghost: { backgroundColor: '#F4EDE3' },
   smallText: { color: '#fff', fontWeight: '800' },
+  del: {
+    backgroundColor: colors.danger,
+    justifyContent: 'center',
+    borderRadius: radius.card,
+    marginBottom: 10,
+    paddingHorizontal: 22,
+  },
+  delTxt: { color: '#fff', fontWeight: '800' },
 });

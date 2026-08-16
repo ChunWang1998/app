@@ -3,8 +3,8 @@ export const MAX_CHAT = 20;
 export const MAX_SLOTS = 3;
 export const MAX_PLACES = 3;
 export const MAX_INTRO = 50;
-export const GATHERING_CAP = 10;
-export const GATHERING_WITHIN_DAYS = 7;
+export const MAX_GATHERING_NAME = 10;
+export const MAX_GATHERING_INTRO = 50;
 
 export const TRIAL_CITIES = ['臺北市', '新北市', '臺南市', '高雄市'];
 
@@ -28,11 +28,9 @@ export const DAY_TYPES = [
 ];
 
 export const TIME_SLOTS = [
-  { id: 'morning', label: '早上', hint: '11 點前' },
-  { id: 'noon', label: '中午', hint: '11–14' },
-  { id: 'afternoon', label: '下午', hint: '14–17' },
-  { id: 'evening', label: '傍晚', hint: '17–19' },
-  { id: 'night', label: '晚上', hint: '19 以後' },
+  { id: 'morning', label: '早' },
+  { id: 'afternoon', label: '中' },
+  { id: 'evening', label: '晚' },
 ];
 
 export const PLAY_OPTIONS = [
@@ -40,18 +38,44 @@ export const PLAY_OPTIONS = [
   { id: 'parallel', label: '需慢熱牽繩平行走' },
 ];
 
+export const GATHERING_TYPES = [
+  '趣味競賽',
+  '野餐',
+  '散步',
+  '動物餐廳',
+  '動物咖啡廳',
+  '爬山',
+  '單身狗',
+];
+
+export const GATHERING_FEE_PRESETS = [0, 50, 100, 200];
+
 /** Shown once when a Connect succeeds — not a profile checklist. */
 export const CONNECT_REMINDER =
   '見面提醒：雙方主人請全程在場。第一次請約公共公園，不要約私人庭院或室內。全程牽繩，直到雙方口頭同意才靠近。體型差大時預設平行走、不互相撲。若任一方的狗出現壓力訊號（躲、吠、低吼、身體僵硬），立刻拉開並結束當次。合照需當下口頭同意；夜間不要用閃光燈直射眼睛。現場怎麼走由你們自己決定。';
 
+export function normalizeSlotId(id) {
+  if (id === 'noon') return 'afternoon';
+  if (id === 'night') return 'evening';
+  return id;
+}
+
+export function normalizeSlot(slot) {
+  const next = { ...slot, slot: normalizeSlotId(slot.slot) };
+  next.label = slotLabel(next);
+  return next;
+}
+
 export function slotLabel(slot) {
   const day = DAY_TYPES.find((d) => d.id === slot.day)?.label || slot.day;
-  const time = TIME_SLOTS.find((t) => t.id === slot.slot)?.label || slot.slot;
+  const time =
+    TIME_SLOTS.find((t) => t.id === normalizeSlotId(slot.slot))?.label ||
+    slot.slot;
   return `${day}${time}`;
 }
 
 export function slotKey(slot) {
-  return `${slot.day}:${slot.slot}`;
+  return `${slot.day}:${normalizeSlotId(slot.slot)}`;
 }
 
 export function allSlotCombos() {
@@ -66,6 +90,21 @@ export function allSlotCombos() {
     }
   }
   return rows;
+}
+
+export function formatGatheringDate(d) {
+  const w = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+  return `${d.getMonth() + 1}/${d.getDate()}（週${w}）`;
+}
+
+export function startOfDay(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+export function isGatheringEnded(dateISO) {
+  return startOfDay(dateISO) < startOfDay(new Date());
 }
 
 export function canonicalCity(raw) {

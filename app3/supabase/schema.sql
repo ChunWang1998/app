@@ -101,6 +101,9 @@ create table if not exists public.profiles (
   can_photo boolean not null default true,
   outing_count int not null default 0,
   connect_count int not null default 0,
+  captain_count int not null default 0,
+  member_count int not null default 0,
+  captain_score int not null default 0,
   updated_at timestamptz not null default now()
 );
 
@@ -129,9 +132,40 @@ create table if not exists public.meet_confirms (
   primary key (connect_id, account_id)
 );
 
+create table if not exists public.gatherings (
+  id uuid primary key default gen_random_uuid(),
+  host_id uuid not null references public.accounts (id),
+  city text not null,
+  name text not null,
+  event_date date not null,
+  place text not null,
+  kind text not null,
+  fee int not null default 0,
+  intro text,
+  line_group_url text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.gathering_joins (
+  gathering_id uuid not null references public.gatherings (id),
+  account_id uuid not null references public.accounts (id),
+  joined_at timestamptz not null default now(),
+  primary key (gathering_id, account_id)
+);
+
+create table if not exists public.gathering_likes (
+  gathering_id uuid not null references public.gatherings (id),
+  account_id uuid not null references public.accounts (id),
+  created_at timestamptz not null default now(),
+  primary key (gathering_id, account_id)
+);
+
 alter table public.accounts enable row level security;
 alter table public.founder_whitelist enable row level security;
 alter table public.profiles enable row level security;
 alter table public.connects enable row level security;
 alter table public.messages enable row level security;
 alter table public.meet_confirms enable row level security;
+alter table public.gatherings enable row level security;
+alter table public.gathering_joins enable row level security;
+alter table public.gathering_likes enable row level security;

@@ -1,4 +1,4 @@
-import { slotLabel } from './constants';
+import { normalizeSlot } from './constants';
 
 function owner(partial) {
   return {
@@ -10,6 +10,9 @@ function owner(partial) {
     intro: '',
     canPhoto: true,
     registeredAt: '2026-01-01T00:00:00.000Z',
+    captainCount: 0,
+    memberCount: 0,
+    captainScore: 0,
     ...partial,
   };
 }
@@ -31,6 +34,9 @@ const SEED = {
       places: ['凹子底森林公園', '蓮池潭'],
       outingCount: 12,
       connectCount: 15,
+      captainCount: 4,
+      memberCount: 2,
+      captainScore: 10,
       intro: '左營傍晚常出現，兩狗牽繩平行走沒問題。',
       registeredAt: '2025-11-02T00:00:00.000Z',
     }),
@@ -44,7 +50,7 @@ const SEED = {
       personalities: ['慢熱'],
       slots: [
         { day: 'weekend', slot: 'afternoon' },
-        { day: 'weekday', slot: 'night' },
+        { day: 'weekday', slot: 'evening' },
       ],
       places: ['壽山動物園附近步道', '西子灣'],
       outingCount: 8,
@@ -99,6 +105,9 @@ const SEED = {
       places: ['台南公園', '東門城圓環'],
       outingCount: 9,
       connectCount: 11,
+      captainCount: 2,
+      memberCount: 3,
+      captainScore: 6,
     }),
     owner({
       id: 'tn-2',
@@ -122,7 +131,7 @@ const SEED = {
       size: '中型',
       district: '東區',
       personalities: ['友善'],
-      slots: [{ day: 'weekday', slot: 'night' }],
+      slots: [{ day: 'weekday', slot: 'evening' }],
       places: ['台南公園'],
       outingCount: 0,
       connectCount: 0,
@@ -145,6 +154,9 @@ const SEED = {
       places: ['縣民廣場', '大漢溪右岸'],
       outingCount: 14,
       connectCount: 18,
+      captainCount: 3,
+      memberCount: 4,
+      captainScore: 9,
     }),
     owner({
       id: 'ntpc-2',
@@ -190,6 +202,9 @@ const SEED = {
       places: ['大安森林公園', '芳蘭山親山步道'],
       outingCount: 16,
       connectCount: 20,
+      captainCount: 5,
+      memberCount: 3,
+      captainScore: 12,
     }),
     owner({
       id: 'tp-2',
@@ -203,6 +218,9 @@ const SEED = {
       places: ['象山公園'],
       outingCount: 7,
       connectCount: 8,
+      captainCount: 1,
+      memberCount: 2,
+      captainScore: 3,
     }),
     owner({
       id: 'tp-3',
@@ -224,7 +242,7 @@ const SEED = {
 export function seedOwnersForCity(city) {
   return (SEED[city] || []).map((o) => ({
     ...o,
-    slots: o.slots.map((s) => ({ ...s, label: slotLabel(s) })),
+    slots: o.slots.map((s) => normalizeSlot(s)),
     city,
     isSeed: true,
   }));

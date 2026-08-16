@@ -30,7 +30,7 @@ export default function OwnerRow({ owner, crown, onPress }) {
             {owner.dogName}
             {owner.ownerNick ? ` · ${owner.ownerNick}` : ''}
           </Text>
-          {owner.isGuide ? <Text style={styles.guideTag}>夥伴</Text> : null}
+          {owner.isGuide ? <Text style={styles.guideTag}>範例</Text> : null}
           {newbie && !owner.isGuide ? <Text style={styles.newTag}>新</Text> : null}
         </View>
         <Text style={styles.meta} numberOfLines={1}>

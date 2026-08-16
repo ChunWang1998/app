@@ -114,6 +114,9 @@ export default function EditProfileScreen({
       canPhoto,
       outingCount: initial?.outingCount || 0,
       connectCount: initial?.connectCount || 0,
+      captainCount: initial?.captainCount || 0,
+      memberCount: initial?.memberCount || 0,
+      captainScore: initial?.captainScore || 0,
       registeredAt: initial?.registeredAt || new Date().toISOString(),
     });
   };
@@ -198,7 +201,7 @@ export default function EditProfileScreen({
             {TIME_SLOTS.map((t) => (
               <Chip
                 key={t.id}
-                label={`${t.label} ${t.hint}`}
+                label={t.label}
                 selected={slots.some((s) => s.day === d.id && s.slot === t.id)}
                 onPress={() => toggleSlot(d.id, t.id)}
               />

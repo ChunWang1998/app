@@ -1,4 +1,4 @@
-import { slotLabel } from './constants';
+import { normalizeSlot } from './constants';
 
 /**
  * Two global demo neighbors. Everyone sees them, any city.
@@ -17,10 +17,13 @@ function guide(partial) {
     playWith: 'parallel',
     canPhoto: true,
     registeredAt: '2025-06-01T00:00:00.000Z',
-    city: '全域',
-    district: '鄰汪夥伴',
+    city: '範例',
+    district: '範例汪汪',
+    captainCount: 0,
+    memberCount: 0,
+    captainScore: 0,
     ...partial,
-    slots: (partial.slots || []).map((s) => ({ ...s, label: slotLabel(s) })),
+    slots: (partial.slots || []).map((s) => normalizeSlot(s)),
   };
 }
 

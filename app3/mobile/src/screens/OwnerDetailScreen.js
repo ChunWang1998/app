@@ -47,7 +47,7 @@ export default function OwnerDetailScreen({
             <Text style={styles.nick}>主人 {owner.ownerNick}</Text>
           ) : null}
           {owner.isGuide ? (
-            <Text style={styles.guide}>鄰汪夥伴 · 每位用戶都看得到</Text>
+            <Text style={styles.guide}>範例汪汪 · 每位用戶都看得到</Text>
           ) : null}
         </View>
 
@@ -64,6 +64,9 @@ export default function OwnerDetailScreen({
           <Row label="與其他狗" value={play || '—'} />
           <Row label="出去次數" value={String(owner.outingCount || 0)} />
           <Row label="Connect 次數" value={String(owner.connectCount || 0)} />
+          <Row label="汪汪大隊長次數" value={String(owner.captainCount || 0)} />
+          <Row label="汪汪隊員次數" value={String(owner.memberCount || 0)} />
+          <Row label="汪汪大隊長分數" value={String(owner.captainScore || 0)} />
         </View>
 
         {isMe ? (
