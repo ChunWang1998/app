@@ -46,6 +46,7 @@ export default function ChatScreen({
       setText('');
     } catch (e) {
       if (e.code === 'full') Alert.alert('已滿 20 句', '之後請自行約見面。');
+      else if (e.code === 'disconnected') Alert.alert('已解除 Connect');
     }
   };
 
@@ -60,7 +61,9 @@ export default function ChatScreen({
         </TouchableOpacity>
         <Text style={styles.title}>與 {peerName}</Text>
         <Text style={styles.hint}>
-          {rows.length}/{MAX_CHAT} 句 · 第一次見面建議公園平行走 15 分鐘
+          {connect?.status === 'disconnected'
+            ? '已解除 Connect，無法再傳訊息'
+            : `${rows.length}/${MAX_CHAT} 句 · 第一次見面建議公園平行走 15 分鐘`}
         </Text>
       </View>
       <ScrollView contentContainerStyle={styles.msgs}>
@@ -92,7 +95,7 @@ export default function ChatScreen({
         >
           <Text style={styles.link}>模擬對方已見面</Text>
         </TouchableOpacity>
-        {full ? (
+        {full && connect?.status !== 'disconnected' ? (
           <Text style={styles.full}>對話已滿，請自行約</Text>
         ) : (
           <View style={styles.row}>
@@ -100,7 +103,9 @@ export default function ChatScreen({
               style={styles.input}
               value={text}
               onChangeText={setText}
-              placeholder="最多 20 句"
+              placeholder={
+                connect?.status === 'disconnected' ? '已解除 Connect' : '最多 20 句'
+              }
             />
             <TouchableOpacity style={styles.send} onPress={send}>
               <Ionicons name="paper-plane" size={18} color="#fff" />

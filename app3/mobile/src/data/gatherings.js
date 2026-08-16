@@ -20,6 +20,7 @@ const SEED = [
     hostName: '拿鐵',
     dayOffset: 2,
     baseJoined: 4,
+    capacity: 8,
   },
   {
     id: 'g-tp-cafe',
@@ -34,6 +35,7 @@ const SEED = [
     hostName: '雲朵',
     dayOffset: 5,
     baseJoined: 2,
+    capacity: 2,
   },
   {
     id: 'g-ntpc-walk',
@@ -48,6 +50,7 @@ const SEED = [
     hostName: '歐包',
     dayOffset: 3,
     baseJoined: 6,
+    capacity: 6,
   },
   {
     id: 'g-tn-dine',
@@ -62,6 +65,7 @@ const SEED = [
     hostName: '芋頭',
     dayOffset: 1,
     baseJoined: 3,
+    capacity: 8,
   },
   {
     id: 'g-kh-hike',
@@ -76,6 +80,7 @@ const SEED = [
     hostName: '麻糬',
     dayOffset: 4,
     baseJoined: 5,
+    capacity: 8,
   },
   {
     id: 'g-kh-single',
@@ -91,6 +96,7 @@ const SEED = [
     dayOffset: -1,
     baseJoined: 7,
     allowJoinAfterEnd: true,
+    capacity: 7,
   },
 ];
 

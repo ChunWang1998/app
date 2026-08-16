@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors } from '../theme';
-import { allSlotCombos, slotKey } from '../data/constants';
+import { allSlotCombos, slotKey, TRIAL_CITIES } from '../data/constants';
 import { sortOwners, crownsForDistrict } from '../lib/sort';
 import OwnerRow from '../components/OwnerRow';
 import Chip from '../components/Chip';
@@ -15,9 +15,14 @@ export default function ExploreScreen({
   profile,
   onOpenOwner,
   onProfile,
+  onChangeCity,
 }) {
   const [district, setDistrict] = useState(guessedDistrict || '');
   const [slotKeys, setSlotKeys] = useState([]);
+
+  useEffect(() => {
+    setDistrict('');
+  }, [city]);
 
   const guides = owners.filter((o) => o.isGuide);
   const inCity = owners.filter((o) => !o.isGuide && o.city === city);
@@ -50,6 +55,22 @@ export default function ExploreScreen({
         photoUri={profile?.photoUri}
         onProfile={onProfile}
       />
+      <View style={styles.districts}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.modes}
+        >
+          {TRIAL_CITIES.map((c) => (
+            <Chip
+              key={c}
+              label={c}
+              selected={city === c}
+              onPress={() => (c === city ? null : onChangeCity?.(c))}
+            />
+          ))}
+        </ScrollView>
+      </View>
       <View style={styles.districts}>
         <ScrollView
           horizontal

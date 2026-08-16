@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   Alert,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import {
+  ScrollView,
+  Swipeable,
+  RectButton,
+} from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
 import { FOUNDER_CAP } from '../data/constants';
@@ -21,7 +24,6 @@ export default function MeScreen({
   connects,
   ownersById,
   myGatherings = [],
-  hiddenChats = [],
   onBack,
   onRegister,
   onCreateProfile,
@@ -32,10 +34,12 @@ export default function MeScreen({
   onDemoAccept,
   onCreateGathering,
   onOpenGathering,
-  onHideChat,
+  onDisconnect,
 }) {
   const insets = useSafeAreaInsets();
   const [phone, setPhone] = useState('');
+  const swipeRefs = useRef({});
+  const lastAskAt = useRef(0);
 
   const incoming = connects.filter(
     (c) => c.toId === session?.id && c.status === 'pending',
@@ -43,12 +47,12 @@ export default function MeScreen({
   const sent = connects.filter(
     (c) => c.fromId === session?.id && c.status === 'pending',
   );
-  const accepted = connects.filter(
-    (c) =>
-      c.status === 'accepted' &&
-      (c.fromId === session?.id || c.toId === session?.id),
-  );
-  const chats = accepted.filter((c) => !hiddenChats.includes(c.id));
+  const chats = connects.filter((c) => {
+    const mine = c.fromId === session?.id || c.toId === session?.id;
+    if (!mine) return false;
+    if (c.status === 'accepted') return true;
+    return c.status === 'disconnected' && c.disconnectedBy !== session?.id;
+  });
 
   const nameOf = (id) => ownersById[id]?.dogName || id;
   const subscribed = hasValidSub(session);
@@ -65,7 +69,7 @@ export default function MeScreen({
       {!session ? (
         <View style={styles.card}>
           <Text style={styles.p}>
-            填手機號當帳號（不驗證碼）。前 {FOUNDER_CAP} 人寫入白名單，永久不必付費。必須同時建立狗檔案才算完成免費註冊。
+            填手機號當帳號（不驗證碼）。前 {FOUNDER_CAP} 人寫入白名單，永久不必付費。必須同時建立汪汪檔案才算完成免費註冊。
           </Text>
           <TextInput
             style={styles.input}
@@ -126,12 +130,12 @@ export default function MeScreen({
                   汪汪隊員 {profile.memberCount || 0} 次
                 </Text>
                 <TouchableOpacity onPress={onCreateProfile}>
-                  <Text style={styles.link}>編輯檔案</Text>
+                  <Text style={styles.link}>編輯汪汪檔案</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <TouchableOpacity style={styles.btn} onPress={onCreateProfile}>
-                <Text style={styles.btnText}>請先完成狗檔案（註冊未完成）</Text>
+                <Text style={styles.btnText}>請先完成汪汪檔案（註冊未完成）</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -202,51 +206,70 @@ export default function MeScreen({
           )}
 
           <Text style={styles.section}>聊天</Text>
-          <Text style={styles.hint}>右滑刪除對話</Text>
+          <Text style={styles.hint}>左滑或右滑刪除對話，會解除 Connect</Text>
           {chats.length === 0 ? (
             <Text style={styles.empty}>還沒有對話</Text>
           ) : (
-            chats.map((c) => (
-              <Swipeable
-                key={c.id}
-                overshootLeft={false}
-                renderLeftActions={() => (
-                  <TouchableOpacity
-                    style={styles.del}
-                    onPress={() => onHideChat(c.id)}
+            chats.map((c) => {
+              const askDisconnect = () => {
+                const now = Date.now();
+                if (now - lastAskAt.current < 700) return;
+                lastAskAt.current = now;
+                setTimeout(() => {
+                  Alert.alert('解除 Connect', '刪除對話後將解除 Connect。', [
+                    {
+                      text: '取消',
+                      style: 'cancel',
+                      onPress: () => swipeRefs.current[c.id]?.close?.(),
+                    },
+                    {
+                      text: '解除',
+                      style: 'destructive',
+                      onPress: () => onDisconnect(c.id),
+                    },
+                  ]);
+                }, 40);
+              };
+              const deleteAction = () => (
+                <RectButton style={styles.del} onPress={askDisconnect}>
+                  <Text style={styles.delTxt}>刪除</Text>
+                </RectButton>
+              );
+              return (
+                <View key={c.id} style={styles.swipeRow}>
+                  <Swipeable
+                    ref={(r) => {
+                      swipeRefs.current[c.id] = r;
+                    }}
+                    friction={1.5}
+                    leftThreshold={24}
+                    rightThreshold={24}
+                    overshootLeft={false}
+                    overshootRight={false}
+                    activeOffsetX={[-12, 12]}
+                    failOffsetY={[-18, 18]}
+                    onSwipeableOpen={askDisconnect}
+                    renderLeftActions={deleteAction}
+                    renderRightActions={deleteAction}
                   >
-                    <Text style={styles.delTxt}>刪除</Text>
-                  </TouchableOpacity>
-                )}
-              >
-                <TouchableOpacity
-                  style={styles.card}
-                  onPress={() => onOpenChat(c.id)}
-                >
-                  <Text style={styles.v}>
-                    與 {nameOf(c.fromId === session.id ? c.toId : c.fromId)} 聊天
-                  </Text>
-                  <Text style={styles.hint}>最多 20 句 · 右滑刪除</Text>
-                </TouchableOpacity>
-              </Swipeable>
-            ))
-          )}
-
-          <Text style={styles.section}>已接受／歷史</Text>
-          {accepted.length === 0 ? (
-            <Text style={styles.empty}>還沒有成功的 Connect</Text>
-          ) : (
-            accepted.map((c) => (
-              <TouchableOpacity
-                key={c.id}
-                style={styles.card}
-                onPress={() => onOpenChat(c.id)}
-              >
-                <Text style={styles.v}>
-                  與 {nameOf(c.fromId === session.id ? c.toId : c.fromId)}
-                </Text>
-              </TouchableOpacity>
-            ))
+                    <TouchableOpacity
+                      style={styles.chatCard}
+                      onPress={() => onOpenChat(c.id)}
+                      activeOpacity={0.9}
+                    >
+                      <Text style={styles.v}>
+                        與 {nameOf(c.fromId === session.id ? c.toId : c.fromId)} 聊天
+                      </Text>
+                      <Text style={styles.hint}>
+                        {c.status === 'disconnected'
+                          ? '對方已解除 Connect'
+                          : '最多 20 句 · 滑動刪除'}
+                      </Text>
+                    </TouchableOpacity>
+                  </Swipeable>
+                </View>
+              );
+            })
           )}
         </>
       )}
@@ -265,6 +288,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     marginBottom: 10,
+  },
+  swipeRow: { marginBottom: 10 },
+  chatCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   p: { color: colors.muted, marginBottom: 8, lineHeight: 20 },
   input: {
@@ -308,9 +339,9 @@ const styles = StyleSheet.create({
   del: {
     backgroundColor: colors.danger,
     justifyContent: 'center',
+    alignItems: 'center',
+    width: 88,
     borderRadius: radius.card,
-    marginBottom: 10,
-    paddingHorizontal: 22,
   },
   delTxt: { color: '#fff', fontWeight: '800' },
 });

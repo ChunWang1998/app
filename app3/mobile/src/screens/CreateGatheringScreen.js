@@ -14,6 +14,8 @@ import { colors, radius } from '../theme';
 import {
   GATHERING_TYPES,
   GATHERING_FEE_PRESETS,
+  GATHERING_CAPACITY_PRESETS,
+  DEFAULT_GATHERING_CAPACITY,
   MAX_GATHERING_NAME,
   MAX_GATHERING_INTRO,
   formatGatheringDate,
@@ -38,6 +40,7 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
   const [intro, setIntro] = useState('');
   const [lineGroupUrl, setLineGroupUrl] = useState('');
   const [date, setDate] = useState(offsetDate(1));
+  const [capacity, setCapacity] = useState(DEFAULT_GATHERING_CAPACITY);
 
   const presets = [
     { label: '明天', d: offsetDate(1) },
@@ -71,6 +74,7 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
       intro: intro.trim().slice(0, MAX_GATHERING_INTRO),
       lineGroupUrl: lineGroupUrl.trim(),
       dateISO: date.toISOString(),
+      capacity,
     });
   };
 
@@ -157,6 +161,18 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
           onChangeText={setCustomFee}
         />
       ) : null}
+
+      <Text style={styles.k}>人數上限</Text>
+      <View style={styles.wrap}>
+        {GATHERING_CAPACITY_PRESETS.map((n) => (
+          <Chip
+            key={n}
+            label={`${n} 人`}
+            selected={capacity === n}
+            onPress={() => setCapacity(n)}
+          />
+        ))}
+      </View>
 
       <Text style={styles.k}>簡介（50 字內）</Text>
       <TextInput

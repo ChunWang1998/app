@@ -55,6 +55,7 @@ export default function GatheringDetailScreen({
         <Row label="地點" value={g.place} />
         <Row label="主辦" value={`${g.hostName} · 大隊長分數 ${g.hostCaptainScore || 0}`} />
         <Row label="收費" value={g.fee === 0 ? '免費' : `NT$${g.fee}`} />
+        <Row label="人數" value={`${g.joinedCount || 0}/${g.capacity || 8}${g.full ? ' · 額滿' : ''}`} />
         <Row label="簡介" value={g.intro || '—'} />
         <Row label="狀態" value={g.ended ? '已結束' : '即將開始'} />
       </View>

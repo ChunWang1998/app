@@ -3,6 +3,7 @@ import {
   MAX_CHAT,
   MAX_GATHERING_INTRO,
   MAX_GATHERING_NAME,
+  DEFAULT_GATHERING_CAPACITY,
   TRIAL_CITIES,
   formatGatheringDate,
   isGatheringEnded,
@@ -32,6 +33,8 @@ const KEYS = {
   gatheringLikes: 'linwang:gatheringLikes',
   gatheringEnded: 'linwang:gatheringEnded',
   hiddenChats: 'linwang:hiddenChats',
+  selectedCity: 'linwang:selectedCity',
+  demoInvite: 'linwang:demoInvite',
 };
 
 function uid(prefix) {
@@ -184,7 +187,21 @@ export async function sendConnect(fromId, toId) {
       (c.fromId === fromId && c.toId === toId) ||
       (c.fromId === toId && c.toId === fromId),
   );
-  if (existing) return existing;
+  if (existing) {
+    if (existing.status === 'disconnected') {
+      const row = {
+        ...existing,
+        status: 'pending',
+        disconnectedBy: undefined,
+        disconnectedAt: undefined,
+        createdAt: new Date().toISOString(),
+      };
+      const next = connects.map((c) => (c.id === existing.id ? row : c));
+      await writeJson(KEYS.connects, next);
+      return row;
+    }
+    return existing;
+  }
   const row = {
     id: uid('c'),
     fromId,
@@ -195,6 +212,22 @@ export async function sendConnect(fromId, toId) {
   connects.unshift(row);
   await writeJson(KEYS.connects, connects);
   return row;
+}
+
+export async function disconnectConnect(id, byUserId) {
+  const connects = await listConnects();
+  const next = connects.map((c) =>
+    c.id === id
+      ? {
+          ...c,
+          status: 'disconnected',
+          disconnectedBy: byUserId,
+          disconnectedAt: new Date().toISOString(),
+        }
+      : c,
+  );
+  await writeJson(KEYS.connects, next);
+  return next;
 }
 
 export async function setConnectStatus(id, status) {
@@ -238,6 +271,13 @@ export async function listMessages(connectId) {
 }
 
 export async function sendMessage(connectId, fromId, text) {
+  const connects = await listConnects();
+  const row = connects.find((c) => c.id === connectId);
+  if (!row || row.status === 'disconnected') {
+    const err = new Error('disconnected');
+    err.code = 'disconnected';
+    throw err;
+  }
   const all = await readJson(KEYS.messages, {});
   const rows = all[connectId] || [];
   if (rows.length >= MAX_CHAT) {
@@ -368,12 +408,18 @@ function decorateGathering(g, joins, likes, userId, host) {
   const extra = joins[g.id] || [];
   const likeIds = likes[g.id] || [];
   const ended = isGatheringEnded(g.dateISO);
+  const joinedCount = (g.baseJoined || 0) + extra.length;
+  const capacity = g.capacity || DEFAULT_GATHERING_CAPACITY;
+  const iJoined = userId ? extra.includes(userId) : false;
+  const iHost = userId ? g.hostId === userId : false;
   return {
     ...g,
     hostCaptainScore: host?.captainScore || 0,
-    joinedCount: (g.baseJoined || 0) + extra.length,
-    iJoined: userId ? extra.includes(userId) : false,
-    iHost: userId ? g.hostId === userId : false,
+    joinedCount,
+    capacity,
+    full: joinedCount >= capacity,
+    iJoined,
+    iHost,
     ended,
     liked: userId ? likeIds.includes(userId) : false,
     likeCount: likeIds.length,
@@ -473,6 +519,7 @@ export async function createGathering(payload, host) {
     createdAt: new Date().toISOString(),
     isSeed: false,
     baseJoined: 0,
+    capacity: payload.capacity || DEFAULT_GATHERING_CAPACITY,
   };
   const all = await createdGatherings();
   all.unshift(row);
@@ -505,6 +552,13 @@ export async function joinGathering(id, userId) {
   const joins = await readJson(KEYS.gatheringJoins, {});
   const extra = joins[id] || [];
   if (!extra.includes(userId)) {
+    const count = (g.baseJoined || 0) + extra.length;
+    const cap = g.capacity || DEFAULT_GATHERING_CAPACITY;
+    if (count >= cap) {
+      const err = new Error('full');
+      err.code = 'full';
+      throw err;
+    }
     extra.push(userId);
     joins[id] = extra;
     await writeJson(KEYS.gatheringJoins, joins);
@@ -569,6 +623,31 @@ export async function unhideChat(connectId) {
   const ids = (await readJson(KEYS.hiddenChats, [])).filter((id) => id !== connectId);
   await writeJson(KEYS.hiddenChats, ids);
   return ids;
+}
+
+export async function loadSelectedCity() {
+  const city = await readJson(KEYS.selectedCity, null);
+  return TRIAL_CITIES.includes(city) ? city : null;
+}
+
+export async function saveSelectedCity(city) {
+  await writeJson(KEYS.selectedCity, city);
+  return city;
+}
+
+export async function maybeSendDemoInvite(userId, city) {
+  if (!userId || !city) return null;
+  const sent = await readJson(KEYS.demoInvite, false);
+  if (sent) return null;
+  const owners = await listOwners(city);
+  const peer = owners.find((o) => !o.isGuide && !o.isMe && o.id !== userId);
+  if (!peer) {
+    await writeJson(KEYS.demoInvite, true);
+    return null;
+  }
+  const row = await sendConnect(peer.id, userId);
+  await writeJson(KEYS.demoInvite, true);
+  return { row, peer };
 }
 
 export { isGuideId, getGuide };

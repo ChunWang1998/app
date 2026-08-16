@@ -42,7 +42,7 @@ export default function OwnerRow({ owner, crown, onPress }) {
       </View>
       <View style={styles.countWrap}>
         <Text style={styles.count}>{owner.outingCount || 0}</Text>
-        <Text style={styles.countLabel}>出去</Text>
+        <Text style={styles.countLabel}>出去次數</Text>
       </View>
     </TouchableOpacity>
   );
@@ -105,7 +105,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   meta: { marginTop: 3, fontSize: 12, color: colors.muted },
-  countWrap: { alignItems: 'center', paddingLeft: 8, minWidth: 44 },
+  countWrap: { alignItems: 'center', paddingLeft: 8, minWidth: 56 },
   count: { fontSize: 18, fontWeight: '800', color: colors.brandDeep },
-  countLabel: { fontSize: 10, color: colors.muted, marginTop: 2 },
+  countLabel: {
+    fontSize: 10,
+    color: colors.muted,
+    marginTop: 2,
+    textAlign: 'center',
+  },
 });

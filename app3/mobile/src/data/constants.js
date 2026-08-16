@@ -6,7 +6,7 @@ export const MAX_INTRO = 50;
 export const MAX_GATHERING_NAME = 10;
 export const MAX_GATHERING_INTRO = 50;
 
-export const TRIAL_CITIES = ['臺北市', '新北市', '臺南市', '高雄市'];
+export const TRIAL_CITIES = ['高雄市', '臺南市', '新北市', '臺北市'];
 
 /** NLSC county codes — only used as API path, not as a district list. */
 export const COUNTY_CODE = {
@@ -49,6 +49,10 @@ export const GATHERING_TYPES = [
 ];
 
 export const GATHERING_FEE_PRESETS = [0, 50, 100, 200];
+
+export const GATHERING_CAPACITY_PRESETS = [4, 6, 8, 10];
+
+export const DEFAULT_GATHERING_CAPACITY = 8;
 
 /** Shown once when a Connect succeeds — not a profile checklist. */
 export const CONNECT_REMINDER =

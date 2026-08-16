@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, radius } from '../theme';
+import { TRIAL_CITIES } from '../data/constants';
 import ScreenHeader from '../components/ScreenHeader';
+import Chip from '../components/Chip';
 
 export default function GatheringsScreen({
   city,
@@ -10,6 +12,7 @@ export default function GatheringsScreen({
   onProfile,
   onJoin,
   onOpen,
+  onChangeCity,
 }) {
   return (
     <View style={styles.fill}>
@@ -19,6 +22,22 @@ export default function GatheringsScreen({
         photoUri={profile?.photoUri}
         onProfile={onProfile}
       />
+      <View style={styles.cities}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.modes}
+        >
+          {TRIAL_CITIES.map((c) => (
+            <Chip
+              key={c}
+              label={c}
+              selected={city === c}
+              onPress={() => (c === city ? null : onChangeCity?.(c))}
+            />
+          ))}
+        </ScrollView>
+      </View>
       <ScrollView
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -26,41 +45,60 @@ export default function GatheringsScreen({
         {gatherings.length === 0 ? (
           <Text style={styles.empty}>這一市目前沒有聚會。可到個人頁創辦。</Text>
         ) : (
-          gatherings.map((g) => (
-            <TouchableOpacity
-              key={g.id}
-              style={styles.card}
-              activeOpacity={0.88}
-              onPress={() => (g.iJoined || g.iHost ? onOpen(g) : null)}
-            >
-              <View style={styles.top}>
-                <Text style={styles.name}>{g.name}</Text>
-                <Text style={styles.type}>{g.type}</Text>
-              </View>
-              <Text style={styles.meta}>
-                {g.dateLabel} · {g.place}
-              </Text>
-              <Text style={styles.meta}>
-                主辦 {g.hostName} · 大隊長分數 {g.hostCaptainScore || 0}
-              </Text>
-              <Text style={styles.meta}>
-                收費 {g.fee === 0 ? '免費' : `NT$${g.fee}`} · {g.joinedCount} 人
-                {g.ended ? ' · 已結束' : ''}
-              </Text>
-              {g.intro ? <Text style={styles.intro}>{g.intro}</Text> : null}
-              {g.iHost ? (
-                <Text style={styles.note}>你是主辦者</Text>
-              ) : g.iJoined ? (
-                <Text style={styles.note}>已報名 · 點進去看 LINE 群組</Text>
-              ) : g.ended && !g.allowJoinAfterEnd ? (
-                <Text style={styles.note}>已結束</Text>
-              ) : (
-                <TouchableOpacity style={styles.btn} onPress={() => onJoin(g)}>
-                  <Text style={styles.btnTxt}>我要報名</Text>
-                </TouchableOpacity>
-              )}
-            </TouchableOpacity>
-          ))
+          gatherings.map((g) => {
+            const lockedOut = g.full && !g.iJoined && !g.iHost;
+            const inner = (
+              <>
+                <View style={styles.top}>
+                  <Text style={styles.name}>{g.name}</Text>
+                  <Text style={styles.type}>{g.type}</Text>
+                </View>
+                <Text style={styles.meta}>
+                  {g.dateLabel} · {g.place}
+                </Text>
+                <Text style={styles.meta}>
+                  主辦 {g.hostName} · 大隊長分數 {g.hostCaptainScore || 0}
+                </Text>
+                <Text style={styles.meta}>
+                  收費 {g.fee === 0 ? '免費' : `NT$${g.fee}`} · {g.joinedCount}/
+                  {g.capacity} 人
+                  {g.full ? ' · 額滿' : ''}
+                  {g.ended ? ' · 已結束' : ''}
+                </Text>
+                {g.intro ? <Text style={styles.intro}>{g.intro}</Text> : null}
+                {lockedOut ? (
+                  <Text style={styles.fullNote}>額滿，無法報名</Text>
+                ) : g.iHost ? (
+                  <Text style={styles.note}>你是主辦者</Text>
+                ) : g.iJoined ? (
+                  <Text style={styles.note}>已報名 · 點進去看 LINE 群組</Text>
+                ) : g.ended && !g.allowJoinAfterEnd ? (
+                  <Text style={styles.note}>已結束</Text>
+                ) : (
+                  <TouchableOpacity style={styles.btn} onPress={() => onJoin(g)}>
+                    <Text style={styles.btnTxt}>我要報名</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            );
+            if (lockedOut) {
+              return (
+                <View key={g.id} style={[styles.card, styles.cardDim]}>
+                  {inner}
+                </View>
+              );
+            }
+            return (
+              <TouchableOpacity
+                key={g.id}
+                style={styles.card}
+                activeOpacity={0.88}
+                onPress={() => (g.iJoined || g.iHost ? onOpen(g) : null)}
+              >
+                {inner}
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
     </View>
@@ -69,6 +107,8 @@ export default function GatheringsScreen({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  cities: { paddingHorizontal: 16, paddingBottom: 4 },
+  modes: { paddingBottom: 4 },
   list: { paddingHorizontal: 16, paddingBottom: 24 },
   empty: { marginTop: 16, color: colors.muted, lineHeight: 20 },
   card: {
@@ -94,6 +134,8 @@ const styles = StyleSheet.create({
   meta: { marginTop: 4, fontSize: 13, color: colors.muted },
   intro: { marginTop: 8, fontSize: 13, color: colors.ink, lineHeight: 20 },
   note: { marginTop: 10, color: colors.ok, fontWeight: '700' },
+  fullNote: { marginTop: 10, color: colors.danger, fontWeight: '700' },
+  cardDim: { opacity: 0.55 },
   btn: {
     marginTop: 10,
     alignSelf: 'flex-start',

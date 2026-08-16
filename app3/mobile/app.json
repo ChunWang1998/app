@@ -32,7 +32,8 @@
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -52,7 +53,14 @@
           "cameraPermission": "需要相機來拍攝主人與狗的合照。"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#E07A3D",
+          "sounds": []
+        }
+      ]
     ],
     "extra": {
       "eas": {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,8 +23,10 @@ import {
   MAX_SLOTS,
   MAX_PLACES,
   MAX_INTRO,
+  TRIAL_CITIES,
   slotLabel,
 } from '../data/constants';
+import { fetchDistrictsForCity } from '../lib/districts';
 import Chip from '../components/Chip';
 
 export default function EditProfileScreen({
@@ -45,10 +48,41 @@ export default function EditProfileScreen({
   const [slots, setSlots] = useState(initial?.slots || []);
   const [places, setPlaces] = useState(initial?.places || []);
   const [placeDraft, setPlaceDraft] = useState('');
-  const [district, setDistrict] = useState(initial?.district || districts[0] || '');
+  const [cityPick, setCityPick] = useState(initial?.city || city || TRIAL_CITIES[0]);
+  const [districtList, setDistrictList] = useState(districts || []);
+  const [district, setDistrict] = useState(initial?.district || districts?.[0] || '');
+  const [loadingTowns, setLoadingTowns] = useState(false);
   const [playWith, setPlayWith] = useState(initial?.playWith || 'parallel');
   const [photoUri, setPhotoUri] = useState(initial?.photoUri || null);
-  const [canPhoto, setCanPhoto] = useState(initial?.canPhoto !== false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadTowns = async () => {
+      if (cityPick === city && districts?.length) {
+        setDistrictList(districts);
+        if (!districts.includes(district)) setDistrict(districts[0] || '');
+        return;
+      }
+      setLoadingTowns(true);
+      try {
+        const towns = await fetchDistrictsForCity(cityPick);
+        if (cancelled) return;
+        setDistrictList(towns);
+        setDistrict((prev) => (towns.includes(prev) ? prev : towns[0] || ''));
+      } catch {
+        if (!cancelled) {
+          setDistrictList([]);
+          Alert.alert('行政區載入失敗', '請確認網路後再選一次縣市。');
+        }
+      } finally {
+        if (!cancelled) setLoadingTowns(false);
+      }
+    };
+    loadTowns();
+    return () => {
+      cancelled = true;
+    };
+  }, [cityPick]);
 
   const toggle = (arr, setArr, id) => {
     setArr(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
@@ -92,6 +126,10 @@ export default function EditProfileScreen({
       Alert.alert('請上傳合照', '清單只接受主人與狗都入鏡的合照（示範：選一張照片即可）。');
       return;
     }
+    if (!cityPick) {
+      Alert.alert('請選縣市');
+      return;
+    }
     if (!district) {
       Alert.alert('請選行政區');
       return;
@@ -107,11 +145,10 @@ export default function EditProfileScreen({
       slots,
       places,
       district,
-      city,
+      city: cityPick,
       playWith,
       photoUri,
       photoOk: Boolean(photoUri) || initial?.photoOk,
-      canPhoto,
       outingCount: initial?.outingCount || 0,
       connectCount: initial?.connectCount || 0,
       captainCount: initial?.captainCount || 0,
@@ -130,23 +167,25 @@ export default function EditProfileScreen({
           <Text style={styles.back}>← 返回</Text>
         </TouchableOpacity>
       )}
-      <Text style={styles.h}>{registerMode ? '免費註冊' : '狗檔案'}</Text>
-      <Text style={styles.hint}>
-        {registerMode
-          ? '填手機號的同時必須建立狗檔案，才算完成註冊。'
-          : `縣市由定位判定：${city}。行政區來自即時 API。`}
-      </Text>
+      <Text style={styles.h}>{registerMode ? '免費註冊' : '汪汪檔案'}</Text>
       {registerMode ? (
-        <Text style={styles.hint}>縣市由定位判定：{city}。</Text>
-      ) : null}
+        <Text style={styles.hint}>
+          填手機號的同時必須建立汪汪檔案，才算完成註冊。
+        </Text>
+      ) : (
+        <View style={{ height: 18 }} />
+      )}
 
-      <TouchableOpacity style={styles.photoBtn} onPress={pickPhoto}>
-        {photoUri ? (
-          <Image source={{ uri: photoUri }} style={styles.photo} />
-        ) : (
-          <Text style={styles.photoTxt}>上傳主人＋狗合照</Text>
-        )}
-      </TouchableOpacity>
+      <View style={styles.photoWrap}>
+        <TouchableOpacity style={styles.photoBtn} onPress={pickPhoto}>
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={styles.photo} />
+          ) : (
+            <Text style={styles.photoTxt}>合照</Text>
+          )}
+        </TouchableOpacity>
+        <Text style={styles.photoHint}>上傳主人＋狗合照</Text>
+      </View>
 
       <TextInput
         style={styles.input}
@@ -210,12 +249,28 @@ export default function EditProfileScreen({
         </View>
       ))}
 
-      <Text style={styles.k}>行政區</Text>
+      <Text style={styles.k}>縣市</Text>
       <View style={styles.wrap}>
-        {districts.map((d) => (
-          <Chip key={d} label={d} selected={district === d} onPress={() => setDistrict(d)} />
+        {TRIAL_CITIES.map((c) => (
+          <Chip
+            key={c}
+            label={c}
+            selected={cityPick === c}
+            onPress={() => setCityPick(c)}
+          />
         ))}
       </View>
+
+      <Text style={styles.k}>行政區</Text>
+      {loadingTowns ? (
+        <ActivityIndicator color={colors.brand} style={{ marginVertical: 8 }} />
+      ) : (
+        <View style={styles.wrap}>
+          {districtList.map((d) => (
+            <Chip key={d} label={d} selected={district === d} onPress={() => setDistrict(d)} />
+          ))}
+        </View>
+      )}
 
       <Text style={styles.k}>地點（最多 3）</Text>
       <View style={styles.addRow}>
@@ -264,12 +319,6 @@ export default function EditProfileScreen({
         ))}
       </View>
 
-      <Chip
-        label={canPhoto ? '可合照（開）' : '可合照（關）'}
-        selected={canPhoto}
-        onPress={() => setCanPhoto(!canPhoto)}
-      />
-
       <TouchableOpacity style={styles.save} onPress={save}>
         <Text style={styles.saveTxt}>{registerMode ? '完成註冊' : '儲存檔案'}</Text>
       </TouchableOpacity>
@@ -290,19 +339,23 @@ function RowChips({ items, value, onPick }) {
 const styles = StyleSheet.create({
   pad: { paddingHorizontal: 16 },
   back: { color: colors.brandDeep, fontWeight: '800', marginBottom: 8 },
-  h: { fontSize: 24, fontWeight: '800', color: colors.ink },
+  h: { fontSize: 24, fontWeight: '800', color: colors.ink, marginBottom: 4 },
   hint: { marginTop: 6, marginBottom: 8, color: colors.muted, fontSize: 12, lineHeight: 18 },
+  photoWrap: { alignItems: 'center', marginTop: 16, marginBottom: 18 },
   photoBtn: {
-    height: 120,
-    borderRadius: radius.card,
+    width: 108,
+    height: 108,
+    borderRadius: 24,
     backgroundColor: '#F8EBD8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.line,
   },
-  photo: { width: '100%', height: '100%' },
+  photo: { width: 108, height: 108 },
   photoTxt: { fontWeight: '800', color: colors.brandDeep },
+  photoHint: { marginTop: 8, fontSize: 12, fontWeight: '700', color: colors.muted },
   input: {
     borderWidth: 1,
     borderColor: colors.line,
