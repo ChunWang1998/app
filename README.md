@@ -31,9 +31,9 @@ python3 fetchData/buildDataSet.py   # → data/dataSet.json，並同步到 mobil
 
 ---
 
-## app3 — 共抄（念經抄經）
+## app3 — 鄰汪（寵物交友）
 
-群組共抄：免登入房間碼、句單元點選、精選繁體離線經。詳見 [`app3/note.md`](./app3/note.md)、[`app3/README.md`](./app3/README.md)。
+本地狗主人找附近狗鄰居。規格見 [`app3/note.md`](./app3/note.md)。
 
 ```bash
 cd app3/mobile

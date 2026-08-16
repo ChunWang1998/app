@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "鄰汪",
+    "slug": "linwang",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFF6E8"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.linwang.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "需要你的位置來判斷所在縣市，並載入該市行政區。",
+        "NSPhotoLibraryUsageDescription": "需要相簿來上傳主人與狗的合照。",
+        "NSCameraUsageDescription": "需要相機來拍攝主人與狗的合照。",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.linwang.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFF6E8",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "需要你的位置來判斷所在縣市，並載入該市行政區。"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "需要相簿來上傳主人與狗的合照。",
+          "cameraPermission": "需要相機來拍攝主人與狗的合照。"
+        }
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "246d2a7b-c101-404e-b637-d5fa189c98b5"
+      }
+    },
+    "owner": "leowang1105"
+  }
+}
