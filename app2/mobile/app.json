@@ -25,7 +25,7 @@
     "android": {
       "package": "com.toiletgo.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E8FBF7",
+        "backgroundColor": "#252526",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
