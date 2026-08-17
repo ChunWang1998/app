@@ -6,6 +6,7 @@ import {
   DEFAULT_GATHERING_CAPACITY,
   TRIAL_CITIES,
   formatGatheringDate,
+  isGatheringDateAllowed,
   isGatheringEnded,
   normalizeSlot,
 } from '../data/constants';
@@ -24,6 +25,8 @@ import {
   isUuid,
   loadMyAccount,
   upsertProfile,
+  loginWithPhone,
+  registerFounder,
   listCityProfiles,
   listMyConnects,
   sendConnectCloud,
@@ -146,6 +149,41 @@ export async function saveProfile(profile) {
 /**
  * Phone + dog profile must be saved together. Founder slot is claimed only then.
  */
+export async function restoreAccount(phoneRaw) {
+  const loginKey = normalizeLoginKey(phoneRaw);
+  if (loginKey.length < 9) {
+    const err = new Error('invalid phone');
+    err.code = 'invalid';
+    throw err;
+  }
+  if (!isCloudReady()) return null;
+  const row = await loginWithPhone(loginKey);
+  if (!row?.profile) return null;
+  const session = {
+    id: row.accountId,
+    loginKey,
+    phone: loginKey,
+    provider: 'phone',
+    registeredAt: row.profile.registeredAt || new Date().toISOString(),
+    subscription:
+      row.subscription === 'paid'
+        ? 'paid'
+        : row.subscription === 'founder'
+          ? 'founder'
+          : 'none',
+  };
+  if (session.subscription !== 'paid' && (await isWhitelisted(loginKey))) {
+    session.subscription = 'founder';
+  }
+  await saveSession(session);
+  await writeJson(KEYS.profile, row.profile);
+  return {
+    session,
+    profile: row.profile,
+    founderCount: await whitelistCount(),
+  };
+}
+
 export async function registerAccount(phoneRaw) {
   const loginKey = normalizeLoginKey(phoneRaw);
   if (loginKey.length < 9) {
@@ -175,6 +213,43 @@ export async function registerAccount(phoneRaw) {
 }
 
 export async function registerWithProfile(phoneRaw, profile) {
+  const loginKey = normalizeLoginKey(phoneRaw);
+  if (loginKey.length < 9) {
+    const err = new Error('invalid phone');
+    err.code = 'invalid';
+    throw err;
+  }
+
+  if (isCloudReady()) {
+    let photoUri = profile.photoUri || null;
+    if (photoUri) {
+      photoUri = await uploadAvatar(loginKey, photoUri);
+    }
+    const payload = {
+      ...profile,
+      photoUri,
+      photoOk: Boolean(photoUri) || Boolean(profile.photoOk),
+      slots: (profile.slots || []).map((s) => normalizeSlot(s)),
+    };
+    const row = await registerFounder(loginKey, 'phone', payload);
+    const session = {
+      id: row.accountId || row.account_id,
+      loginKey,
+      phone: loginKey,
+      provider: 'phone',
+      registeredAt: row.profile?.registeredAt || new Date().toISOString(),
+      subscription: row.founder || row.subscription === 'founder' ? 'founder' : 'none',
+    };
+    await saveSession(session);
+    if (row.profile) await writeJson(KEYS.profile, row.profile);
+    return {
+      session,
+      profile: row.profile || payload,
+      founderCount: await whitelistCount(),
+      already: Boolean(row.already),
+    };
+  }
+
   const { session, founderCount } = await registerAccount(phoneRaw);
   const saved = await saveProfile({
     ...profile,
@@ -682,6 +757,11 @@ export async function createGathering(payload, host) {
     throw err;
   }
   const date = new Date(dateISO);
+  if (Number.isNaN(date.getTime()) || !isGatheringDateAllowed(date)) {
+    const err = new Error('date');
+    err.code = 'invalid';
+    throw err;
+  }
   const row = {
     id: uid('g'),
     city: host.city,

@@ -1,6 +1,7 @@
 -- 鄰汪 — Supabase schema
 -- Dashboard → SQL Editor 執行（可重複執行）。
 -- 白名單是下次升級「已事先訂閱」的依據。
+-- 新創始名額必須走 register_founder（手機號＋狗檔案同一筆交易）。
 -- App 用 anon key + security definer RPC（試用期不驗證碼，以 login_key 當身份）。
 -- 表格 RLS 預設拒絕直寫；公開讀取僅限已完成合照的檔案與聚會。
 
@@ -29,6 +30,9 @@ create table if not exists public.founder_whitelist (
   claimed_at timestamptz not null default now()
 );
 
+create unique index if not exists founder_whitelist_slot_no_uidx
+  on public.founder_whitelist (slot_no);
+
 create or replace function public.founder_count()
 returns int
 language sql
@@ -51,6 +55,7 @@ as $$
   );
 $$;
 
+-- Restore an existing founder. New slots only via register_founder (phone + profile).
 create or replace function public.claim_founder(p_key text, p_provider text default 'phone')
 returns jsonb
 language plpgsql
@@ -58,47 +63,24 @@ security definer
 set search_path = public
 as $$
 declare
-  n int;
   acc public.accounts;
 begin
   if p_key is null or length(trim(p_key)) < 9 then
-    return jsonb_build_object('ok', false, 'already', false);
+    return jsonb_build_object('ok', false, 'already', false, 'code', 'invalid');
   end if;
 
-  if exists(select 1 from public.founder_whitelist where login_key = p_key) then
+  if exists(select 1 from public.founder_whitelist where login_key = trim(p_key)) then
     insert into public.accounts (login_key, provider, subscription, deleted_at)
-    values (p_key, coalesce(p_provider, 'phone'), 'founder', null)
+    values (trim(p_key), coalesce(p_provider, 'phone'), 'founder', null)
     on conflict (login_key) do update
       set subscription = 'founder',
           deleted_at = null,
           provider = coalesce(p_provider, public.accounts.provider);
-    select * into acc from public.accounts where login_key = p_key;
+    select * into acc from public.accounts where login_key = trim(p_key);
     return jsonb_build_object('ok', true, 'already', true, 'account_id', acc.id);
   end if;
 
-  select count(*) into n from public.founder_whitelist;
-  if n >= 100 then
-    insert into public.accounts (login_key, provider, subscription)
-    values (p_key, coalesce(p_provider, 'phone'), 'none')
-    on conflict (login_key) do update set deleted_at = null;
-    select * into acc from public.accounts where login_key = p_key;
-    return jsonb_build_object(
-      'ok', false, 'already', false, 'account_id', acc.id
-    );
-  end if;
-
-  insert into public.founder_whitelist (login_key, provider, slot_no)
-  values (p_key, coalesce(p_provider, 'phone'), n + 1);
-
-  insert into public.accounts (login_key, provider, subscription, deleted_at)
-  values (p_key, coalesce(p_provider, 'phone'), 'founder', null)
-  on conflict (login_key) do update
-    set subscription = 'founder', deleted_at = null;
-
-  select * into acc from public.accounts where login_key = p_key;
-  return jsonb_build_object(
-    'ok', true, 'already', false, 'slot_no', n + 1, 'account_id', acc.id
-  );
+  return jsonb_build_object('ok', false, 'already', false, 'code', 'need_profile');
 end;
 $$;
 
@@ -132,7 +114,15 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+alter table public.profiles add column if not exists intro text;
 alter table public.profiles add column if not exists photo_url text;
+alter table public.profiles add column if not exists photo_ok boolean not null default false;
+alter table public.profiles add column if not exists can_photo boolean not null default true;
+alter table public.profiles add column if not exists outing_count int not null default 0;
+alter table public.profiles add column if not exists connect_count int not null default 0;
+alter table public.profiles add column if not exists captain_count int not null default 0;
+alter table public.profiles add column if not exists member_count int not null default 0;
+alter table public.profiles add column if not exists captain_score int not null default 0;
 alter table public.profiles add column if not exists registered_at timestamptz;
 update public.profiles set registered_at = coalesce(registered_at, updated_at, now())
   where registered_at is null;
@@ -284,35 +274,43 @@ begin
 end;
 $$;
 
+create or replace function public.has_valid_sub(a public.accounts)
+returns boolean
+language sql
+immutable
+as $$
+  select (a).subscription in ('founder', 'paid');
+$$;
+
 create or replace function public.profile_to_json(p public.profiles)
 returns jsonb
 language sql
 stable
 as $$
   select jsonb_build_object(
-    'id', p.account_id,
-    'city', p.city,
-    'district', p.district,
-    'dogName', p.dog_name,
-    'ownerNick', coalesce(p.owner_nick, ''),
-    'breed', coalesce(p.breed, ''),
-    'size', coalesce(p.size, ''),
-    'ageRange', coalesce(p.age_range, ''),
-    'personalities', to_jsonb(p.personalities),
-    'slots', coalesce(p.slots, '[]'::jsonb),
-    'places', to_jsonb(p.places),
-    'playWith', p.play_with,
-    'intro', coalesce(p.intro, ''),
-    'photoUri', p.photo_url,
-    'photoOk', p.photo_ok,
-    'canPhoto', p.can_photo,
-    'outingCount', p.outing_count,
-    'connectCount', p.connect_count,
-    'captainCount', p.captain_count,
-    'memberCount', p.member_count,
-    'captainScore', p.captain_score,
-    'registeredAt', p.registered_at,
-    'updatedAt', p.updated_at,
+    'id', (p).account_id,
+    'city', (p).city,
+    'district', (p).district,
+    'dogName', (p).dog_name,
+    'ownerNick', coalesce((p).owner_nick, ''),
+    'breed', coalesce((p).breed, ''),
+    'size', coalesce((p).size, ''),
+    'ageRange', coalesce((p).age_range, ''),
+    'personalities', to_jsonb((p).personalities),
+    'slots', coalesce((p).slots, '[]'::jsonb),
+    'places', to_jsonb((p).places),
+    'playWith', (p).play_with,
+    'intro', coalesce((p).intro, ''),
+    'photoUri', (p).photo_url,
+    'photoOk', (p).photo_ok,
+    'canPhoto', (p).can_photo,
+    'outingCount', (p).outing_count,
+    'connectCount', (p).connect_count,
+    'captainCount', (p).captain_count,
+    'memberCount', (p).member_count,
+    'captainScore', (p).captain_score,
+    'registeredAt', (p).registered_at,
+    'updatedAt', (p).updated_at,
     'isSeed', false,
     'isGuide', false
   );
@@ -379,6 +377,120 @@ begin
     'accountId', a.id,
     'subscription', a.subscription,
     'profile', public.profile_to_json(p)
+  );
+end;
+$$;
+
+create or replace function public.login_with_phone(p_key text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  a public.accounts;
+  p public.profiles;
+begin
+  if p_key is null or length(trim(p_key)) < 9 then
+    return jsonb_build_object('ok', false, 'code', 'invalid');
+  end if;
+  select * into a from public.accounts
+    where login_key = trim(p_key) and deleted_at is null;
+  if not found then
+    return jsonb_build_object('ok', false, 'code', 'missing');
+  end if;
+  select * into p from public.profiles where account_id = a.id;
+  if p.account_id is null then
+    return jsonb_build_object('ok', false, 'code', 'incomplete');
+  end if;
+  return jsonb_build_object(
+    'ok', true,
+    'accountId', a.id,
+    'subscription', a.subscription,
+    'loginKey', a.login_key,
+    'profile', public.profile_to_json(p)
+  );
+end;
+$$;
+
+-- First 100: phone + dog profile in one transaction. Empty accounts do not take a slot.
+create or replace function public.register_founder(
+  p_key text,
+  p_provider text default 'phone',
+  p_profile jsonb default '{}'::jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  n int;
+  acc public.accounts;
+  prof public.profiles;
+  dog text;
+  city text;
+  district text;
+  result jsonb;
+begin
+  if p_key is null or length(trim(p_key)) < 9 then
+    return jsonb_build_object('ok', false, 'already', false, 'code', 'invalid');
+  end if;
+  dog := trim(coalesce(p_profile->>'dogName', ''));
+  city := trim(coalesce(p_profile->>'city', ''));
+  district := trim(coalesce(p_profile->>'district', ''));
+  if dog = '' or city = '' or district = '' then
+    return jsonb_build_object('ok', false, 'already', false, 'code', 'invalid');
+  end if;
+  if city not in ('臺北市', '新北市', '臺南市', '高雄市') then
+    return jsonb_build_object('ok', false, 'already', false, 'code', 'city');
+  end if;
+
+  perform pg_advisory_xact_lock(881001);
+
+  if exists(select 1 from public.founder_whitelist where login_key = trim(p_key)) then
+    insert into public.accounts (login_key, provider, subscription, deleted_at)
+    values (trim(p_key), coalesce(p_provider, 'phone'), 'founder', null)
+    on conflict (login_key) do update
+      set subscription = 'founder',
+          deleted_at = null,
+          provider = coalesce(p_provider, public.accounts.provider);
+    select * into acc from public.accounts where login_key = trim(p_key);
+    select * into prof from public.profiles where account_id = acc.id;
+    if prof.account_id is not null then
+      return jsonb_build_object(
+        'ok', true,
+        'already', true,
+        'founder', true,
+        'account_id', acc.id,
+        'accountId', acc.id,
+        'subscription', acc.subscription,
+        'profile', public.profile_to_json(prof)
+      );
+    end if;
+    result := public.upsert_profile(trim(p_key), p_profile);
+    return result || jsonb_build_object('already', true, 'founder', true);
+  end if;
+
+  select count(*) into n from public.founder_whitelist;
+  if n >= 100 then
+    return jsonb_build_object('ok', false, 'already', false, 'code', 'full');
+  end if;
+
+  insert into public.founder_whitelist (login_key, provider, slot_no)
+  values (trim(p_key), coalesce(p_provider, 'phone'), n + 1);
+
+  insert into public.accounts (login_key, provider, subscription, deleted_at)
+  values (trim(p_key), coalesce(p_provider, 'phone'), 'founder', null)
+  on conflict (login_key) do update
+    set subscription = 'founder', deleted_at = null;
+
+  result := public.upsert_profile(trim(p_key), p_profile);
+  return result || jsonb_build_object(
+    'already', false,
+    'founder', true,
+    'slot_no', n + 1
   );
 end;
 $$;
@@ -468,14 +580,14 @@ language sql
 stable
 as $$
   select jsonb_build_object(
-    'id', c.id,
-    'fromId', c.from_id,
-    'toId', c.to_id,
-    'status', c.status,
-    'outingCounted', c.outing_counted,
-    'disconnectedBy', c.disconnected_by,
-    'disconnectedAt', c.disconnected_at,
-    'createdAt', c.created_at
+    'id', (c).id,
+    'fromId', (c).from_id,
+    'toId', (c).to_id,
+    'status', (c).status,
+    'outingCounted', (c).outing_counted,
+    'disconnectedBy', (c).disconnected_by,
+    'disconnectedAt', (c).disconnected_at,
+    'createdAt', (c).created_at
   );
 $$;
 
@@ -491,6 +603,9 @@ declare
   other public.accounts;
 begin
   a := public.require_account(p_key);
+  if not public.has_valid_sub(a) then
+    return jsonb_build_object('ok', false, 'code', 'subscribe');
+  end if;
   if a.id = p_to then
     return jsonb_build_object('ok', false, 'code', 'self');
   end if;
@@ -560,6 +675,9 @@ declare
   was text;
 begin
   a := public.require_account(p_key);
+  if p_status = 'accepted' and not public.has_valid_sub(a) then
+    return jsonb_build_object('ok', false, 'code', 'subscribe');
+  end if;
   if p_status not in ('accepted', 'declined', 'disconnected') then
     return jsonb_build_object('ok', false, 'code', 'invalid');
   end if;
@@ -654,6 +772,9 @@ declare
   body text;
 begin
   a := public.require_account(p_key);
+  if not public.has_valid_sub(a) then
+    return jsonb_build_object('ok', false, 'code', 'subscribe');
+  end if;
   select * into c from public.connects where id = p_connect_id;
   if not found or (c.from_id <> a.id and c.to_id <> a.id) then
     return jsonb_build_object('ok', false, 'code', 'auth');
@@ -690,6 +811,9 @@ declare
   n int;
 begin
   a := public.require_account(p_key);
+  if not public.has_valid_sub(a) then
+    return jsonb_build_object('ok', false, 'code', 'subscribe');
+  end if;
   select * into c from public.connects where id = p_connect_id;
   if not found or (c.from_id <> a.id and c.to_id <> a.id) then
     return jsonb_build_object('ok', false, 'code', 'auth');
@@ -841,6 +965,9 @@ declare
   d date;
 begin
   a := public.require_account(p_key);
+  if not public.has_valid_sub(a) then
+    return jsonb_build_object('ok', false, 'code', 'subscribe');
+  end if;
   if exists (
     select 1 from public.gatherings
     where host_id = a.id
@@ -864,6 +991,10 @@ begin
     return jsonb_build_object('ok', false, 'code', 'invalid');
   end if;
   if place = '' or kind = '' or d is null then
+    return jsonb_build_object('ok', false, 'code', 'invalid');
+  end if;
+  if d < (timezone('Asia/Taipei', now()))::date + 1
+     or d > (timezone('Asia/Taipei', now()))::date + 7 then
     return jsonb_build_object('ok', false, 'code', 'invalid');
   end if;
   if fee < 0 then
@@ -901,6 +1032,9 @@ declare
   n int;
 begin
   a := public.require_account(p_key);
+  if not public.has_valid_sub(a) then
+    return jsonb_build_object('ok', false, 'code', 'subscribe');
+  end if;
   select * into g from public.gatherings where id = p_id;
   if not found then
     return jsonb_build_object('ok', false, 'code', 'missing');
@@ -933,6 +1067,9 @@ declare
   g public.gatherings;
 begin
   a := public.require_account(p_key);
+  if not public.has_valid_sub(a) then
+    return jsonb_build_object('ok', false, 'code', 'subscribe');
+  end if;
   select * into g from public.gatherings where id = p_id;
   if not found then
     return jsonb_build_object('ok', false, 'code', 'missing');
@@ -1038,6 +1175,8 @@ end;
 $$;
 
 grant execute on function public.upsert_profile(text, jsonb) to anon, authenticated;
+grant execute on function public.login_with_phone(text) to anon, authenticated;
+grant execute on function public.register_founder(text, text, jsonb) to anon, authenticated;
 grant execute on function public.load_my_account(text) to anon, authenticated;
 grant execute on function public.list_city_profiles(text, text) to anon, authenticated;
 grant execute on function public.send_connect(text, uuid) to anon, authenticated;

@@ -58,7 +58,8 @@ export async function whitelistCount() {
 
 /**
  * First 100 login_keys become founders. Same key later is a no-op.
- * Prefers cloud RPC; falls back to this-device list if Supabase is unset.
+ * Cloud: new slots go through register_founder (phone + profile).
+ * This helper is restore / local-demo only; it no longer creates empty slots.
  */
 export async function claimFounder(loginKey, provider = 'phone') {
   if (inSnapshot(loginKey)) {

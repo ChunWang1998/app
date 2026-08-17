@@ -24,7 +24,6 @@ import {
   MAX_SLOTS,
   MAX_PLACES,
   MAX_INTRO,
-  TRIAL_CITIES,
   slotLabel,
 } from '../data/constants';
 import { fetchDistrictsForCity } from '../lib/districts';
@@ -52,31 +51,33 @@ export default function EditProfileScreen({
   const [slots, setSlots] = useState(initial?.slots || []);
   const [places, setPlaces] = useState(initial?.places || []);
   const [placeDraft, setPlaceDraft] = useState('');
-  const [cityPick, setCityPick] = useState(initial?.city || city || TRIAL_CITIES[0]);
+  const locatedCity = city || initial?.city || '';
   const [districtList, setDistrictList] = useState(districts || []);
   const [district, setDistrict] = useState(initial?.district || districts?.[0] || '');
   const [loadingTowns, setLoadingTowns] = useState(false);
   const [playWith, setPlayWith] = useState(initial?.playWith || 'parallel');
+  const [canPhoto, setCanPhoto] = useState(initial?.canPhoto !== false);
   const [photoUri, setPhotoUri] = useState(initial?.photoUri || null);
 
   useEffect(() => {
     let cancelled = false;
     const loadTowns = async () => {
-      if (cityPick === city && districts?.length) {
+      if (!locatedCity) return;
+      if (locatedCity === city && districts?.length) {
         setDistrictList(districts);
         if (!districts.includes(district)) setDistrict(districts[0] || '');
         return;
       }
       setLoadingTowns(true);
       try {
-        const towns = await fetchDistrictsForCity(cityPick);
+        const towns = await fetchDistrictsForCity(locatedCity);
         if (cancelled) return;
         setDistrictList(towns);
         setDistrict((prev) => (towns.includes(prev) ? prev : towns[0] || ''));
       } catch {
         if (!cancelled) {
           setDistrictList([]);
-          Alert.alert('行政區載入失敗', '請確認網路後再選一次縣市。');
+          Alert.alert('行政區載入失敗', '請確認網路後再試一次。');
         }
       } finally {
         if (!cancelled) setLoadingTowns(false);
@@ -86,7 +87,7 @@ export default function EditProfileScreen({
     return () => {
       cancelled = true;
     };
-  }, [cityPick]);
+  }, [locatedCity]);
 
   const toggle = (arr, setArr, id) => {
     setArr(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
@@ -130,8 +131,8 @@ export default function EditProfileScreen({
       Alert.alert('請上傳合照', '清單只接受主人與狗都入鏡的合照（示範：選一張照片即可）。');
       return;
     }
-    if (!cityPick) {
-      Alert.alert('請選縣市');
+    if (!locatedCity) {
+      Alert.alert('請先完成定位', '縣市由定位判定，不能手選。');
       return;
     }
     if (!district) {
@@ -149,8 +150,9 @@ export default function EditProfileScreen({
       slots,
       places,
       district,
-      city: cityPick,
+      city: locatedCity,
       playWith,
+      canPhoto,
       photoUri,
       photoOk: Boolean(photoUri) || initial?.photoOk,
       outingCount: initial?.outingCount || 0,
@@ -276,16 +278,9 @@ export default function EditProfileScreen({
       ))}
 
       <Text style={styles.k}>縣市</Text>
-      <View style={styles.wrap}>
-        {TRIAL_CITIES.map((c) => (
-          <Chip
-            key={c}
-            label={c}
-            selected={cityPick === c}
-            onPress={() => setCityPick(c)}
-          />
-        ))}
-      </View>
+      <Text style={styles.hint}>
+        {locatedCity || '尚未定位'}（由定位判定，不能手選其他縣市）
+      </Text>
 
       <Text style={styles.k}>行政區</Text>
       {loadingTowns ? (
@@ -345,6 +340,12 @@ export default function EditProfileScreen({
             onPress={() => setPlayWith(p.id)}
           />
         ))}
+      </View>
+
+      <Text style={styles.k}>可否合照</Text>
+      <View style={styles.wrap}>
+        <Chip label="可以" selected={canPhoto} onPress={() => setCanPhoto(true)} />
+        <Chip label="先不要" selected={!canPhoto} onPress={() => setCanPhoto(false)} />
       </View>
 
       <TouchableOpacity style={styles.save} onPress={save}>

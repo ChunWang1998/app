@@ -50,6 +50,10 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
     { label: '明天', d: offsetDate(1) },
     { label: '後天', d: offsetDate(2) },
     { label: '三天後', d: offsetDate(3) },
+    { label: '四天後', d: offsetDate(4) },
+    { label: '五天後', d: offsetDate(5) },
+    { label: '六天後', d: offsetDate(6) },
+    { label: '一週後', d: offsetDate(7) },
   ];
 
   const save = () => {

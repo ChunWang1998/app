@@ -1,9 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, radius } from '../theme';
-import { TRIAL_CITIES } from '../data/constants';
 import ScreenHeader from '../components/ScreenHeader';
-import Chip from '../components/Chip';
 
 export default function GatheringsScreen({
   city,
@@ -13,7 +11,6 @@ export default function GatheringsScreen({
   onProfile,
   onJoin,
   onOpen,
-  onChangeCity,
   onCreateGathering,
 }) {
   return (
@@ -24,22 +21,6 @@ export default function GatheringsScreen({
         photoUri={profile?.photoUri}
         onProfile={onProfile}
       />
-      <View style={styles.cities}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.modes}
-        >
-          {TRIAL_CITIES.map((c) => (
-            <Chip
-              key={c}
-              label={c}
-              selected={city === c}
-              onPress={() => (c === city ? null : onChangeCity?.(c))}
-            />
-          ))}
-        </ScrollView>
-      </View>
       <ScrollView
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}

@@ -70,7 +70,7 @@ export default function MeScreen({
       {!session ? (
         <View style={styles.card}>
           <Text style={styles.p}>
-            填手機號當帳號（不驗證碼）。前 {FOUNDER_CAP} 人寫入白名單，永久不必付費。必須同時建立汪汪檔案才算完成免費註冊。
+            填手機號當帳號（不驗證碼）。前 {FOUNDER_CAP} 人寫入白名單，永久不必付費。必須同時建立汪汪檔案才算完成免費註冊。已註冊過請填同一支號碼，會從雲端還原。
           </Text>
           <TextInput
             style={styles.input}
@@ -94,8 +94,8 @@ export default function MeScreen({
           <Text style={styles.hint}>
             白名單 {founderCount}/{FOUNDER_CAP}
             {founderCount >= FOUNDER_CAP
-              ? ' 已滿。下次升級後，名單內視為已事先訂閱。'
-              : ' · 同一支號碼下次升級仍免費用'}
+              ? ' 已滿。v1 只服務這 100 人；名單內到 v2 仍永久免費。'
+              : ' · 同一支號碼換機仍免費用'}
           </Text>
         </View>
       ) : !subscribed ? (

@@ -37,6 +37,23 @@ export async function loadMyAccount(loginKey) {
   return rpc('load_my_account', { p_key: loginKey });
 }
 
+/** Existing founder with a dog profile. Returns null if the number is new or incomplete. */
+export async function loginWithPhone(loginKey) {
+  if (!isCloudReady()) fail('offline', 'Supabase is not configured');
+  const { data, error } = await supabase.rpc('login_with_phone', { p_key: loginKey });
+  if (error) fail('cloud', error.message || '');
+  if (!data || data.ok === false) return null;
+  return data;
+}
+
+export async function registerFounder(loginKey, provider, profile) {
+  return rpc('register_founder', {
+    p_key: loginKey,
+    p_provider: provider || 'phone',
+    p_profile: profile,
+  });
+}
+
 export async function upsertProfile(loginKey, profile) {
   return rpc('upsert_profile', { p_key: loginKey, p_profile: profile });
 }

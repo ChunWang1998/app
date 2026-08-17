@@ -20,6 +20,7 @@ export default function ChatScreen({
   connect,
   meId,
   peerName,
+  peerPlaces = [],
   onBack,
   onRefreshOwners,
 }) {
@@ -67,6 +68,11 @@ export default function ChatScreen({
             ? '已解除 Connect，無法再傳訊息'
             : `${rows.length}/${MAX_CHAT} 句 · 第一次見面建議公園平行走 15 分鐘`}
         </Text>
+        {connect?.status === 'accepted' && peerPlaces.length ? (
+          <Text style={styles.places}>
+            出沒地點（Connect 後可見）：{peerPlaces.join('、')}
+          </Text>
+        ) : null}
       </View>
       <ScrollView contentContainerStyle={styles.msgs}>
         {rows.map((m, i) => {
@@ -116,6 +122,7 @@ const styles = StyleSheet.create({
   back: { color: colors.brandDeep, fontWeight: '800' },
   title: { marginTop: 6, fontSize: 20, fontWeight: '800', color: colors.ink },
   hint: { marginTop: 4, color: colors.muted, fontSize: 12 },
+  places: { marginTop: 6, color: colors.ink, fontSize: 13, lineHeight: 18 },
   msgs: { paddingHorizontal: 16, paddingBottom: 12 },
   bubble: {
     maxWidth: '78%',

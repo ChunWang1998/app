@@ -5,6 +5,8 @@ export const MAX_PLACES = 3;
 export const MAX_INTRO = 50;
 export const MAX_GATHERING_NAME = 10;
 export const MAX_GATHERING_INTRO = 50;
+export const GATHERING_MIN_DAYS_AHEAD = 1;
+export const GATHERING_MAX_DAYS_AHEAD = 7;
 
 export const TRIAL_CITIES = ['高雄市', '臺南市', '新北市', '臺北市'];
 
@@ -19,6 +21,14 @@ export const COUNTY_CODE = {
 export const PERSONALITIES = ['友善', '怕生', '活力', '慢熱'];
 
 export const SIZES = ['小型', '中型', '大型'];
+
+/** Spec: warn when size differs by two levels (small vs large). */
+export function sizesTwoLevelsApart(a, b) {
+  const i = SIZES.indexOf(a);
+  const j = SIZES.indexOf(b);
+  if (i < 0 || j < 0) return false;
+  return Math.abs(i - j) >= 2;
+}
 
 export const AGE_RANGES = ['未滿 1 歲', '1–3 歲', '4–7 歲', '8 歲以上'];
 
@@ -109,6 +119,16 @@ export function startOfDay(d) {
 
 export function isGatheringEnded(dateISO) {
   return startOfDay(dateISO) < startOfDay(new Date());
+}
+
+export function isGatheringDateAllowed(dateISO, now = new Date()) {
+  const picked = startOfDay(dateISO).getTime();
+  const today = startOfDay(now);
+  const min = new Date(today);
+  min.setDate(min.getDate() + GATHERING_MIN_DAYS_AHEAD);
+  const max = new Date(today);
+  max.setDate(max.getDate() + GATHERING_MAX_DAYS_AHEAD);
+  return picked >= min.getTime() && picked <= max.getTime();
 }
 
 export function canonicalCity(raw) {

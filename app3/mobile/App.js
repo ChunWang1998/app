@@ -5,7 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from './src/theme';
-import { isTrialCity } from './src/data/constants';
+import { isTrialCity, sizesTwoLevelsApart, canonicalCity } from './src/data/constants';
 import {
   GUIDE_REPLY_ID,
   GUIDE_TRY_ID,
@@ -13,11 +13,13 @@ import {
   isGuideId,
 } from './src/data/globalGuides';
 import { fetchDistrictsForCity } from './src/lib/districts';
+import { locateCoords, expoReverseCity } from './src/lib/location';
 import {
   loadSession,
   loadProfile,
   loadFounderCount,
   registerWithProfile,
+  restoreAccount,
   saveProfile,
   listOwners,
   listConnects,
@@ -58,7 +60,7 @@ import ConnectReminder from './src/components/ConnectReminder';
 
 export default function App() {
   const [started, setStarted] = useState(false);
-  const [locateStatus, setLocateStatus] = useState('pick');
+  const [locateStatus, setLocateStatus] = useState('loading');
   const [locateError, setLocateError] = useState('');
   const [city, setCity] = useState('');
   const [guessedDistrict, setGuessedDistrict] = useState('');
@@ -154,19 +156,41 @@ export default function App() {
     }
   }, [reload]);
 
+  const runLocate = useCallback(async () => {
+    setLocateStatus('loading');
+    setLocateError('');
+    try {
+      const coords = await locateCoords();
+      const rev = await expoReverseCity(coords);
+      const nextCity = canonicalCity(rev?.cityRaw);
+      if (!nextCity) {
+        setLocateError('目前只開放臺北市、新北市、臺南市、高雄市。請到這四市再開 App。');
+        setLocateStatus('error');
+        return;
+      }
+      await applyCity(nextCity, { showGate: true });
+    } catch (e) {
+      if (e.code === 'denied') {
+        setLocateError('需要定位權限才能知道你在哪個縣市。請到設定開啟定位後重試。');
+      } else {
+        setLocateError('定位失敗，請確認已開啟定位後重試。');
+      }
+      setLocateStatus('error');
+    }
+  }, [applyCity]);
+
   useEffect(() => {
     if (!started) return;
     ensureNotifyPermission();
-    setLocateStatus('loading');
     (async () => {
       const saved = await loadSelectedCity();
-      if (saved) {
+      if (saved && isTrialCity(saved)) {
         applyCity(saved, { showGate: true });
       } else {
-        setLocateStatus('pick');
+        runLocate();
       }
     })();
-  }, [started, applyCity]);
+  }, [started, applyCity, runLocate]);
 
   useEffect(() => {
     if (!started || locateStatus !== 'ready' || !city) return undefined;
@@ -305,12 +329,7 @@ export default function App() {
         status={locateStatus}
         city={city}
         error={locateError}
-        onPick={(nextCity) => applyCity(nextCity, { showGate: true })}
-        onRetry={() =>
-          city
-            ? applyCity(city, { showGate: true })
-            : setLocateStatus('pick')
-        }
+        onRetry={runLocate}
       />
     );
   } else if (overlay === 'subscribe') {
@@ -340,14 +359,16 @@ export default function App() {
               setSession(result.session);
               setProfile(result.profile);
               setFounderCount(result.founderCount);
-              await applyCity(next.city || city);
+              await applyCity(result.profile?.city || next.city || city);
               setOverlay(null);
               setTab('explore');
-              if (result.session.subscription === 'founder') {
+              if (result.already) {
+                Alert.alert('已還原', '這支號碼已在白名單，已載入原檔案。');
+              } else if (result.session.subscription === 'founder') {
                 await saveTour({ done: false, step: 'welcome' });
                 setTourStep('welcome');
               } else {
-                Alert.alert('白名單已滿', '檔案已建立。未訂閱只能看清單，Connect 請先訂閱。');
+                Alert.alert('白名單已滿', '這一版只開放創始 100 人。');
                 setOverlay('subscribe');
               }
               return;
@@ -356,10 +377,18 @@ export default function App() {
             setProfile(saved);
             await applyCity(next.city || city);
             setOverlay('profile');
-            Alert.alert('已儲存', '檔案會出現在你選擇的縣市清單');
+            Alert.alert('已儲存', '檔案會出現在你所在縣市的清單');
           } catch (e) {
             if (e.code === 'invalid') {
               Alert.alert('手機號格式不對');
+              return;
+            }
+            if (e.code === 'full') {
+              Alert.alert('白名單已滿', '這一版只開放創始 100 人。');
+              return;
+            }
+            if (e.code === 'city') {
+              Alert.alert('縣市不在試用範圍');
               return;
             }
             Alert.alert('無法註冊', e.message || String(e));
@@ -389,13 +418,32 @@ export default function App() {
             setOverlay('edit');
             return;
           }
-          const row = await sendConnect(session.id, ownerId);
-          await reload(city);
-          if (isGuideId(ownerId) && row.status === 'pending') {
-            await finishGuideConnect(row, ownerId);
-          } else if (!isGuideId(ownerId)) {
-            Alert.alert('已送出', '對方需在個人頁接受後才能聊天');
+          const send = async () => {
+            try {
+              const row = await sendConnect(session.id, ownerId);
+              await reload(city);
+              if (isGuideId(ownerId) && row.status === 'pending') {
+                await finishGuideConnect(row, ownerId);
+              } else if (!isGuideId(ownerId)) {
+                Alert.alert('已送出', '對方需在個人頁接受後才能聊天');
+              }
+            } catch (e) {
+              if (e.code === 'subscribe') setOverlay('subscribe');
+              else Alert.alert('無法 Connect', e.message || String(e));
+            }
+          };
+          if (sizesTwoLevelsApart(profile.size, owner?.size)) {
+            Alert.alert(
+              '體型差較大',
+              '大型與小型狗第一次請平行走、保持距離，不要互相撲。仍要 Connect 嗎？',
+              [
+                { text: '取消', style: 'cancel' },
+                { text: '仍要 Connect', onPress: send },
+              ],
+            );
+            return;
           }
+          await send();
         }}
         onOpenChat={() => {
           if (activeConnect) {
@@ -432,6 +480,7 @@ export default function App() {
         connect={chatConnect}
         meId={session?.id}
         peerName={ownersById[peerId]?.dogName || '對方'}
+        peerPlaces={ownersById[peerId]?.places || []}
         onBack={() => setOverlay(chatFrom === 'detail' ? 'detail' : 'profile')}
         onRefreshOwners={() => reload(city)}
       />
@@ -497,8 +546,23 @@ export default function App() {
           myGatherings={myGatherings}
           onBack={() => setOverlay(null)}
           onRegister={async (phone) => {
-            setPendingPhone(phone);
-            setOverlay('edit');
+            try {
+              const restored = await restoreAccount(phone);
+              if (restored) {
+                setSession(restored.session);
+                setProfile(restored.profile);
+                setFounderCount(restored.founderCount);
+                await applyCity(restored.profile?.city || city);
+                setOverlay(null);
+                Alert.alert('已還原', '同一支號碼的汪汪檔案已從雲端載入。');
+                return;
+              }
+              setPendingPhone(phone);
+              setOverlay('edit');
+            } catch (e) {
+              if (e.code === 'invalid') Alert.alert('手機號格式不對');
+              else Alert.alert('無法登入', e.message || String(e));
+            }
           }}
           onCreateProfile={() => {
             if (!subscribed) {
@@ -518,11 +582,16 @@ export default function App() {
               setOverlay('subscribe');
               return;
             }
-            await setConnectStatus(id, 'accepted');
-            await reload(city);
-            const row = connects.find((c) => c.id === id);
-            const peerId = row?.fromId === session?.id ? row?.toId : row?.fromId;
-            showReminder(ownersById[peerId]?.dogName);
+            try {
+              await setConnectStatus(id, 'accepted');
+              await reload(city);
+              const row = connects.find((c) => c.id === id);
+              const peerId = row?.fromId === session?.id ? row?.toId : row?.fromId;
+              showReminder(ownersById[peerId]?.dogName);
+            } catch (e) {
+              if (e.code === 'subscribe') setOverlay('subscribe');
+              else Alert.alert('無法接受', e.message || String(e));
+            }
           }}
           onDecline={async (id) => {
             await setConnectStatus(id, 'declined');
@@ -580,7 +649,6 @@ export default function App() {
               profile={profile}
               onOpenOwner={openOwner}
               onProfile={openProfile}
-              onChangeCity={(nextCity) => applyCity(nextCity)}
             />
           ) : (
             <GatheringsScreen
@@ -591,7 +659,6 @@ export default function App() {
               onProfile={openProfile}
               onJoin={joinOne}
               onOpen={(g) => openGathering(g, 'gatherings')}
-              onChangeCity={(nextCity) => applyCity(nextCity)}
               onCreateGathering={() => {
                 if (!session || !profile) {
                   needAccount('創辦聚會');

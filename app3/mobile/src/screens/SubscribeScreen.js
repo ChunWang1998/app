@@ -17,17 +17,17 @@ export default function SubscribeScreen({ founderCount, onBack }) {
         </TouchableOpacity>
         <Text style={styles.h}>訂閱後才能下一步</Text>
         <Text style={styles.p}>
-          未訂閱只能看清單。看詳情、Connect、聚會報名都需要有效訂閱。免費註冊必須同時建立狗檔案。
+          這一版（v1）只服務創始白名單 {FOUNDER_CAP} 人。填手機號並建立汪汪檔案後即為永久免費。
         </Text>
         <Text style={styles.p}>
           創始白名單 {founderCount}/{FOUNDER_CAP}
           {full
-            ? ' 已滿。這一版先不開放付費解鎖（App Store 不允許用 LINE Pay 開通 Connect／聊天）。下版改走 Apple 內購。'
-            : ' 仍有空位：到右上角個人頁填手機號即可，不必驗證碼。'}
+            ? ' 已滿。付費解鎖會在下一版用 Apple 內購，這一版不收款。'
+            : ' 仍有空位：到右上角個人頁填手機號並建立檔案即可，不必驗證碼。已註冊過填同一支號碼會還原。'}
         </Text>
         {full ? (
           <Text style={styles.note}>
-            不在白名單內目前無法 Connect。請等下版 App 內購，或請已在名單內的朋友繼續用。
+            不在白名單內目前無法 Connect。請等 v2 Apple 內購。
           </Text>
         ) : (
           <Text style={styles.note}>請到右上角個人頁填手機號佔白名單，不必驗證碼。</Text>
