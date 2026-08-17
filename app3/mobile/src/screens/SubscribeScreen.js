@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
 import { FOUNDER_CAP } from '../data/constants';
 
-export default function SubscribeScreen({ founderCount, onBack, onDemoPay }) {
+export default function SubscribeScreen({ founderCount, onBack }) {
   const insets = useSafeAreaInsets();
   const full = founderCount >= FOUNDER_CAP;
 
@@ -22,13 +22,13 @@ export default function SubscribeScreen({ founderCount, onBack, onDemoPay }) {
         <Text style={styles.p}>
           創始白名單 {founderCount}/{FOUNDER_CAP}
           {full
-            ? ' 已滿。不在名單內需 LINE Pay 月繳。下次升級後，名單內仍免付費。'
+            ? ' 已滿。這一版先不開放付費解鎖（App Store 不允許用 LINE Pay 開通 Connect／聊天）。下版改走 Apple 內購。'
             : ' 仍有空位：到右上角個人頁填手機號即可，不必驗證碼。'}
         </Text>
         {full ? (
-          <TouchableOpacity style={styles.cta} onPress={onDemoPay}>
-            <Text style={styles.ctaText}>LINE Pay 月繳（示範開通）</Text>
-          </TouchableOpacity>
+          <Text style={styles.note}>
+            不在白名單內目前無法 Connect。請等下版 App 內購，或請已在名單內的朋友繼續用。
+          </Text>
         ) : (
           <Text style={styles.note}>請到右上角個人頁填手機號佔白名單，不必驗證碼。</Text>
         )}
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   back: { color: colors.brandDeep, fontWeight: '800', marginBottom: 16 },
   h: { fontSize: 24, fontWeight: '800', color: colors.ink, marginBottom: 12 },
   p: { fontSize: 15, color: colors.ink, lineHeight: 22, marginBottom: 10 },
-  note: { marginTop: 12, color: colors.muted },
+  note: { marginTop: 12, color: colors.muted, lineHeight: 20 },
   cta: {
     marginTop: 20,
     backgroundColor: colors.brand,

@@ -76,6 +76,7 @@ export async function claimFounder(loginKey, provider = 'phone') {
       founder: Boolean(row?.ok || row?.already),
       already: Boolean(row?.already),
       count: await whitelistCount(),
+      accountId: row?.account_id || null,
     };
   }
 

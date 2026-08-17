@@ -19,6 +19,28 @@ import {
   normalizeLoginKey,
   whitelistCount,
 } from './whitelist';
+import {
+  isCloudReady,
+  isUuid,
+  loadMyAccount,
+  upsertProfile,
+  listCityProfiles,
+  listMyConnects,
+  sendConnectCloud,
+  setConnectStatusCloud,
+  disconnectConnectCloud,
+  listMessagesCloud,
+  sendMessageCloud,
+  confirmMeetCloud,
+  listCityGatherings,
+  createGatheringCloud,
+  joinGatheringCloud,
+  likeGatheringCloud,
+  blockAccount,
+  reportAccount,
+  deleteMyAccount,
+  uploadAvatar,
+} from './cloud';
 
 const KEYS = {
   session: 'linwang:session',
@@ -65,6 +87,17 @@ export async function loadFounderCount() {
 export async function loadSession() {
   const session = await readJson(KEYS.session, null);
   if (!session?.loginKey) return session;
+  if (isCloudReady()) {
+    try {
+      const row = await loadMyAccount(session.loginKey);
+      if (row?.accountId) session.id = row.accountId;
+      if (row?.subscription) session.subscription = row.subscription;
+      await saveSession(session);
+      if (row?.profile) await writeJson(KEYS.profile, row.profile);
+    } catch {
+      // Keep the cached session if the network is down.
+    }
+  }
   if (session.subscription !== 'paid' && (await isWhitelisted(session.loginKey))) {
     if (session.subscription !== 'founder') {
       session.subscription = 'founder';
@@ -84,8 +117,15 @@ export async function saveSession(session) {
 }
 
 export async function saveProfile(profile) {
+  const session = await loadSession();
+  let photoUri = profile.photoUri || null;
+  if (isCloudReady() && session?.loginKey && photoUri) {
+    photoUri = await uploadAvatar(session.loginKey, photoUri);
+  }
   const next = {
     ...profile,
+    photoUri,
+    photoOk: Boolean(photoUri) || Boolean(profile.photoOk),
     slots: (profile.slots || []).map((s) => normalizeSlot(s)),
     captainCount: profile.captainCount || 0,
     memberCount: profile.memberCount || 0,
@@ -93,6 +133,13 @@ export async function saveProfile(profile) {
     updatedAt: new Date().toISOString(),
   };
   await writeJson(KEYS.profile, next);
+  if (isCloudReady() && session?.loginKey) {
+    const row = await upsertProfile(session.loginKey, next);
+    if (row?.profile) {
+      await writeJson(KEYS.profile, row.profile);
+      return row.profile;
+    }
+  }
   return next;
 }
 
@@ -116,7 +163,7 @@ export async function registerAccount(phoneRaw) {
   }
   const claimed = await claimFounder(loginKey, 'phone');
   const session = {
-    id: accountIdFromKey(loginKey),
+    id: claimed.accountId || accountIdFromKey(loginKey),
     loginKey,
     phone: loginKey,
     provider: 'phone',
@@ -152,6 +199,34 @@ export async function signOut() {
   await AsyncStorage.multiRemove([KEYS.session, KEYS.profile]);
 }
 
+export async function deleteAccount() {
+  const session = await loadSession();
+  if (isCloudReady() && session?.loginKey) {
+    await deleteMyAccount(session.loginKey);
+  }
+  await AsyncStorage.multiRemove(Object.values(KEYS));
+}
+
+export async function reportOwner(targetId, reason) {
+  const session = await loadSession();
+  if (!isCloudReady() || !session?.loginKey || !isUuid(targetId)) {
+    const err = new Error('cloud');
+    err.code = 'cloud';
+    throw err;
+  }
+  return reportAccount(session.loginKey, targetId, reason);
+}
+
+export async function blockOwner(targetId) {
+  const session = await loadSession();
+  if (!isCloudReady() || !session?.loginKey || !isUuid(targetId)) {
+    const err = new Error('cloud');
+    err.code = 'cloud';
+    throw err;
+  }
+  return blockAccount(session.loginKey, targetId);
+}
+
 export async function listOwners(city) {
   const seed = seedOwnersForCity(city);
   const overrides = await readJson(KEYS.overrides, {});
@@ -159,7 +234,16 @@ export async function listOwners(city) {
   const session = await loadSession();
   const guides = GLOBAL_GUIDES.map((o) => ({ ...o, ...(overrides[o.id] || {}) }));
   const merged = seed.map((o) => ({ ...o, ...(overrides[o.id] || {}) }));
-  if (profile?.photoOk && profile.city === city && session?.id) {
+  let cloud = [];
+  if (isCloudReady()) {
+    try {
+      cloud = await listCityProfiles(session?.loginKey, city);
+    } catch {
+      cloud = [];
+    }
+  }
+  const seen = new Set(cloud.map((o) => o.id));
+  if (profile?.photoOk && profile.city === city && session?.id && !seen.has(session.id)) {
     merged.push({
       ...profile,
       id: session.id,
@@ -168,7 +252,11 @@ export async function listOwners(city) {
     });
   }
   const local = merged.filter((o) => o.photoOk);
-  return [...guides, ...local];
+  const remote = cloud.map((o) => ({
+    ...o,
+    isMe: session?.id === o.id,
+  }));
+  return [...guides, ...local, ...remote];
 }
 
 export async function getOwner(city, id) {
@@ -177,11 +265,25 @@ export async function getOwner(city, id) {
 }
 
 export async function listConnects() {
-  return readJson(KEYS.connects, []);
+  const local = await readJson(KEYS.connects, []);
+  if (!isCloudReady()) return local;
+  const session = await loadSession();
+  if (!session?.loginKey) return local;
+  try {
+    const remote = await listMyConnects(session.loginKey);
+    const localOnly = local.filter((c) => !isUuid(c.id));
+    return [...remote, ...localOnly];
+  } catch {
+    return local;
+  }
 }
 
 export async function sendConnect(fromId, toId) {
-  const connects = await listConnects();
+  const session = await loadSession();
+  if (isCloudReady() && session?.loginKey && isUuid(toId)) {
+    return sendConnectCloud(session.loginKey, toId);
+  }
+  const connects = await readJson(KEYS.connects, []);
   const existing = connects.find(
     (c) =>
       (c.fromId === fromId && c.toId === toId) ||
@@ -215,7 +317,12 @@ export async function sendConnect(fromId, toId) {
 }
 
 export async function disconnectConnect(id, byUserId) {
-  const connects = await listConnects();
+  const session = await loadSession();
+  if (isCloudReady() && session?.loginKey && isUuid(id)) {
+    await disconnectConnectCloud(session.loginKey, id);
+    return listConnects();
+  }
+  const connects = await readJson(KEYS.connects, []);
   const next = connects.map((c) =>
     c.id === id
       ? {
@@ -227,18 +334,23 @@ export async function disconnectConnect(id, byUserId) {
       : c,
   );
   await writeJson(KEYS.connects, next);
-  return next;
+  return listConnects();
 }
 
 export async function setConnectStatus(id, status) {
-  const connects = await listConnects();
+  const session = await loadSession();
+  if (isCloudReady() && session?.loginKey && isUuid(id)) {
+    await setConnectStatusCloud(session.loginKey, id, status);
+    return listConnects();
+  }
+  const connects = await readJson(KEYS.connects, []);
   const next = connects.map((c) => (c.id === id ? { ...c, status } : c));
   await writeJson(KEYS.connects, next);
   if (status === 'accepted') {
     const row = next.find((c) => c.id === id);
     if (row) await bumpConnectCount([row.fromId, row.toId]);
   }
-  return next;
+  return listConnects();
 }
 
 async function bumpConnectCount(ids) {
@@ -252,6 +364,7 @@ async function bumpConnectCount(ids) {
   }
   for (const id of ids) {
     if (session && id === session.id && profile) {
+      if (isCloudReady()) continue;
       await saveProfile({
         ...profile,
         connectCount: (profile.connectCount || 0) + 1,
@@ -266,11 +379,19 @@ async function bumpConnectCount(ids) {
 }
 
 export async function listMessages(connectId) {
+  const session = await loadSession();
+  if (isCloudReady() && session?.loginKey && isUuid(connectId)) {
+    return listMessagesCloud(session.loginKey, connectId);
+  }
   const all = await readJson(KEYS.messages, {});
   return all[connectId] || [];
 }
 
 export async function sendMessage(connectId, fromId, text) {
+  const session = await loadSession();
+  if (isCloudReady() && session?.loginKey && isUuid(connectId)) {
+    return sendMessageCloud(session.loginKey, connectId, text);
+  }
   const connects = await listConnects();
   const row = connects.find((c) => c.id === connectId);
   if (!row || row.status === 'disconnected') {
@@ -302,6 +423,10 @@ export async function completeGuideConnect(connectId, guideId) {
 }
 
 export async function confirmMeet(connectId, userId) {
+  const session = await loadSession();
+  if (isCloudReady() && session?.loginKey && isUuid(connectId)) {
+    return confirmMeetCloud(session.loginKey, connectId);
+  }
   const meets = await readJson(KEYS.meets, {});
   const row = meets[connectId] || { confirmedBy: [] };
   if (!row.confirmedBy.includes(userId)) row.confirmedBy.push(userId);
@@ -329,6 +454,7 @@ async function bumpOutingCount(ids) {
   }
   for (const id of ids) {
     if (session && id === session.id && profile) {
+      if (isCloudReady()) continue;
       await saveProfile({
         ...profile,
         outingCount: (profile.outingCount || 0) + 1,
@@ -379,6 +505,7 @@ async function bumpOwnerField(ids, field, by = 1) {
   let nextProfile = profile;
   for (const id of ids) {
     if (session && id === session.id && nextProfile) {
+      if (isCloudReady()) continue;
       nextProfile = await saveProfile({
         ...nextProfile,
         [field]: (nextProfile[field] || 0) + by,
@@ -397,11 +524,23 @@ async function createdGatherings() {
 }
 
 export async function findGathering(id) {
-  return (
-    findSeedGathering(id) ||
-    (await createdGatherings()).find((g) => g.id === id) ||
-    null
-  );
+  const seed = findSeedGathering(id);
+  if (seed) return seed;
+  const local = (await createdGatherings()).find((g) => g.id === id);
+  if (local) return local;
+  if (isCloudReady() && isUuid(id)) {
+    const session = await loadSession();
+    for (const city of TRIAL_CITIES) {
+      try {
+        const rows = await listCityGatherings(session?.loginKey, city);
+        const hit = rows.find((g) => g.id === id);
+        if (hit) return hit;
+      } catch {
+        // ignore one city
+      }
+    }
+  }
+  return null;
 }
 
 function decorateGathering(g, joins, likes, userId, host) {
@@ -442,15 +581,26 @@ async function applyEndedCounts(rows) {
 }
 
 export async function listGatherings(city, userId) {
-  const seeds = seedGatheringsForCity(city);
-  const created = (await createdGatherings()).filter((g) => g.city === city);
+  const seeds = isCloudReady() ? [] : seedGatheringsForCity(city);
+  let created = (await createdGatherings()).filter((g) => g.city === city);
+  if (isCloudReady()) {
+    try {
+      const session = await loadSession();
+      created = await listCityGatherings(session?.loginKey, city);
+    } catch {
+      created = [];
+    }
+  } else {
+    await applyEndedCounts(created);
+  }
   const rows = [...seeds, ...created];
-  await applyEndedCounts(created);
   const joins = await readJson(KEYS.gatheringJoins, {});
   const likes = await readJson(KEYS.gatheringLikes, {});
   const { map } = await ownerLookup();
   const decorated = rows.map((g) =>
-    decorateGathering(g, joins, likes, userId, map[g.hostId]),
+    g.isSeed === false && isCloudReady() && isUuid(g.id)
+      ? g
+      : decorateGathering(g, joins, likes, userId, map[g.hostId]),
   );
   decorated.sort((a, b) => {
     const s = (b.hostCaptainScore || 0) - (a.hostCaptainScore || 0);
@@ -460,16 +610,45 @@ export async function listGatherings(city, userId) {
   return decorated;
 }
 
-export async function listMyGatherings(_city, userId) {
+export async function listMyGatherings(city, userId) {
   if (!userId) return [];
-  const mine = [];
-  for (const c of TRIAL_CITIES) {
-    mine.push(...(await listGatherings(c, userId)));
+  const rows = await listGatherings(city, userId);
+  return rows.filter((g) => g.iJoined || g.iHost);
+}
+
+export async function hostHasOpenGathering(userId) {
+  if (!userId) return false;
+  if (isCloudReady()) {
+    const session = await loadSession();
+    for (const city of TRIAL_CITIES) {
+      try {
+        const rows = await listCityGatherings(session?.loginKey, city);
+        if (rows.some((g) => g.iHost && !g.ended)) return true;
+      } catch {
+        // ignore
+      }
+    }
   }
-  return mine.filter((g) => g.iJoined || g.iHost);
+  const created = await createdGatherings();
+  return created.some(
+    (g) => g.hostId === userId && !isGatheringEnded(g.dateISO),
+  );
 }
 
 export async function createGathering(payload, host) {
+  if (isCloudReady()) {
+    const session = await loadSession();
+    return createGatheringCloud(session.loginKey, {
+      ...payload,
+      city: host.city,
+      hostName: host.dogName,
+    });
+  }
+  if (await hostHasOpenGathering(host?.id)) {
+    const err = new Error('already hosting');
+    err.code = 'already';
+    throw err;
+  }
   const name = String(payload.name || '').trim();
   const place = String(payload.place || '').trim();
   const intro = String(payload.intro || '').trim();
@@ -533,6 +712,12 @@ export async function joinGathering(id, userId) {
     err.code = 'auth';
     throw err;
   }
+  if (isCloudReady() && isUuid(id)) {
+    const session = await loadSession();
+    await joinGatheringCloud(session.loginKey, id);
+    const g = await findGathering(id);
+    return listGatherings(g?.city, userId);
+  }
   const g = await findGathering(id);
   if (!g) {
     const err = new Error('missing gathering');
@@ -571,6 +756,12 @@ export async function likeGatheringHost(id, userId) {
     const err = new Error('need account');
     err.code = 'auth';
     throw err;
+  }
+  if (isCloudReady() && isUuid(id)) {
+    const session = await loadSession();
+    await likeGatheringCloud(session.loginKey, id);
+    const g = await findGathering(id);
+    return listGatherings(g?.city, userId);
   }
   const g = await findGathering(id);
   if (!g) {
@@ -636,6 +827,7 @@ export async function saveSelectedCity(city) {
 }
 
 export async function maybeSendDemoInvite(userId, city) {
+  if (isCloudReady()) return null;
   if (!userId || !city) return null;
   const sent = await readJson(KEYS.demoInvite, false);
   if (sent) return null;
@@ -650,4 +842,4 @@ export async function maybeSendDemoInvite(userId, city) {
   return { row, peer };
 }
 
-export { isGuideId, getGuide };
+export { isGuideId, getGuide, isCloudReady };

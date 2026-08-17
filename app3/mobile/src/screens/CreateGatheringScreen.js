@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
   Alert,
   Linking,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
@@ -22,6 +23,7 @@ import {
   startOfDay,
 } from '../data/constants';
 import Chip from '../components/Chip';
+import { AwareTextInput, useKeyboardAwareScroll } from '../lib/keyboard';
 
 function offsetDate(n) {
   const d = startOfDay(new Date());
@@ -31,6 +33,8 @@ function offsetDate(n) {
 
 export default function CreateGatheringScreen({ onBack, onSave }) {
   const insets = useSafeAreaInsets();
+  const { scrollRef, onScroll, onInputFocus, onInputBlur } =
+    useKeyboardAwareScroll();
   const [name, setName] = useState('');
   const [place, setPlace] = useState('');
   const [type, setType] = useState(GATHERING_TYPES[2]);
@@ -79,10 +83,20 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
   };
 
   return (
+    <KeyboardAvoidingView
+      style={styles.fill}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
+    >
     <ScrollView
+      ref={scrollRef}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
       contentContainerStyle={[
         styles.pad,
-        { paddingTop: insets.top + 8, paddingBottom: 40 },
+        { paddingTop: insets.top + 8, paddingBottom: 48 },
       ]}
     >
       <TouchableOpacity onPress={onBack}>
@@ -94,12 +108,14 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
       </Text>
 
       <Text style={styles.k}>名字（10 字內）</Text>
-      <TextInput
+      <AwareTextInput
         style={styles.input}
         value={name}
         maxLength={MAX_GATHERING_NAME}
         placeholder="例如 左營野餐"
         onChangeText={(t) => setName(t.slice(0, MAX_GATHERING_NAME))}
+        scrollOnFocus={onInputFocus}
+        scrollOnBlur={onInputBlur}
       />
       <Text style={styles.count}>
         {name.length}/{MAX_GATHERING_NAME}
@@ -119,11 +135,13 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
       <Text style={styles.picked}>已選 {formatGatheringDate(date)}</Text>
 
       <Text style={styles.k}>地點</Text>
-      <TextInput
+      <AwareTextInput
         style={styles.input}
         value={place}
         placeholder="公園、餐廳或步道名稱"
         onChangeText={setPlace}
+        scrollOnFocus={onInputFocus}
+        scrollOnBlur={onInputBlur}
       />
 
       <Text style={styles.k}>類型</Text>
@@ -153,12 +171,14 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
         />
       </View>
       {useCustom ? (
-        <TextInput
+        <AwareTextInput
           style={styles.input}
           keyboardType="number-pad"
           placeholder="自訂金額"
           value={customFee}
           onChangeText={setCustomFee}
+          scrollOnFocus={onInputFocus}
+          scrollOnBlur={onInputBlur}
         />
       ) : null}
 
@@ -175,26 +195,30 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
       </View>
 
       <Text style={styles.k}>簡介（50 字內）</Text>
-      <TextInput
+      <AwareTextInput
         style={[styles.input, styles.intro]}
         value={intro}
         maxLength={MAX_GATHERING_INTRO}
         multiline
         placeholder="活動怎麼走、集合注意事項"
         onChangeText={(t) => setIntro(t.slice(0, MAX_GATHERING_INTRO))}
+        scrollOnFocus={onInputFocus}
+        scrollOnBlur={onInputBlur}
       />
       <Text style={styles.count}>
         {intro.length}/{MAX_GATHERING_INTRO}
       </Text>
 
       <Text style={styles.k}>LINE 群組連結（必填）</Text>
-      <TextInput
+      <AwareTextInput
         style={styles.input}
         autoCapitalize="none"
         autoCorrect={false}
         placeholder="https://line.me/ti/g/…"
         value={lineGroupUrl}
         onChangeText={setLineGroupUrl}
+        scrollOnFocus={onInputFocus}
+        scrollOnBlur={onInputBlur}
       />
       {lineGroupUrl.trim() ? (
         <TouchableOpacity onPress={() => Linking.openURL(lineGroupUrl.trim()).catch(() => {})}>
@@ -206,10 +230,12 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
         <Text style={styles.saveTxt}>建立聚會</Text>
       </TouchableOpacity>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   pad: { paddingHorizontal: 16 },
   back: { color: colors.brandDeep, fontWeight: '800', marginBottom: 8 },
   h: { fontSize: 24, fontWeight: '800', color: colors.ink },

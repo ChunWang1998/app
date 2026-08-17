@@ -9,10 +9,12 @@ export default function GatheringsScreen({
   city,
   gatherings,
   profile,
+  hostingActive,
   onProfile,
   onJoin,
   onOpen,
   onChangeCity,
+  onCreateGathering,
 }) {
   return (
     <View style={styles.fill}>
@@ -42,8 +44,17 @@ export default function GatheringsScreen({
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       >
+        {hostingActive ? (
+          <Text style={styles.hostNote}>
+            你已有一場進行中的聚會，結束後才能再創辦。
+          </Text>
+        ) : (
+          <TouchableOpacity style={styles.createBtn} onPress={onCreateGathering}>
+            <Text style={styles.createTxt}>創辦汪汪聚會</Text>
+          </TouchableOpacity>
+        )}
         {gatherings.length === 0 ? (
-          <Text style={styles.empty}>這一市目前沒有聚會。可到個人頁創辦。</Text>
+          <Text style={styles.empty}>這一市目前沒有聚會。</Text>
         ) : (
           gatherings.map((g) => {
             const lockedOut = g.full && !g.iJoined && !g.iHost;
@@ -110,7 +121,21 @@ const styles = StyleSheet.create({
   cities: { paddingHorizontal: 16, paddingBottom: 4 },
   modes: { paddingBottom: 4 },
   list: { paddingHorizontal: 16, paddingBottom: 24 },
-  empty: { marginTop: 16, color: colors.muted, lineHeight: 20 },
+  empty: { marginTop: 8, color: colors.muted, lineHeight: 20 },
+  createBtn: {
+    backgroundColor: colors.brand,
+    borderRadius: radius.pill,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  createTxt: { color: '#fff', fontWeight: '800' },
+  hostNote: {
+    marginBottom: 12,
+    color: colors.muted,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.card,

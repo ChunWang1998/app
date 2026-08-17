@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
 import { PLAY_OPTIONS } from '../data/constants';
@@ -14,6 +14,8 @@ export default function OwnerDetailScreen({
   onSubscribe,
   onConnect,
   onOpenChat,
+  onReport,
+  onBlock,
 }) {
   const insets = useSafeAreaInsets();
   if (!owner) {
@@ -41,7 +43,11 @@ export default function OwnerDetailScreen({
           </View>
         ) : null}
         <View style={styles.hero}>
-          <Text style={styles.emoji}>{owner.isGuide ? '👋' : '🐕'}</Text>
+          {owner.photoUri ? (
+            <Image source={{ uri: owner.photoUri }} style={styles.photo} />
+          ) : (
+            <Text style={styles.emoji}>{owner.isGuide ? '👋' : '🐕'}</Text>
+          )}
           <Text style={styles.name}>{owner.dogName}</Text>
           {owner.ownerNick ? (
             <Text style={styles.nick}>主人 {owner.ownerNick}</Text>
@@ -90,6 +96,36 @@ export default function OwnerDetailScreen({
             <Text style={styles.ctaText}>訂閱後才能 Connect</Text>
           </TouchableOpacity>
         )}
+
+        {!isMe && !owner.isGuide && (onReport || onBlock) ? (
+          <View style={styles.safety}>
+            {onReport ? (
+              <TouchableOpacity
+                onPress={() => {
+                  Alert.alert('檢舉這位主人', '選擇原因（我們會在後台看到）', [
+                    { text: '取消', style: 'cancel' },
+                    { text: '騷擾／不當', onPress: () => onReport('騷擾／不當') },
+                    { text: '不實檔案／危險', onPress: () => onReport('不實檔案／危險') },
+                  ]);
+                }}
+              >
+                <Text style={styles.safetyLink}>檢舉</Text>
+              </TouchableOpacity>
+            ) : null}
+            {onBlock ? (
+              <TouchableOpacity
+                onPress={() => {
+                  Alert.alert('封鎖', '封鎖後對方不會出現在清單，也無法再 Connect。', [
+                    { text: '取消', style: 'cancel' },
+                    { text: '封鎖', style: 'destructive', onPress: onBlock },
+                  ]);
+                }}
+              >
+                <Text style={styles.safetyLink}>封鎖</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -118,6 +154,12 @@ const styles = StyleSheet.create({
   },
   tourTxt: { color: colors.brandDeep, fontWeight: '700', lineHeight: 20 },
   hero: { alignItems: 'center', paddingVertical: 12 },
+  photo: {
+    width: 108,
+    height: 108,
+    borderRadius: 24,
+    backgroundColor: '#F8EBD8',
+  },
   emoji: { fontSize: 48 },
   name: { marginTop: 8, fontSize: 26, fontWeight: '800', color: colors.ink },
   nick: { marginTop: 4, color: colors.muted },
@@ -148,4 +190,11 @@ const styles = StyleSheet.create({
     color: colors.muted,
     paddingHorizontal: 24,
   },
+  safety: {
+    marginTop: 28,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 28,
+  },
+  safetyLink: { color: colors.danger, fontWeight: '800' },
 });

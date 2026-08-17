@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme';
 import { MAX_CHAT } from '../data/constants';
-import { listMessages, sendMessage, confirmMeet, demoOtherConfirm } from '../lib/store';
+import { listMessages, sendMessage, confirmMeet } from '../lib/store';
 
 export default function ChatScreen({
   connect,
@@ -35,6 +35,8 @@ export default function ChatScreen({
 
   useEffect(() => {
     reload();
+    const t = setInterval(reload, 4000);
+    return () => clearInterval(t);
   }, [connect?.id]);
 
   const send = async () => {
@@ -85,15 +87,6 @@ export default function ChatScreen({
           }}
         >
           <Text style={styles.link}>我已見面</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={async () => {
-            await demoOtherConfirm(connect.id);
-            Alert.alert('示範', '已模擬對方按下已見面。若你也按了，出去次數 +1。');
-            onRefreshOwners?.();
-          }}
-        >
-          <Text style={styles.link}>模擬對方已見面</Text>
         </TouchableOpacity>
         {full && connect?.status !== 'disconnected' ? (
           <Text style={styles.full}>對話已滿，請自行約</Text>

@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
   Alert,
   Image,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +28,7 @@ import {
   slotLabel,
 } from '../data/constants';
 import { fetchDistrictsForCity } from '../lib/districts';
+import { AwareTextInput, useKeyboardAwareScroll } from '../lib/keyboard';
 import Chip from '../components/Chip';
 
 export default function EditProfileScreen({
@@ -38,6 +40,8 @@ export default function EditProfileScreen({
   onSave,
 }) {
   const insets = useSafeAreaInsets();
+  const { scrollRef, onScroll, onInputFocus, onInputBlur } =
+    useKeyboardAwareScroll();
   const [dogName, setDogName] = useState(initial?.dogName || '');
   const [ownerNick, setOwnerNick] = useState(initial?.ownerNick || '');
   const [intro, setIntro] = useState(initial?.intro || '');
@@ -159,8 +163,22 @@ export default function EditProfileScreen({
   };
 
   return (
+    <KeyboardAvoidingView
+      style={styles.fill}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
+    >
     <ScrollView
-      contentContainerStyle={[styles.pad, { paddingTop: insets.top + 8, paddingBottom: 40 }]}
+      ref={scrollRef}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      automaticallyAdjustKeyboardInsets={false}
+      contentContainerStyle={[
+        styles.pad,
+        { paddingTop: insets.top + 8, paddingBottom: 48 },
+      ]}
     >
       {registerMode ? null : (
         <TouchableOpacity onPress={onBack}>
@@ -187,32 +205,40 @@ export default function EditProfileScreen({
         <Text style={styles.photoHint}>上傳主人＋狗合照</Text>
       </View>
 
-      <TextInput
+      <AwareTextInput
         style={styles.input}
         placeholder="狗名"
         value={dogName}
         onChangeText={setDogName}
+        scrollOnFocus={onInputFocus}
+        scrollOnBlur={onInputBlur}
       />
-      <TextInput
+      <AwareTextInput
         style={styles.input}
         placeholder="主人暱稱（選填）"
         value={ownerNick}
         onChangeText={setOwnerNick}
+        scrollOnFocus={onInputFocus}
+        scrollOnBlur={onInputBlur}
       />
-      <TextInput
+      <AwareTextInput
         style={[styles.input, styles.intro]}
         placeholder="簡短介紹（50 字內）"
         value={intro}
         maxLength={MAX_INTRO}
         multiline
         onChangeText={(t) => setIntro(t.slice(0, MAX_INTRO))}
+        scrollOnFocus={onInputFocus}
+        scrollOnBlur={onInputBlur}
       />
       <Text style={styles.count}>{intro.length}/{MAX_INTRO}</Text>
-      <TextInput
+      <AwareTextInput
         style={styles.input}
         placeholder="品種／混種"
         value={breed}
         onChangeText={setBreed}
+        scrollOnFocus={onInputFocus}
+        scrollOnBlur={onInputBlur}
       />
 
       <Text style={styles.k}>體型</Text>
@@ -274,11 +300,13 @@ export default function EditProfileScreen({
 
       <Text style={styles.k}>地點（最多 3）</Text>
       <View style={styles.addRow}>
-        <TextInput
+        <AwareTextInput
           style={[styles.input, { flex: 1, marginBottom: 0 }]}
           placeholder="例如 中央公園"
           value={placeDraft}
           onChangeText={setPlaceDraft}
+          scrollOnFocus={onInputFocus}
+          scrollOnBlur={onInputBlur}
         />
         <TouchableOpacity
           style={styles.addBtn}
@@ -323,6 +351,7 @@ export default function EditProfileScreen({
         <Text style={styles.saveTxt}>{registerMode ? '完成註冊' : '儲存檔案'}</Text>
       </TouchableOpacity>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -337,6 +366,7 @@ function RowChips({ items, value, onPick }) {
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   pad: { paddingHorizontal: 16 },
   back: { color: colors.brandDeep, fontWeight: '800', marginBottom: 8 },
   h: { fontSize: 24, fontWeight: '800', color: colors.ink, marginBottom: 4 },

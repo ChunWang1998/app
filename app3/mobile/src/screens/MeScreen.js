@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Image,
 } from 'react-native';
 import {
   ScrollView,
@@ -14,7 +15,7 @@ import {
 } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
-import { FOUNDER_CAP } from '../data/constants';
+import { FOUNDER_CAP, PLAY_OPTIONS } from '../data/constants';
 import { hasValidSub } from '../lib/store';
 
 export default function MeScreen({
@@ -31,10 +32,9 @@ export default function MeScreen({
   onOpenChat,
   onAccept,
   onDecline,
-  onDemoAccept,
-  onCreateGathering,
   onOpenGathering,
   onDisconnect,
+  onDeleteAccount,
 }) {
   const insets = useSafeAreaInsets();
   const [phone, setPhone] = useState('');
@@ -56,6 +56,7 @@ export default function MeScreen({
 
   const nameOf = (id) => ownersById[id]?.dogName || id;
   const subscribed = hasValidSub(session);
+  const playLabel = PLAY_OPTIONS.find((p) => p.id === profile?.playWith)?.label;
 
   return (
     <ScrollView
@@ -114,21 +115,52 @@ export default function MeScreen({
             <Text style={styles.v}>
               {session.subscription === 'founder'
                 ? '白名單：已事先訂閱（永久免費）'
-                : '訂閱中（月繳示範）'}
+                : '已訂閱'}
             </Text>
             {profile ? (
               <>
-                <Text style={styles.v}>
-                  {profile.dogName} · 出去 {profile.outingCount || 0} · Connect{' '}
-                  {profile.connectCount || 0}
-                </Text>
-                <Text style={styles.stats}>
-                  汪汪大隊長 {profile.captainCount || 0} 次 · 分數{' '}
-                  {profile.captainScore || 0}
-                </Text>
-                <Text style={styles.stats}>
-                  汪汪隊員 {profile.memberCount || 0} 次
-                </Text>
+                {profile.photoUri ? (
+                  <Image source={{ uri: profile.photoUri }} style={styles.photo} />
+                ) : null}
+                <Text style={styles.v}>{profile.dogName}</Text>
+                {profile.ownerNick ? (
+                  <Text style={styles.stats}>主人 {profile.ownerNick}</Text>
+                ) : null}
+                {profile.intro ? <Text style={styles.intro}>{profile.intro}</Text> : null}
+                <Info
+                  label="類型"
+                  value={`${profile.breed || '—'} · ${profile.size || '—'} · ${
+                    profile.ageRange || '—'
+                  }`}
+                />
+                <Info
+                  label="個性"
+                  value={(profile.personalities || []).join('、') || '—'}
+                />
+                <Info
+                  label="時段"
+                  value={
+                    (profile.slots || []).map((s) => s.label).join('、') || '—'
+                  }
+                />
+                <Info
+                  label="地點"
+                  value={(profile.places || []).join('、') || '—'}
+                />
+                <Info
+                  label="行政區"
+                  value={`${profile.city || ''} ${profile.district || ''}`.trim() || '—'}
+                />
+                <Info label="與其他狗" value={playLabel || '—'} />
+                <Info label="出去次數" value={String(profile.outingCount || 0)} />
+                <Info label="Connect 次數" value={String(profile.connectCount || 0)} />
+                <Info
+                  label="汪汪大隊長"
+                  value={`${profile.captainCount || 0} 次 · 分數 ${
+                    profile.captainScore || 0
+                  }`}
+                />
+                <Info label="汪汪隊員" value={`${profile.memberCount || 0} 次`} />
                 <TouchableOpacity onPress={onCreateProfile}>
                   <Text style={styles.link}>編輯汪汪檔案</Text>
                 </TouchableOpacity>
@@ -139,12 +171,6 @@ export default function MeScreen({
               </TouchableOpacity>
             )}
           </View>
-
-          {profile ? (
-            <TouchableOpacity style={styles.btn} onPress={onCreateGathering}>
-              <Text style={styles.btnText}>創辦汪汪聚會</Text>
-            </TouchableOpacity>
-          ) : null}
 
           <Text style={styles.section}>參加的聚會</Text>
           {myGatherings.length === 0 ? (
@@ -198,9 +224,6 @@ export default function MeScreen({
             sent.map((c) => (
               <View key={c.id} style={styles.card}>
                 <Text style={styles.v}>等待 {nameOf(c.toId)} 回覆</Text>
-                <TouchableOpacity onPress={() => onDemoAccept(c.id)}>
-                  <Text style={styles.link}>示範：模擬對方接受</Text>
-                </TouchableOpacity>
               </View>
             ))
           )}
@@ -273,7 +296,34 @@ export default function MeScreen({
           )}
         </>
       )}
+
+      {session && onDeleteAccount ? (
+        <TouchableOpacity
+          style={styles.dangerBtn}
+          onPress={() => {
+            Alert.alert(
+              '刪除帳號',
+              '會刪除此裝置上的登入狀態。若已接雲端，也會刪除檔案、Connect、聊天與聚會。創始白名單名額不退回。此動作無法復原。',
+              [
+                { text: '取消', style: 'cancel' },
+                { text: '刪除帳號', style: 'destructive', onPress: onDeleteAccount },
+              ],
+            );
+          }}
+        >
+          <Text style={styles.dangerTxt}>刪除帳號</Text>
+        </TouchableOpacity>
+      ) : null}
     </ScrollView>
+  );
+}
+
+function Info({ label, value }) {
+  return (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoK}>{label}</Text>
+      <Text style={styles.infoV}>{value}</Text>
+    </View>
   );
 }
 
@@ -319,6 +369,18 @@ const styles = StyleSheet.create({
   k: { fontSize: 12, color: colors.muted },
   v: { fontSize: 16, fontWeight: '700', color: colors.ink, marginTop: 4 },
   stats: { marginTop: 4, fontSize: 13, color: colors.muted },
+  intro: { marginTop: 8, marginBottom: 4, fontSize: 14, color: colors.ink, lineHeight: 20 },
+  photo: {
+    width: 96,
+    height: 96,
+    borderRadius: 20,
+    marginTop: 10,
+    marginBottom: 4,
+    backgroundColor: '#F8EBD8',
+  },
+  infoRow: { marginTop: 10 },
+  infoK: { fontSize: 12, color: colors.muted, marginBottom: 2 },
+  infoV: { fontSize: 15, fontWeight: '700', color: colors.ink },
   link: { marginTop: 8, color: colors.brandDeep, fontWeight: '800' },
   section: {
     marginTop: 16,
@@ -344,4 +406,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
   },
   delTxt: { color: '#fff', fontWeight: '800' },
+  dangerBtn: { marginTop: 28, alignItems: 'center', paddingVertical: 12 },
+  dangerTxt: { color: colors.danger, fontWeight: '800' },
 });

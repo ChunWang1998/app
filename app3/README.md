@@ -7,6 +7,7 @@
 ```bash
 cd app3/mobile
 npm install
+cp .env.example .env   # 填入 Supabase URL + anon key
 npm start
 ```
 
@@ -21,6 +22,20 @@ npm start
 - 汪汪聚會在聚會頁依主辦人大隊長分數排序；個人頁可創辦（必附 LINE 群組連結）
 - 下次升級打開訂閱牆時，白名單內視為已事先訂閱；把雲端 100 筆填進 `mobile/src/data/founderWhitelist.snapshot.js` 當備援
 - 清單排序：出去次數 → 資料豐富程度
-- Connect 後聊天最多 20 句；雙方互按「已見面」才 +1 出去次數
+- Connect 後聊天最多 20 句；雙方互按「已見面」才 +1 出去次數（伺服器加，不能自己改）
+- 檢舉／封鎖、刪除帳號
 
-LINE Pay 尚未串接；訂閱頁的「LINE Pay 月繳」為示範開通。跨裝置白名單請接 `supabase/schema.sql`（未設定時名額存在本機，僅供單機示範）。
+### 雲端（上架必做）
+未設 env 時，白名單／檔案／聊天都在本機，無法跨裝置。
+
+1. 新建 Supabase 專案，SQL Editor 執行 [`supabase/schema.sql`](./supabase/schema.sql)。
+2. 本機：`mobile/.env` 填 `EXPO_PUBLIC_SUPABASE_URL`、`EXPO_PUBLIC_SUPABASE_ANON_KEY`。
+3. **EAS / App Store：** 同名變數必須做成 EAS Secret 再打 production，否則上架包連不到雲端。
+
+```bash
+eas secret:create --name EXPO_PUBLIC_SUPABASE_URL --value https://xxxx.supabase.co
+eas secret:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value eyJ...
+eas build --platform ios --profile production
+```
+
+v1 **不收款**（不做 LINE Pay 解鎖）。付費訂閱下版走 Apple 內購。

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -19,12 +19,10 @@ import {
   loadFounderCount,
   registerWithProfile,
   saveProfile,
-  markPaid,
   listOwners,
   listConnects,
   sendConnect,
   setConnectStatus,
-  demoAccept,
   hasValidSub,
   completeGuideConnect,
   loadTour,
@@ -38,6 +36,9 @@ import {
   loadSelectedCity,
   saveSelectedCity,
   maybeSendDemoInvite,
+  deleteAccount,
+  reportOwner,
+  blockOwner,
 } from './src/lib/store';
 import { ensureNotifyPermission, notifyUser } from './src/lib/notify';
 import LandingScreen from './src/screens/LandingScreen';
@@ -166,6 +167,14 @@ export default function App() {
       }
     })();
   }, [started, applyCity]);
+
+  useEffect(() => {
+    if (!started || locateStatus !== 'ready' || !city) return undefined;
+    const t = setInterval(() => {
+      reload(city);
+    }, 12000);
+    return () => clearInterval(t);
+  }, [started, locateStatus, city, reload]);
 
   const ownersById = useMemo(() => {
     const map = {};
@@ -309,19 +318,11 @@ export default function App() {
       <SubscribeScreen
         founderCount={founderCount}
         onBack={() => setOverlay(null)}
-        onDemoPay={async () => {
-          const s = await markPaid();
-          if (!s) {
-            needAccount('訂閱');
-            return;
-          }
-          setSession(s);
-          setOverlay(null);
-        }}
       />
     );
   } else if (overlay === 'edit') {
     body = (
+      <View style={{ flex: 1 }}>
       <EditProfileScreen
         city={city}
         districts={districts}
@@ -365,6 +366,7 @@ export default function App() {
           }
         }}
       />
+      </View>
     );
   } else if (overlay === 'detail') {
     const owner = ownersById[ownerId];
@@ -402,6 +404,24 @@ export default function App() {
             setOverlay('chat');
           }
         }}
+        onReport={async (reason) => {
+          try {
+            await reportOwner(ownerId, reason);
+            Alert.alert('已收到檢舉', '我們會在後台查看。嚴重時會暫停對方 Connect。');
+          } catch (e) {
+            Alert.alert('無法檢舉', e.message || String(e));
+          }
+        }}
+        onBlock={async () => {
+          try {
+            await blockOwner(ownerId);
+            setOverlay(null);
+            await reload(city);
+            Alert.alert('已封鎖', '對方不會再出現在你的清單。');
+          } catch (e) {
+            Alert.alert('無法封鎖', e.message || String(e));
+          }
+        }}
       />
     );
   } else if (overlay === 'chat' && chatConnect) {
@@ -420,7 +440,10 @@ export default function App() {
     body = (
       <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }}>
         <CreateGatheringScreen
-        onBack={() => setOverlay('profile')}
+        onBack={() => {
+          setOverlay(null);
+          setTab('gatherings');
+        }}
         onSave={async (payload) => {
           try {
             await createGathering(payload, {
@@ -434,7 +457,9 @@ export default function App() {
             Alert.alert('已建立', '聚會已出現在本市聚會頁。報名者會在個人頁看到 LINE 群組。');
           } catch (e) {
             if (e.code === 'line') Alert.alert('請附上 LINE 群組連結');
-            else Alert.alert('無法建立', '請檢查名字、日期、地點、類型與收費。');
+            else if (e.code === 'already') {
+              Alert.alert('已有聚會', '同一時間只能創辦一場聚會，等目前這場結束後再辦。');
+            } else Alert.alert('無法建立', '請檢查名字、日期、地點、類型與收費。');
           }
         }}
       />
@@ -503,35 +528,30 @@ export default function App() {
             await setConnectStatus(id, 'declined');
             await reload(city);
           }}
-          onDemoAccept={async (id) => {
-            await demoAccept(id);
-            await reload(city);
-            const row = connects.find((c) => c.id === id);
-            const peerId = row?.fromId === session?.id ? row?.toId : row?.fromId;
-            const peerName = ownersById[peerId]?.dogName || '對方';
-            await notifyUser({
-              title: 'Connect 已接受',
-              body: `${peerName} 接受了你的 Connect`,
-            });
-            showReminder(peerName);
-          }}
-          onCreateGathering={() => {
-            if (!subscribed || !profile) {
-              setOverlay('subscribe');
-              return;
-            }
-            setOverlay('createGathering');
-          }}
           onOpenGathering={openGathering}
           onDisconnect={async (id) => {
             await disconnectConnect(id, session.id);
             await reload(city);
+          }}
+          onDeleteAccount={async () => {
+            try {
+              await deleteAccount();
+              setSession(null);
+              setProfile(null);
+              setConnects([]);
+              setOverlay(null);
+              await reload(city);
+              Alert.alert('帳號已刪除');
+            } catch (e) {
+              Alert.alert('無法刪除', e.message || String(e));
+            }
           }}
         />
       </LinearGradient>
     );
   } else if (session && !profile && overlay == null) {
     body = (
+      <View style={{ flex: 1 }}>
       <EditProfileScreen
         city={city}
         districts={districts}
@@ -545,6 +565,7 @@ export default function App() {
           Alert.alert('已完成', '汪汪檔案已建立，註冊完成。');
         }}
       />
+      </View>
     );
   } else {
     body = (
@@ -566,10 +587,29 @@ export default function App() {
               city={city}
               gatherings={gatherings}
               profile={profile}
+              hostingActive={myGatherings.some((g) => g.iHost && !g.ended)}
               onProfile={openProfile}
               onJoin={joinOne}
               onOpen={(g) => openGathering(g, 'gatherings')}
               onChangeCity={(nextCity) => applyCity(nextCity)}
+              onCreateGathering={() => {
+                if (!session || !profile) {
+                  needAccount('創辦聚會');
+                  return;
+                }
+                if (!subscribed) {
+                  setOverlay('subscribe');
+                  return;
+                }
+                if (myGatherings.some((g) => g.iHost && !g.ended)) {
+                  Alert.alert(
+                    '已有聚會',
+                    '同一時間只能創辦一場聚會，等目前這場結束後再辦。',
+                  );
+                  return;
+                }
+                setOverlay('createGathering');
+              }}
             />
           )}
         </LinearGradient>
