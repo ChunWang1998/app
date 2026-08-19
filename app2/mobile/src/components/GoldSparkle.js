@@ -61,7 +61,6 @@ export default function GoldSparkle({ active, children, style }) {
           styles.glow,
           {
             opacity: pulse,
-            shadowOpacity: pulse,
           },
         ]}
       />

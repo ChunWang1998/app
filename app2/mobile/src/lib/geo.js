@@ -167,6 +167,8 @@ export function placeInRegion(place, region, pad = 1.2) {
 }
 
 export function formatDistance(meters) {
-  if (meters < 1000) return `${Math.round(meters)} m`;
-  return `${(meters / 1000).toFixed(1)} km`;
+  const n = Number(meters);
+  if (!Number.isFinite(n) || n < 0) return '—';
+  if (n < 1000) return `${Math.round(n)} m`;
+  return `${(n / 1000).toFixed(1)} km`;
 }

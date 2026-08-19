@@ -14,9 +14,8 @@ import MapView, { Marker } from 'react-native-maps';
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import * as Location from 'expo-location';
 import * as Clipboard from 'expo-clipboard';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { colors, radius, voteTone } from '../theme';
-import { nearestOpen, cityNear, placeInRegion } from '../lib/geo';
+import { nearestOpen, cityNear, placeInRegion, haversineMeters } from '../lib/geo';
 import {
   fetchVoteState,
   fetchComments,
@@ -69,6 +68,18 @@ function shareMessage(place) {
   return `${placeLabel(place)}\n${place.地址 || ''}`;
 }
 
+function runningInExpoGo() {
+  try {
+    const Constants = require('expo-constants').default ?? require('expo-constants');
+    return (
+      Constants.appOwnership === 'expo' ||
+      Constants.executionEnvironment === 'storeClient'
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function openGoogleMaps(place) {
   const lat = Number(place?.lat);
   const lng = Number(place?.lng);
@@ -78,23 +89,26 @@ async function openGoogleMaps(place) {
   }
 
   const dest = `${lat},${lng}`;
-  const appleUrl = `http://maps.apple.com/?daddr=${encodeURIComponent(dest)}&dirflg=w`;
   const googleWebUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=walking`;
   const googleAppUrl = `comgooglemaps://?daddr=${dest}&directionsmode=walking`;
-  const fallbackUrl = Platform.OS === 'ios' ? appleUrl : googleWebUrl;
+
+  const openWeb = async () => {
+    await Linking.openURL(googleWebUrl);
+  };
 
   try {
-    if (Platform.OS === 'ios') {
-      // Expo Go / Simulator have Apple Maps, not Google Maps, and cannot
-      // query comgooglemaps:// (LSApplicationQueriesSchemes is not applied).
-      await Linking.openURL(appleUrl);
+    // Expo Go cannot query/open comgooglemaps:// (Info.plist not applied) and
+    // that path native-crashes locally. HTTPS still opens Google Maps
+    // (app via universal link if installed, otherwise the web UI).
+    if (runningInExpoGo()) {
+      await openWeb();
       return;
     }
     const canOpenApp = await Linking.canOpenURL(googleAppUrl).catch(() => false);
     await Linking.openURL(canOpenApp ? googleAppUrl : googleWebUrl);
   } catch (e) {
     try {
-      await Linking.openURL(fallbackUrl);
+      await openWeb();
     } catch {
       Alert.alert('無法開啟地圖', e?.message || '請稍後再試');
     }
@@ -126,6 +140,8 @@ export default function MapScreen() {
   const userCell = userPos ? cellKey(userPos.lat, userPos.lng) : null;
   const regionTimer = useRef(null);
   const didInitialFit = useRef(false);
+  const skipNextRegion = useRef(false);
+  const lastCommunityKey = useRef('');
 
   const loadRegion = useCallback(async (lat, lng, { mergePlaces = false } = {}) => {
     try {
@@ -206,6 +222,10 @@ export default function MapScreen() {
 
   const handleRegionChange = useCallback(
     (region) => {
+      if (skipNextRegion.current) {
+        skipNextRegion.current = false;
+        return;
+      }
       setMapRegion(region);
       setMapCenter({ lat: region.latitude, lng: region.longitude });
       if (regionTimer.current) clearTimeout(regionTimer.current);
@@ -237,6 +257,9 @@ export default function MapScreen() {
     const source = showAll ? cityPlaces : places;
     if (!origin || !source.length || !isSupabaseConfigured) return;
     const ids = nearestOpen(origin, source, POOL_SIZE).map((p) => p.id);
+    const key = `${showAll ? 'all' : 'near'}:${ids.join(',')}`;
+    if (key === lastCommunityKey.current) return;
+    lastCommunityKey.current = key;
     refreshCommunity(ids);
   }, [userPos, mapCenter, places, cityPlaces, showAll, refreshCommunity]);
 
@@ -310,19 +333,27 @@ export default function MapScreen() {
 
   const mapMarkers = useMemo(() => {
     if (!showAll) return nearest;
-    if (!mapRegion) return allOpen.slice(0, 80);
-    return allOpen.filter((p) => placeInRegion(p, mapRegion));
+    const inView = mapRegion
+      ? allOpen.filter((p) => placeInRegion(p, mapRegion))
+      : allOpen;
+    return inView.slice(0, 80);
   }, [showAll, nearest, allOpen, mapRegion]);
 
-  const selected = useMemo(
-    () =>
-      allOpen.find((p) => p.id === selectedId) ||
+  const selected = useMemo(() => {
+    if (!selectedId) return null;
+    const raw =
       nearest.find((p) => p.id === selectedId) ||
+      allOpen.find((p) => p.id === selectedId) ||
       places.find((p) => p.id === selectedId) ||
       cityPlaces.find((p) => p.id === selectedId) ||
-      null,
-    [allOpen, nearest, places, cityPlaces, selectedId],
-  );
+      null;
+    if (!raw) return null;
+    if (!userPos) return raw;
+    return {
+      ...raw,
+      distance: haversineMeters(userPos, { lat: raw.lat, lng: raw.lng }),
+    };
+  }, [allOpen, nearest, places, cityPlaces, selectedId, userPos]);
 
   useEffect(() => {
     if (didInitialFit.current || !mapRef.current || !userPos) return;
@@ -351,12 +382,15 @@ export default function MapScreen() {
   }, [userPos, nearest, placesStatus]);
 
   const collapseList = useCallback(() => {
+    if (selectedId) return;
     listSheetRef.current?.snapToIndex(0);
-  }, []);
+  }, [selectedId]);
 
   const selectPlace = useCallback((place) => {
-    setSelectedId(place.id);
-    if (mapRef.current) {
+    if (!place?.id) return;
+    skipNextRegion.current = true;
+    listSheetRef.current?.snapToIndex(0);
+    if (mapRef.current && Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
       mapRef.current.animateToRegion(
         {
           latitude: place.lat,
@@ -367,6 +401,15 @@ export default function MapScreen() {
         350,
       );
     }
+    // Defer so the map/list press gesture finishes before the detail sheet mounts.
+    setTimeout(() => setSelectedId(place.id), 50);
+  }, []);
+
+  const closeSelected = useCallback(() => {
+    setSelectedId(null);
+    requestAnimationFrame(() => {
+      listSheetRef.current?.snapToIndex(1);
+    });
   }, []);
 
   const handleVoteUp = useCallback(
@@ -415,12 +458,12 @@ export default function MapScreen() {
           next.add(place.id);
           return next;
         });
-        if (selectedId === place.id) setSelectedId(null);
+        if (selectedId === place.id) closeSelected();
       } catch (e) {
         Alert.alert('投票失敗', e?.message || '請稍後再試');
       }
     },
-    [votes.myVotes, selectedId],
+    [votes.myVotes, selectedId, closeSelected],
   );
 
   const handleSubmitComment = useCallback(
@@ -471,7 +514,7 @@ export default function MapScreen() {
   })();
 
   return (
-    <GestureHandlerRootView style={styles.fill}>
+    <View style={styles.fill}>
       <View style={styles.fill}>
         <View style={styles.bar}>
           <View style={{ flex: 1 }}>
@@ -512,7 +555,11 @@ export default function MapScreen() {
                     title={`${index + 1}. ${placeLabel(place)}`}
                     description={place.地址}
                     pinColor={tone.sparkle ? '#FFD700' : tone.fill}
-                    onPress={() => selectPlace(place)}
+                    tracksViewChanges={false}
+                    onPress={(e) => {
+                      e?.stopPropagation?.();
+                      selectPlace(place);
+                    }}
                   />
                 );
               })}
@@ -524,14 +571,15 @@ export default function MapScreen() {
           )}
         </View>
 
-        {!selected && (
-          <BottomSheet
-            ref={listSheetRef}
-            index={1}
-            snapPoints={LIST_SNAPS}
-            backgroundStyle={styles.sheetBg}
-            handleIndicatorStyle={styles.sheetHandle}
-          >
+        <BottomSheet
+          ref={listSheetRef}
+          index={1}
+          snapPoints={LIST_SNAPS}
+          enableHandlePanningGesture={!selected}
+          enableContentPanningGesture={!selected}
+          backgroundStyle={styles.sheetBg}
+          handleIndicatorStyle={styles.sheetHandle}
+        >
             <View style={styles.tabRow}>
               <TouchableOpacity
                 style={[styles.tab, !showAll && styles.tabActive]}
@@ -546,8 +594,7 @@ export default function MapScreen() {
                 activeOpacity={0.85}
               >
                 <Text style={[styles.tabText, showAll && styles.tabTextActive]}>
-                  全部{allOpen.length ? ` (${allOpen.length})` : ''}
-                  {currentCity ? ` · ${currentCity}` : ''}
+                  全部{currentCity ? ` · ${currentCity}` : ''}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -603,7 +650,6 @@ export default function MapScreen() {
               }
             />
           </BottomSheet>
-        )}
 
         {selected && (
           <PlaceDetailSheet
@@ -612,7 +658,7 @@ export default function MapScreen() {
             vote={votes.scores?.[selected.id] || 0}
             comments={comments[selected.id] || []}
             seedNotes={selected.備註 || []}
-            onClose={() => setSelectedId(null)}
+            onClose={closeSelected}
             onNavigate={openGoogleMaps}
             onSubmitComment={handleSubmitComment}
           />
@@ -631,7 +677,7 @@ export default function MapScreen() {
           onClose={() => setActionPlace(null)}
         />
       </View>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
