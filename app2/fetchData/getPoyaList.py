@@ -13,15 +13,13 @@ from urllib.parse import unquote
 import requests
 from bs4 import BeautifulSoup
 
+from cities import CITIES
 from hours import normalize_hours
 
 STORE_URL = "https://www.poya.com.tw/store/"
 ACT_URL = "https://www.poya.com.tw/store/act/"
 OUT_PATH = Path(__file__).resolve().parent.parent / "data" / "poya_stores.json"
 STORE_TYPE = "寶雅"
-
-# Match 7-11 coverage for now (remove / expand to scrape all cities)
-CITIES = ["高雄市", "台南市", "新北市", "台北市"]
 
 CITY_ALIASES = {
     "高雄市": ("高雄市", "高雄"),

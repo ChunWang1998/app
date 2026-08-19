@@ -17,13 +17,11 @@ from pathlib import Path
 
 import requests
 
+from cities import CITIES
 from hours import normalize_hours
 
 OUT_PATH = Path(__file__).resolve().parent.parent / "data" / "mrt_stations.json"
 STORE_TYPE = "捷運"
-
-# Match 7-11 / department-store coverage (remove / expand as needed)
-CITIES = ["高雄市", "新北市", "台北市", "台中市"]
 
 OPERATORS = {
     "TRTC": "台北捷運",

@@ -15,6 +15,7 @@ from pathlib import Path
 
 import requests
 
+from cities import CITIES
 from hours import normalize_hours
 
 API_URL = "https://data.moenv.gov.tw/api/v2/fac_p_07"
@@ -23,9 +24,6 @@ STORE_TYPE = "公廁"
 
 # data.gov.tw publishes this key on the FAC_P_07 resource URL; override with MOENV_API_KEY.
 DEFAULT_API_KEY = "846e44e1-8cc5-4893-ad87-c79d2d383706"
-
-# Match 7-11 / POYA coverage (remove / expand as needed)
-CITIES = ["高雄市", "台南市", "新北市", "台北市"]
 
 COUNTY_CODES = {
     "台北市": "63000",

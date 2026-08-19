@@ -9,6 +9,7 @@ from pathlib import Path
 
 import requests
 
+from cities import CITIES
 from hours import normalize_hours
 
 OUT_PATH = Path(__file__).resolve().parent.parent / "data" / "department_stores.json"
@@ -38,9 +39,6 @@ OTHER_REGIONS = (
     "基隆", "桃園", "新竹", "苗栗", "台中", "臺中", "彰化", "南投",
     "雲林", "嘉義", "屏東", "宜蘭", "花蓮", "台東", "臺東", "澎湖", "金門", "連江",
 )
-
-# Match 7-11 coverage for now (remove / expand to scrape all cities)
-CITIES = ["高雄市", "台南市", "新北市", "台北市"]
 
 EXCLUDE_RE = re.compile(
     r"7-?eleven|7-?11|全家|全聯|ok超商|萊爾富|"

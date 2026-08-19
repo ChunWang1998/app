@@ -6,6 +6,7 @@ from pathlib import Path
 
 import requests
 
+from cities import CITIES
 from hours import normalize_hours
 
 API_URL = "https://api.map.com.tw/net/familyShop.aspx"
@@ -19,9 +20,6 @@ HEADERS = {
     ),
     "Referer": "https://www.family.com.tw/Marketing/zh/Map",
 }
-
-# temporary: only Kaohsiung (remove / expand to scrape all cities)
-CITIES = ["高雄市"]
 
 PARAMS_BASE = {
     "searchType": "ShopList",

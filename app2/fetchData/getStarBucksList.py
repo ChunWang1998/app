@@ -16,6 +16,7 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
+from cities import in_cities
 from hours import normalize_hours
 
 STORE_PAGE = "https://www.starbucks.com.tw/stores/storesearch.jspx"
@@ -171,6 +172,10 @@ def main() -> None:
         store_id = block["store_id"]
         name = block["name"]
         address = block["地址"]
+        if not in_cities(address):
+            skipped += 1
+            continue
+
         latlng = coords.get(store_id)
         if latlng is None:
             print(f"  skip no coords: {name or address or store_id}")

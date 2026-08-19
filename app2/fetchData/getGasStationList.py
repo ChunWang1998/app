@@ -6,6 +6,7 @@ from pathlib import Path
 
 import requests
 
+from cities import CITIES, norm_tw
 from hours import normalize_hours
 
 STATIONS_URL = "https://vipmbr.cpc.com.tw/opendata/getstationinfo"
@@ -21,10 +22,6 @@ HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
     ),
 }
-
-# temporary: only Kaohsiung (remove / expand to scrape all cities)
-CITIES = ["高雄市"]
-
 
 def make_id(station_id: str | None, address: str) -> str:
     raw = (station_id or "").strip()
@@ -78,7 +75,7 @@ print(f"accessible toilet stations (nationwide): {len(accessible_ids)}")
 all_stores_with_toilet: list[dict] = []
 
 for city in CITIES:
-    city_stations = [s for s in all_stations if s.get("縣市") == city]
+    city_stations = [s for s in all_stations if norm_tw(s.get("縣市") or "") == norm_tw(city)]
     before = len(all_stores_with_toilet)
     print(f"{city}: {len(city_stations)} stations")
 

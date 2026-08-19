@@ -7,40 +7,12 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
+from cities import CITIES
 from hours import normalize_hours
 
 URL = "https://www.louisacoffee.co/visit_result"
 OUT_PATH = Path(__file__).resolve().parent.parent / "data" / "louisa_stores.json"
 STORE_TYPE = "路易莎"
-
-# jquery.twzipcode county names that return results
-COUNTIES = [
-    "基隆市",
-    "台北市",
-    "新北市",
-    "桃園市",
-    "新竹市",
-    "新竹縣",
-    "苗栗縣",
-    "台中市",
-    "彰化縣",
-    "南投縣",
-    "雲林縣",
-    "嘉義市",
-    "嘉義縣",
-    "台南市",
-    "高雄市",
-    "屏東縣",
-    "宜蘭縣",
-    "花蓮縣",
-    "台東縣",
-    "澎湖縣",
-    "金門縣",
-    "連江縣",
-]
-
-# temporary: only Kaohsiung (remove this line to scrape all counties)
-COUNTIES = [c for c in COUNTIES if c == "高雄市"]
 
 HEADERS = {
     "User-Agent": (
@@ -171,7 +143,7 @@ def main() -> None:
     all_stores: list[dict] = []
     seen: set[str] = set()
 
-    for county in COUNTIES:
+    for county in CITIES:
         time.sleep(0.3)
         html = fetch_county(session, county)
         stores = parse_stores(html)
