@@ -13,20 +13,13 @@ from urllib.parse import unquote
 import requests
 from bs4 import BeautifulSoup
 
-from cities import CITIES
+from cities import aliases_for, norm_tw
 from hours import normalize_hours
 
 STORE_URL = "https://www.poya.com.tw/store/"
 ACT_URL = "https://www.poya.com.tw/store/act/"
 OUT_PATH = Path(__file__).resolve().parent.parent / "data" / "poya_stores.json"
 STORE_TYPE = "寶雅"
-
-CITY_ALIASES = {
-    "高雄市": ("高雄市", "高雄"),
-    "台南市": ("台南市", "臺南市", "台南", "臺南"),
-    "台北市": ("台北市", "臺北市", "台北", "臺北"),
-    "新北市": ("新北市", "新北"),
-}
 
 DELAY = 0.4
 MAX_PAGES = 80
@@ -47,10 +40,6 @@ LATLNG_RE = re.compile(r"[?&]q=([-\d.]+)\s*,\s*([-\d.]+)")
 def make_id(name: str, address: str) -> str:
     digest = hashlib.sha1(f"{STORE_TYPE}|{name}|{address}".encode("utf-8")).hexdigest()[:12]
     return f"poya-{digest}"
-
-
-def norm_tw(text: str) -> str:
-    return (text or "").strip().replace("臺", "台")
 
 
 def extract_lat_lng(iframe_src: str) -> tuple[float | None, float | None]:
@@ -101,17 +90,7 @@ def parse_district_map(html: str) -> dict[str, tuple[str, str]]:
 
 
 def city_ids_for_targets(city_map: dict[str, str]) -> list[tuple[str, str]]:
-    wanted: list[tuple[str, str]] = []
-    for city in CITIES:
-        aliases = {norm_tw(a) for a in CITY_ALIASES.get(city, (city,))}
-        aliases.add(norm_tw(city))
-        for city_id, name in city_map.items():
-            if norm_tw(name) in aliases or name in aliases:
-                wanted.append((city_id, city))
-                break
-        else:
-            print(f"warn: no site city id for {city}")
-    return wanted
+    return [(city_id, name) for city_id, name in city_map.items()]
 
 
 def build_address(city: str, district: str, street: str) -> str:
@@ -119,7 +98,7 @@ def build_address(city: str, district: str, street: str) -> str:
     city = norm_tw(city)
     district = (district or "").strip()
     compact = norm_tw(street)
-    if city and city not in compact and not any(a in compact for a in CITY_ALIASES.get(city, ())):
+    if city and city not in compact and not any(a in compact for a in aliases_for(city)):
         if district and district not in compact:
             return f"{city}{district}{street}"
         return f"{city}{street}"
@@ -138,11 +117,6 @@ def parse_store_item(
     name = title.get_text(strip=True) if title else ""
     if not name:
         return None
-
-    class_title = item.select_one(".classTitle")
-    store_kind = ""
-    if class_title:
-        store_kind = class_title.get_text(strip=True).replace("#", "").strip()
 
     street = ""
     hours_raw = ""
@@ -176,7 +150,6 @@ def parse_store_item(
         print(f"  skip no address: {name}")
         return None
 
-    remarks = [store_kind] if store_kind else []
     return {
         "id": make_id(name, address),
         "type": STORE_TYPE,
@@ -185,7 +158,6 @@ def parse_store_item(
         "lat": lat,
         "lng": lng,
         "營業時間": normalize_hours(hours_raw),
-        "備註": remarks,
     }
 
 

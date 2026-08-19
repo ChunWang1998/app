@@ -15,7 +15,7 @@ from pathlib import Path
 
 import requests
 
-from cities import CITIES
+from cities import COUNTY_CODES
 from hours import normalize_hours
 
 API_URL = "https://data.moenv.gov.tw/api/v2/fac_p_07"
@@ -24,15 +24,6 @@ STORE_TYPE = "公廁"
 
 # data.gov.tw publishes this key on the FAC_P_07 resource URL; override with MOENV_API_KEY.
 DEFAULT_API_KEY = "846e44e1-8cc5-4893-ad87-c79d2d383706"
-
-COUNTY_CODES = {
-    "台北市": "63000",
-    "高雄市": "64000",
-    "新北市": "65000",
-    "台中市": "66000",
-    "台南市": "67000",
-    "桃園市": "68000",
-}
 
 PAGE_SIZE = 1000
 DELAY = 0.2
@@ -101,24 +92,6 @@ def fetch_page(
     raise RuntimeError(f"FAC_P_07 fetch failed offset={offset} county={county_code}: {last_err}")
 
 
-def remarks_from_row(row: dict) -> list[str]:
-    notes: list[str] = []
-    for label, key in (
-        ("類別", "type2"),
-        ("類型", "type"),
-        ("等級", "grade"),
-        ("主管機關", "administration"),
-        ("管理單位", "exec"),
-    ):
-        value = (row.get(key) or "").strip()
-        if value:
-            notes.append(f"{label}: {value}")
-    diaper = str(row.get("diaper") or "").strip()
-    if diaper and diaper not in ("0", "0.0", "無"):
-        notes.append("尿布檯")
-    return notes
-
-
 def to_place(row: dict) -> dict | None:
     name = (row.get("name") or "").strip()
     address = norm_tw(row.get("address") or "")
@@ -140,7 +113,6 @@ def to_place(row: dict) -> dict | None:
         "lat": lat,
         "lng": lng,
         "營業時間": normalize_hours(""),
-        "備註": remarks_from_row(row),
     }
 
 
@@ -154,11 +126,7 @@ def main() -> None:
     seen: set[str] = set()
     skipped = 0
 
-    for city in CITIES:
-        code = COUNTY_CODES.get(city)
-        if not code:
-            print(f"skip unknown city code: {city}")
-            continue
+    for city, code in COUNTY_CODES.items():
         offset = 0
         city_added = 0
         print(f"{city} ({code})")

@@ -87,7 +87,6 @@ def normalize(item: dict) -> dict | None:
         "lat": float(item["lat"]),
         "lng": float(item["lng"]),
         "營業時間": coerce_hours(item["營業時間"]),
-        "備註": list(item.get("備註") or []),
     }
 
 

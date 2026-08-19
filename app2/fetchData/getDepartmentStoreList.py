@@ -9,7 +9,7 @@ from pathlib import Path
 
 import requests
 
-from cities import CITIES
+from cities import TW_BBOX, aliases_for, city_from_text
 from hours import normalize_hours
 
 OUT_PATH = Path(__file__).resolve().parent.parent / "data" / "department_stores.json"
@@ -20,25 +20,6 @@ OVERPASS_ENDPOINTS = [
     "https://lz4.overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
 ]
-
-CITY_BBOXES = {
-    "高雄市": (22.40, 120.15, 23.47, 121.05),
-    "台南市": (22.88, 120.03, 23.41, 120.66),
-    "台北市": (24.95, 121.45, 25.22, 121.67),
-    "新北市": (24.67, 121.28, 25.30, 122.01),
-}
-
-CITY_ALIASES = {
-    "高雄市": ("高雄市", "高雄"),
-    "台南市": ("台南市", "臺南市", "台南", "臺南"),
-    "台北市": ("台北市", "臺北市", "台北", "臺北"),
-    "新北市": ("新北市", "新北"),
-}
-
-OTHER_REGIONS = (
-    "基隆", "桃園", "新竹", "苗栗", "台中", "臺中", "彰化", "南投",
-    "雲林", "嘉義", "屏東", "宜蘭", "花蓮", "台東", "臺東", "澎湖", "金門", "連江",
-)
 
 EXCLUDE_RE = re.compile(
     r"7-?eleven|7-?11|全家|全聯|ok超商|萊爾富|"
@@ -153,16 +134,12 @@ def post_overpass(query: str, preferred: str | None = None) -> tuple[list[dict],
 
 
 def fetch_elements() -> list[dict]:
+    print(f"query Taiwan bbox {bbox_str(TW_BBOX)}")
+    elements, _ = post_overpass(build_query(bbox_str(TW_BBOX), timeout=90))
     by_key: dict[tuple, dict] = {}
-    preferred: str | None = None
-    for city in CITIES:
-        box = CITY_BBOXES[city]
-        print(f"query {city}")
-        elements, preferred = post_overpass(build_query(bbox_str(box)), preferred)
-        for el in elements:
-            key = (el.get("type"), el.get("id"))
-            by_key[key] = el
-        time.sleep(2)
+    for el in elements:
+        key = (el.get("type"), el.get("id"))
+        by_key[key] = el
     print(f"unique OSM elements: {len(by_key)}")
     return list(by_key.values())
 
@@ -178,30 +155,9 @@ def coords_of(el: dict) -> tuple[float, float] | None:
     return lat_f, lon_f
 
 
-def in_bbox(lat: float, lon: float, box: tuple[float, float, float, float]) -> bool:
-    south, west, north, east = box
+def in_taiwan(lat: float, lon: float) -> bool:
+    south, west, north, east = TW_BBOX
     return south <= lat <= north and west <= lon <= east
-
-
-def other_region_in(text: str) -> bool:
-    return any(region in text for region in OTHER_REGIONS)
-
-
-def city_from_text(text: str) -> str | None:
-    if "新北" in text:
-        return "新北市"
-    for city in ("台北市", "高雄市", "台南市"):
-        if any(alias in text for alias in CITY_ALIASES[city]):
-            return city
-    return None
-
-
-def city_from_coords(lat: float, lon: float) -> str | None:
-    # Taipei sits inside a looser New Taipei box; Tainan overlaps northern Kaohsiung
-    for city in ("台北市", "台南市", "高雄市", "新北市"):
-        if in_bbox(lat, lon, CITY_BBOXES[city]):
-            return city
-    return None
 
 
 def norm_tw(text: str) -> str:
@@ -220,7 +176,7 @@ def build_address(tags: dict, city: str, name: str) -> str:
         full = f"{city_tag}{district}{street}{number}"
     full = POSTCODE_RE.sub("", full).strip()
     if city:
-        aliases = tuple(norm_tw(a) for a in CITY_ALIASES[city])
+        aliases = tuple(norm_tw(a) for a in aliases_for(city))
         for alias in sorted(aliases, key=len, reverse=True):
             while full.startswith(alias + alias):
                 full = full[len(alias) :]
@@ -277,17 +233,6 @@ def osm_hours_to_zh(raw: str) -> str:
             body = "公休"
         chunks.append(f"{days_zh} {body}".strip())
     return " ".join(chunks) or original
-
-
-def remarks_of(tags: dict) -> list[str]:
-    remarks: list[str] = []
-    wheelchair = (tags.get("toilets:wheelchair") or tags.get("wheelchair") or "").strip().lower()
-    if wheelchair == "yes":
-        remarks.append("無障礙廁所")
-    shop = (tags.get("shop") or "").strip()
-    if shop == "mall":
-        remarks.append("商場")
-    return remarks
 
 
 def is_keep(name: str, shop: str) -> bool:
@@ -354,7 +299,6 @@ def dedupe(stores: list[dict], radius_m: float = 220) -> list[dict]:
 def parse_elements(elements: list[dict]) -> list[dict]:
     results: list[dict] = []
     seen_ids: set[str] = set()
-    target = set(CITIES)
 
     for el in elements:
         tags = el.get("tags") or {}
@@ -362,6 +306,8 @@ def parse_elements(elements: list[dict]) -> list[dict]:
         if pair is None:
             continue
         lat, lng = pair
+        if not in_taiwan(lat, lng):
+            continue
 
         if tags.get("disused:shop") or tags.get("abandoned") or tags.get("abandoned:shop"):
             continue
@@ -387,13 +333,7 @@ def parse_elements(elements: list[dict]) -> list[dict]:
                 name,
             ]
         )
-        if other_region_in(addr_blob):
-            continue
-
-        city_from_addr = city_from_text(addr_blob)
-        city = city_from_addr or city_from_coords(lat, lng)
-        if city not in target:
-            continue
+        city = city_from_text(addr_blob) or ""
         if "小碧潭" in name and city == "台北市":
             continue
 
@@ -415,7 +355,6 @@ def parse_elements(elements: list[dict]) -> list[dict]:
             "lat": lat,
             "lng": lng,
             "營業時間": normalize_hours(osm_hours_to_zh(hours_raw) or hours_raw),
-            "備註": remarks_of(tags),
         }
         seen_ids.add(store_id)
         results.append(store)
@@ -427,13 +366,12 @@ def parse_elements(elements: list[dict]) -> list[dict]:
 
 def main() -> None:
     print("fetching Taiwan department stores / malls (Overpass)...")
-    print(f"cities: {', '.join(CITIES)}")
     elements = fetch_elements()
     stores = parse_elements(elements)
     if not stores:
         raise RuntimeError("parsed 0 stores; not overwriting JSON")
 
-    by_city: dict[str, int] = {city: 0 for city in CITIES}
+    by_city: dict[str, int] = {}
     for store in stores:
         city = city_from_text(store["地址"]) or "?"
         by_city[city] = by_city.get(city, 0) + 1

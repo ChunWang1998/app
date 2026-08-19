@@ -97,7 +97,6 @@ for city in CITIES:
             "lng": lng,
             # FamilyMart list API has no hours; stores are typically 24H
             "營業時間": normalize_hours("24H"),
-            "備註": [],
         }
         all_stores_with_toilet.append(store)
 

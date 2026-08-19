@@ -17,7 +17,7 @@ from pathlib import Path
 
 import requests
 
-from cities import CITIES
+from cities import TW_BBOX, aliases_for, city_from_text, norm_tw
 from hours import normalize_hours
 
 OUT_PATH = Path(__file__).resolve().parent.parent / "data" / "mrt_stations.json"
@@ -25,24 +25,9 @@ STORE_TYPE = "捷運"
 
 OPERATORS = {
     "TRTC": "台北捷運",
+    "TYMC": "桃園捷運",
     "TMRT": "台中捷運",
     "KRTC": "高雄捷運",
-}
-
-CITY_BBOXES = {
-    "高雄市": (22.40, 120.15, 23.47, 121.05),
-    "台南市": (22.88, 120.03, 23.41, 120.66),
-    "台北市": (24.95, 121.45, 25.22, 121.67),
-    "新北市": (24.67, 121.28, 25.30, 122.01),
-    "台中市": (24.00, 120.40, 24.45, 120.90),
-}
-
-CITY_ALIASES = {
-    "高雄市": ("高雄市", "高雄"),
-    "台南市": ("台南市", "臺南市", "台南", "臺南"),
-    "台北市": ("台北市", "臺北市", "台北", "臺北"),
-    "新北市": ("新北市", "新北"),
-    "台中市": ("台中市", "臺中市", "台中", "臺中"),
 }
 
 KEEP_NETWORKS = (
@@ -54,11 +39,11 @@ KEEP_NETWORKS = (
     "台中捷運",
     "臺中捷運",
     "新北捷運",
+    "桃園捷運",
+    "桃園都會區大眾捷運系統",
 )
 
 SKIP_NETWORKS = (
-    "桃園捷運",
-    "桃園機場捷運",
     "高雄輕軌",
     "淡海輕軌",
     "安坑輕軌",
@@ -104,44 +89,13 @@ def make_id(operator: str, station_id: str, name: str, address: str) -> str:
     return f"mrt-{digest}"
 
 
-def norm_tw(text: str) -> str:
-    return (text or "").strip().replace("臺", "台")
-
-
-def city_from_text(text: str) -> str | None:
-    t = norm_tw(text)
-    if "新北" in t:
-        return "新北市"
-    ranked: list[tuple[int, str]] = []
-    for city, aliases in CITY_ALIASES.items():
-        for alias in aliases:
-            a = norm_tw(alias)
-            if a and a in t:
-                ranked.append((len(a), city))
-    if not ranked:
-        return None
-    ranked.sort(reverse=True)
-    return ranked[0][1]
-
-
 def strip_address(address: str) -> str:
     return POSTCODE_RE.sub("", (address or "").strip()).strip()
 
 
-def in_bbox(lat: float, lon: float, box: tuple[float, float, float, float]) -> bool:
-    south, west, north, east = box
+def in_taiwan(lat: float, lon: float) -> bool:
+    south, west, north, east = TW_BBOX
     return south <= lat <= north and west <= lon <= east
-
-
-def city_from_coords(lat: float, lon: float) -> str | None:
-    for city in ("台北市", "台南市", "高雄市", "台中市", "新北市"):
-        if in_bbox(lat, lon, CITY_BBOXES[city]):
-            return city
-    return None
-
-
-def allowed_city(city: str | None) -> bool:
-    return bool(city) and city in CITIES
 
 
 def parse_hhmm(raw: str | None) -> str | None:
@@ -212,7 +166,7 @@ def build_address(city: str, town: str, street: str, name: str) -> str:
         if city and not street.startswith(city):
             if town and town not in street:
                 return f"{city}{town}{street}"
-            return f"{city}{street}" if not any(a in street for a in CITY_ALIASES.get(city, ())) else street
+            return f"{city}{street}" if not any(a in street for a in aliases_for(city)) else street
         return street
     parts = "".join(p for p in (city, town) if p)
     if parts:
@@ -277,15 +231,15 @@ def fetch_from_tdx(token: str) -> list[dict]:
                 lng = float(pos.get("PositionLon"))
             except (TypeError, ValueError):
                 continue
+            if not in_taiwan(lat, lng):
+                continue
 
             city = city_from_text(
                 " ".join(
                     str(x or "")
                     for x in (st.get("LocationCity"), st.get("StationAddress"), st.get("LocationTown"))
                 )
-            ) or city_from_coords(lat, lng)
-            if not allowed_city(city):
-                continue
+            ) or ""
 
             name_obj = st.get("StationName") or {}
             station_id = str(st.get("StationID") or "")
@@ -303,10 +257,6 @@ def fetch_from_tdx(token: str) -> list[dict]:
                 continue
             seen.add(pid)
 
-            remarks = [type_name]
-            if station_id:
-                remarks.append(station_id)
-
             places.append(
                 {
                     "id": pid,
@@ -316,7 +266,6 @@ def fetch_from_tdx(token: str) -> list[dict]:
                     "lat": lat,
                     "lng": lng,
                     "營業時間": hours_from_first_last(fl_by_station.get(station_id, [])),
-                    "備註": remarks,
                 }
             )
             added += 1
@@ -382,7 +331,7 @@ def osm_keep(tags: dict) -> bool:
     network = norm_tw(" ".join(str(tags.get(k) or "") for k in ("network", "operator", "name")))
     if any(skip in network for skip in SKIP_NETWORKS):
         return False
-    if "輕軌" in network or "機場捷運" in network:
+    if "輕軌" in network:
         return False
     ref = str(tags.get("ref") or "").strip()
     first_ref = ref.replace(";", " ").split()[0] if ref else ""
@@ -422,14 +371,8 @@ def merge_nearby_same_name(places: list[dict], max_m: float = 250) -> list[dict]
                 if haversine_m(a["lat"], a["lng"], b["lat"], b["lng"]) <= max_m:
                     members.append(b)
                     used[j] = True
-            members.sort(key=lambda p: (-len(p["地址"]), -len(p["備註"]), p["id"]))
+            members.sort(key=lambda p: (-len(p["地址"]), p["id"]))
             keep = dict(members[0])
-            remarks: list[str] = []
-            for m in members:
-                for r in m["備註"]:
-                    if r not in remarks:
-                        remarks.append(r)
-            keep["備註"] = remarks
             out.append(keep)
     return out
 
@@ -442,17 +385,13 @@ def osm_address(tags: dict, city: str, name: str) -> str:
         street = norm_tw(tags.get("addr:street") or "")
         number = (tags.get("addr:housenumber") or "").strip()
         full = f"{city_tag}{district}{street}{number}"
-    if city and full and not any(norm_tw(a) in full for a in CITY_ALIASES[city]):
+    if city and full and not any(norm_tw(a) in full for a in aliases_for(city)):
         full = f"{city}{full}"
     return full or build_address(city, "", "", name)
 
 
 def fetch_from_osm() -> list[dict]:
-    # One query covering all target metro cities (avoids Overpass 429/504 on sequential city calls)
-    south = min(CITY_BBOXES[c][0] for c in CITIES)
-    west = min(CITY_BBOXES[c][1] for c in CITIES)
-    north = max(CITY_BBOXES[c][2] for c in CITIES)
-    east = max(CITY_BBOXES[c][3] for c in CITIES)
+    south, west, north, east = TW_BBOX
     bbox = f"{south},{west},{north},{east}"
     print(f"OSM query bbox {bbox}")
     elements, _ = post_overpass(build_overpass_query(bbox, timeout=60))
@@ -473,12 +412,12 @@ def fetch_from_osm() -> list[dict]:
             lon_f = float(lon)
         except (TypeError, ValueError):
             continue
+        if not in_taiwan(lat_f, lon_f):
+            continue
 
         city = city_from_text(
             " ".join(str(tags.get(k) or "") for k in ("addr:city", "addr:full", "addr:district"))
-        ) or city_from_coords(lat_f, lon_f)
-        if not allowed_city(city):
-            continue
+        ) or ""
 
         name = (tags.get("name") or tags.get("name:zh") or tags.get("name:zh-TW") or "").strip()
         if not name:
@@ -505,14 +444,6 @@ def fetch_from_osm() -> list[dict]:
         else:
             hours = normalize_hours("週一至週日 06:00-24:00")
 
-        remarks = []
-        network = (tags.get("network") or tags.get("operator") or "").strip()
-        if network:
-            remarks.append(network)
-        ref = (tags.get("ref") or "").strip()
-        if ref:
-            remarks.append(ref)
-
         places.append(
             {
                 "id": pid,
@@ -522,7 +453,6 @@ def fetch_from_osm() -> list[dict]:
                 "lat": lat_f,
                 "lng": lon_f,
                 "營業時間": hours,
-                "備註": remarks,
             }
         )
 

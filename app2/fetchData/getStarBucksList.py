@@ -16,7 +16,6 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
-from cities import in_cities
 from hours import normalize_hours
 
 STORE_PAGE = "https://www.starbucks.com.tw/stores/storesearch.jspx"
@@ -113,12 +112,9 @@ def parse_store_blocks(info_html: str) -> list[dict]:
         store_id = (block.get("id") or "").replace("store_info_", "", 1)
         name_el = block.select_one("h4.store_name")
         addr_el = block.select_one("p.store_add")
-        phone_el = block.select_one("p.store_phone")
-        note_el = block.select_one("div.store_note")
 
         name = name_el.get_text(strip=True) if name_el else ""
         address = addr_el.get_text(strip=True) if addr_el else ""
-        phone = phone_el.get_text(strip=True) if phone_el else ""
 
         hours_raw = ""
         for p in block.select("div.container > p"):
@@ -130,20 +126,11 @@ def parse_store_blocks(info_html: str) -> list[dict]:
                 hours_raw = text
                 break
 
-        notes: list[str] = []
-        if phone:
-            notes.append(phone)
-        if note_el:
-            note_text = note_el.get_text(" ", strip=True)
-            if note_text:
-                notes.append(note_text)
-
         stores.append({
             "store_id": store_id,
             "name": name,
             "地址": address,
             "hours_raw": hours_raw,
-            "備註": notes,
         })
 
     return stores
@@ -172,10 +159,6 @@ def main() -> None:
         store_id = block["store_id"]
         name = block["name"]
         address = block["地址"]
-        if not in_cities(address):
-            skipped += 1
-            continue
-
         latlng = coords.get(store_id)
         if latlng is None:
             print(f"  skip no coords: {name or address or store_id}")
@@ -196,7 +179,6 @@ def main() -> None:
             "lat": latlng[0],
             "lng": latlng[1],
             "營業時間": hours_from_raw(block["hours_raw"]),
-            "備註": block["備註"],
         })
 
     all_stores.sort(key=lambda s: s["name"])

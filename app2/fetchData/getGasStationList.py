@@ -2,11 +2,12 @@ import hashlib
 import json
 import time
 import xml.etree.ElementTree as ET
+from collections import defaultdict
 from pathlib import Path
 
 import requests
 
-from cities import CITIES, norm_tw
+from cities import norm_tw
 from hours import normalize_hours
 
 STATIONS_URL = "https://vipmbr.cpc.com.tw/opendata/getstationinfo"
@@ -73,10 +74,13 @@ accessible_ids = fetch_accessible_ids(session)
 print(f"accessible toilet stations (nationwide): {len(accessible_ids)}")
 
 all_stores_with_toilet: list[dict] = []
+by_city: dict[str, list] = defaultdict(list)
+for s in all_stations:
+    by_city[norm_tw(s.get("縣市") or "") or "?"].append(s)
 
-for city in CITIES:
-    city_stations = [s for s in all_stations if norm_tw(s.get("縣市") or "") == norm_tw(city)]
+for city, city_stations in sorted(by_city.items()):
     before = len(all_stores_with_toilet)
+    accessible_count = 0
     print(f"{city}: {len(city_stations)} stations")
 
     for s in city_stations:
@@ -90,12 +94,7 @@ for city in CITIES:
             continue
 
         sid = str(s.get("站代號") or "").strip() or None
-        remarks: list[str] = []
-        if sid and sid in accessible_ids:
-            remarks.append("無障礙廁所")
-        category = (s.get("類別") or "").strip()
-        if category:
-            remarks.append(category)
+        accessible = bool(sid and sid in accessible_ids)
 
         store = {
             "id": make_id(sid, address),
@@ -105,12 +104,12 @@ for city in CITIES:
             "lat": lat,
             "lng": lng,
             "營業時間": normalize_hours(s.get("營業時間") or ""),
-            "備註": remarks,
         }
         all_stores_with_toilet.append(store)
+        if accessible:
+            accessible_count += 1
 
     found = len(all_stores_with_toilet) - before
-    accessible_count = sum(1 for x in all_stores_with_toilet[before:] if "無障礙廁所" in x["備註"])
     print(f"  +{found} (accessible toilet: {accessible_count})")
 
 OUT_PATH.parent.mkdir(parents=True, exist_ok=True)

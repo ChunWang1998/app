@@ -6,7 +6,6 @@ from pathlib import Path
 
 import requests
 
-from cities import in_cities
 from hours import normalize_hours
 
 headers = {
@@ -67,8 +66,6 @@ for line in r.text.split("\n"):
         if len(parts) >= 4 and parts[1]:
             city_list.append({"name": parts[1], "code": parts[3]})
 
-city_list = [city for city in city_list if in_cities(city["name"])]
-
 all_stores_with_toilet = []
 
 for city in city_list:
@@ -108,7 +105,6 @@ for city in city_list:
                 "lat": lat,
                 "lng": lng,
                 "營業時間": normalize_hours(pos.findtext("OP_TIME") or ""),
-                "備註": [],
             }
             all_stores_with_toilet.append(store)
 

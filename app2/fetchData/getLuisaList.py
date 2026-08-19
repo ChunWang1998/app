@@ -105,7 +105,6 @@ def parse_stores(html: str) -> list[dict]:
             "lat": lat,
             "lng": lng,
             "營業時間": normalize_hours(business_hours),
-            "備註": [],
         })
 
     return stores
