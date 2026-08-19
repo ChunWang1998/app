@@ -82,8 +82,7 @@ export function haversineMeters(a, b) {
 }
 
 /**
- * Open places sorted by distance. Pass a larger `n` as a refill pool
- * (e.g. 25) when left-swipe hides a card and the next suggestion is needed.
+ * Open places sorted by distance.
  */
 export function nearestOpen(user, places, n = 3) {
   return places

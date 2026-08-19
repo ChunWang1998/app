@@ -139,6 +139,55 @@ export async function loadPlacesByCity(city, options = {}) {
   return rows
 }
 
+/**
+ * Load places covering a map viewport region (viewport-based, no city file).
+ * Computes all cell keys that overlap the bounding box and loads them.
+ *
+ * @param {{ latitude: number, longitude: number, latitudeDelta: number, longitudeDelta: number }} region
+ * @param {{ baseUrl?: string, loadCellSync?: (key: string) => unknown[], cache?: boolean }} [options]
+ */
+export async function loadPlacesInRegion(region, options = {}) {
+  const { baseUrl = '', loadCellSync, cache = true } = options
+  const latMin = region.latitude - region.latitudeDelta / 2
+  const latMax = region.latitude + region.latitudeDelta / 2
+  const lngMin = region.longitude - region.longitudeDelta / 2
+  const lngMax = region.longitude + region.longitudeDelta / 2
+
+  const iMin = Math.floor(latMin / CELL_SIZE)
+  const iMax = Math.floor(latMax / CELL_SIZE)
+  const jMin = Math.floor(lngMin / CELL_SIZE)
+  const jMax = Math.floor(lngMax / CELL_SIZE)
+
+  const keys = []
+  for (let i = iMin; i <= iMax; i++) {
+    for (let j = jMin; j <= jMax; j++) {
+      keys.push(`${i}_${j}`)
+    }
+  }
+
+  const parts = await Promise.all(
+    keys.map(async (key) => {
+      if (cache && memoryCache.has(key)) return memoryCache.get(key)
+      let rows
+      if (baseUrl) {
+        rows = await fetchCell(key, baseUrl)
+      } else if (typeof loadCellSync === 'function') {
+        rows = loadCellSync(key) || []
+      } else {
+        rows = []
+      }
+      if (cache) memoryCache.set(key, rows)
+      return rows
+    }),
+  )
+
+  const byId = new Map()
+  for (const row of parts.flat()) {
+    if (row?.id != null) byId.set(row.id, row)
+  }
+  return [...byId.values()]
+}
+
 /** Clear in-memory cell cache (tests / hot reload). */
 export function clearPlacesCache() {
   memoryCache.clear()

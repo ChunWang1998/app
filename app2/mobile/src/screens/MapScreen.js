@@ -9,43 +9,59 @@ import {
   ActivityIndicator,
   Share,
   Alert,
+  Dimensions,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import ClusteredMapView from 'react-native-map-clustering';
+import { Marker } from 'react-native-maps';
+import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Clipboard from 'expo-clipboard';
-import { colors, radius, voteTone } from '../theme';
-import { nearestOpen, cityNear, placeInRegion, haversineMeters } from '../lib/geo';
-import {
-  fetchVoteState,
-  fetchComments,
-  submitVote,
-  submitComment,
-  mergeVoteState,
-} from '../lib/community';
+import { colors, radius } from '../theme';
+import { nearestOpen, haversineMeters, isOpenNow } from '../lib/geo';
+import { fetchComments, submitComment } from '../lib/community';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { cellKey, loadPlacesNear, loadPlacesByCity } from '@shared/places';
+import { cellKey, loadPlacesNear, loadPlacesInRegion } from '@shared/places';
 
 let _loadCellSync;
-let _loadCitySync;
 try {
   const reg = require('../data/cellRegistry');
   _loadCellSync = reg.loadCellSync;
-  _loadCitySync = reg.loadCitySync;
 } catch {
   _loadCellSync = undefined;
-  _loadCitySync = undefined;
 }
-import PlaceCard from '../components/PlaceCard';
 import PlaceDetailSheet from '../components/PlaceDetailSheet';
 import HelpModal from '../components/HelpModal';
 import PlaceActionsModal from '../components/PlaceActionsModal';
 
-const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 }; // Kaohsiung
+const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 };
 const LOCATE_TIMEOUT_MS = 6000;
 const POOL_SIZE = 25;
+const NEAR_MARKER_CAP = 3;
+const ALL_MARKER_CAP = 80;
 const REGION_LOAD_DEBOUNCE_MS = 600;
+const RECENTER_DELTA = 0.04;
 const PLACES_BASE_URL = (process.env.EXPO_PUBLIC_PLACES_URL || '').replace(/\/$/, '');
+
+function regionAround(lat, lng, delta = RECENTER_DELTA) {
+  return {
+    latitude: lat,
+    longitude: lng,
+    latitudeDelta: delta,
+    longitudeDelta: delta,
+  };
+}
+
+function placeInRegion(place, region) {
+  if (!region) return true;
+  const halfLat = region.latitudeDelta / 2;
+  const halfLng = region.longitudeDelta / 2;
+  return (
+    place.lat >= region.latitude - halfLat &&
+    place.lat <= region.latitude + halfLat &&
+    place.lng >= region.longitude - halfLng &&
+    place.lng <= region.longitude + halfLng
+  );
+}
 
 function coordsFrom(loc) {
   return { lat: loc.coords.latitude, lng: loc.coords.longitude };
@@ -97,9 +113,6 @@ async function openGoogleMaps(place) {
   };
 
   try {
-    // Expo Go cannot query/open comgooglemaps:// (Info.plist not applied) and
-    // that path native-crashes locally. HTTPS still opens Google Maps
-    // (app via universal link if installed, otherwise the web UI).
     if (runningInExpoGo()) {
       await openWeb();
       return;
@@ -115,32 +128,28 @@ async function openGoogleMaps(place) {
   }
 }
 
-const LIST_SNAPS = ['14%', '45%', '85%'];
-
 export default function MapScreen() {
   const mapRef = useRef(null);
-  const listSheetRef = useRef(null);
   const [status, setStatus] = useState('locating');
   const [userPos, setUserPos] = useState(null);
   const [places, setPlaces] = useState([]);
   const [placesStatus, setPlacesStatus] = useState('idle');
-  const [cityPlaces, setCityPlaces] = useState([]);
-  const [cityStatus, setCityStatus] = useState('idle');
-  const [currentCity, setCurrentCity] = useState(null);
+  const [viewportPlaces, setViewportPlaces] = useState([]);
+  const [viewportStatus, setViewportStatus] = useState('idle');
   const [mapCenter, setMapCenter] = useState(null);
   const [mapRegion, setMapRegion] = useState(null);
-  const [votes, setVotes] = useState({ scores: {}, myVotes: {} });
   const [comments, setComments] = useState({});
-  const [hiddenIds, setHiddenIds] = useState(() => new Set());
   const [selectedId, setSelectedId] = useState(null);
   const [showAll, setShowAll] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [actionPlace, setActionPlace] = useState(null);
+  const [recentering, setRecentering] = useState(false);
 
   const userCell = userPos ? cellKey(userPos.lat, userPos.lng) : null;
   const regionTimer = useRef(null);
   const didInitialFit = useRef(false);
   const skipNextRegion = useRef(false);
+  const viewportReq = useRef(0);
   const lastCommunityKey = useRef('');
 
   const loadRegion = useCallback(async (lat, lng, { mergePlaces = false } = {}) => {
@@ -149,8 +158,6 @@ export default function MapScreen() {
         baseUrl: PLACES_BASE_URL,
         loadCellSync: PLACES_BASE_URL ? undefined : _loadCellSync,
       });
-      const city = cityNear({ lat, lng }, rows);
-      if (city) setCurrentCity(city);
       if (mergePlaces) {
         if (rows.length) {
           setPlaces((prev) => {
@@ -167,11 +174,30 @@ export default function MapScreen() {
     }
   }, []);
 
+  const loadViewport = useCallback(async (region) => {
+    if (!region) return;
+    const req = ++viewportReq.current;
+    setViewportStatus('loading');
+    try {
+      const rows = await loadPlacesInRegion(region, {
+        baseUrl: PLACES_BASE_URL,
+        loadCellSync: PLACES_BASE_URL ? undefined : _loadCellSync,
+      });
+      if (req !== viewportReq.current) return;
+      setViewportPlaces(rows);
+      setViewportStatus('ready');
+    } catch (e) {
+      if (req !== viewportReq.current) return;
+      console.warn('viewport load failed', e?.message || e);
+      setViewportStatus('error');
+    }
+  }, []);
+
   useEffect(() => {
     if (!isSupabaseConfigured) {
       Alert.alert(
         '尚未連接雲端',
-        '請在 mobile/.env 設定 EXPO_PUBLIC_SUPABASE_URL 與 EXPO_PUBLIC_SUPABASE_ANON_KEY，並在 Supabase 執行 supabase/schema.sql。投票與留言需連線後才會同步給所有人。',
+        '請在 mobile/.env 設定 EXPO_PUBLIC_SUPABASE_URL 與 EXPO_PUBLIC_SUPABASE_ANON_KEY，並在 Supabase 執行 supabase/schema.sql。留言需連線後才會同步給所有人。',
       );
     }
   }, []);
@@ -188,31 +214,6 @@ export default function MapScreen() {
     });
     loadRegion(userPos.lat, userPos.lng, { mergePlaces: true });
   }, [userCell, loadRegion]);
-
-  useEffect(() => {
-    if (!currentCity) return;
-    let alive = true;
-    setCityPlaces([]);
-    setCityStatus('loading');
-    loadPlacesByCity(currentCity, {
-      baseUrl: PLACES_BASE_URL,
-      loadCitySync: _loadCitySync,
-    })
-      .then((rows) => {
-        if (!alive) return;
-        setCityPlaces(Array.isArray(rows) ? rows : []);
-        setCityStatus('ready');
-      })
-      .catch((e) => {
-        console.warn('city load failed', e?.message || e);
-        if (!alive) return;
-        setCityPlaces([]);
-        setCityStatus('error');
-      });
-    return () => {
-      alive = false;
-    };
-  }, [currentCity]);
 
   useEffect(() => {
     return () => {
@@ -236,14 +237,17 @@ export default function MapScreen() {
     [loadRegion],
   );
 
+  // When switching to "全部", load viewport cells immediately
+  useEffect(() => {
+    if (showAll && mapRegion) {
+      loadViewport(mapRegion);
+    }
+  }, [showAll, loadViewport, mapRegion]);
+
   const refreshCommunity = useCallback(async (placeIds) => {
     if (!isSupabaseConfigured || !placeIds?.length) return;
     try {
-      const [v, c] = await Promise.all([
-        fetchVoteState(placeIds),
-        fetchComments(placeIds),
-      ]);
-      setVotes((prev) => mergeVoteState(prev, v));
+      const c = await fetchComments(placeIds);
       setComments((prev) => ({ ...prev, ...c }));
     } catch (e) {
       const msg = e?.message || String(e);
@@ -254,14 +258,14 @@ export default function MapScreen() {
 
   useEffect(() => {
     const origin = showAll ? mapCenter || userPos : userPos;
-    const source = showAll ? cityPlaces : places;
+    const source = showAll ? viewportPlaces : places;
     if (!origin || !source.length || !isSupabaseConfigured) return;
     const ids = nearestOpen(origin, source, POOL_SIZE).map((p) => p.id);
     const key = `${showAll ? 'all' : 'near'}:${ids.join(',')}`;
     if (key === lastCommunityKey.current) return;
     lastCommunityKey.current = key;
     refreshCommunity(ids);
-  }, [userPos, mapCenter, places, cityPlaces, showAll, refreshCommunity]);
+  }, [userPos, mapCenter, places, viewportPlaces, showAll, refreshCommunity]);
 
   useEffect(() => {
     let alive = true;
@@ -315,29 +319,32 @@ export default function MapScreen() {
     return nearestOpen(userPos, places, POOL_SIZE);
   }, [userPos, places]);
 
-  const allOpen = useMemo(() => {
-    const origin = mapCenter || userPos;
-    if (!origin || !cityPlaces.length) return [];
-    return nearestOpen(origin, cityPlaces, Infinity);
-  }, [mapCenter, userPos, cityPlaces]);
-
   const nearest = useMemo(
-    () => pool.filter((p) => !hiddenIds.has(p.id)).slice(0, 3),
-    [pool, hiddenIds],
+    () => pool.slice(0, NEAR_MARKER_CAP),
+    [pool],
   );
 
-  const visiblePlaces = useMemo(
+  const allOpen = useMemo(() => {
+    if (!viewportPlaces.length) return [];
+    const origin = mapCenter || userPos;
+    return viewportPlaces
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+      .filter((p) => placeInRegion(p, mapRegion))
+      .filter((p) => isOpenNow(p.營業時間))
+      .map((p) => ({
+        ...p,
+        distance: origin
+          ? haversineMeters(origin, { lat: p.lat, lng: p.lng })
+          : 0,
+      }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, ALL_MARKER_CAP);
+  }, [viewportPlaces, mapRegion, mapCenter, userPos]);
+
+  const mapMarkers = useMemo(
     () => (showAll ? allOpen : nearest),
     [showAll, allOpen, nearest],
   );
-
-  const mapMarkers = useMemo(() => {
-    if (!showAll) return nearest;
-    const inView = mapRegion
-      ? allOpen.filter((p) => placeInRegion(p, mapRegion))
-      : allOpen;
-    return inView.slice(0, 80);
-  }, [showAll, nearest, allOpen, mapRegion]);
 
   const selected = useMemo(() => {
     if (!selectedId) return null;
@@ -345,7 +352,7 @@ export default function MapScreen() {
       nearest.find((p) => p.id === selectedId) ||
       allOpen.find((p) => p.id === selectedId) ||
       places.find((p) => p.id === selectedId) ||
-      cityPlaces.find((p) => p.id === selectedId) ||
+      viewportPlaces.find((p) => p.id === selectedId) ||
       null;
     if (!raw) return null;
     if (!userPos) return raw;
@@ -353,7 +360,7 @@ export default function MapScreen() {
       ...raw,
       distance: haversineMeters(userPos, { lat: raw.lat, lng: raw.lng }),
     };
-  }, [allOpen, nearest, places, cityPlaces, selectedId, userPos]);
+  }, [allOpen, nearest, places, viewportPlaces, selectedId, userPos]);
 
   useEffect(() => {
     if (didInitialFit.current || !mapRef.current || !userPos) return;
@@ -381,15 +388,9 @@ export default function MapScreen() {
     });
   }, [userPos, nearest, placesStatus]);
 
-  const collapseList = useCallback(() => {
-    if (selectedId) return;
-    listSheetRef.current?.snapToIndex(0);
-  }, [selectedId]);
-
   const selectPlace = useCallback((place) => {
     if (!place?.id) return;
     skipNextRegion.current = true;
-    listSheetRef.current?.snapToIndex(0);
     if (mapRef.current && Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
       mapRef.current.animateToRegion(
         {
@@ -401,70 +402,53 @@ export default function MapScreen() {
         350,
       );
     }
-    // Defer so the map/list press gesture finishes before the detail sheet mounts.
     setTimeout(() => setSelectedId(place.id), 50);
   }, []);
 
   const closeSelected = useCallback(() => {
     setSelectedId(null);
-    requestAnimationFrame(() => {
-      listSheetRef.current?.snapToIndex(1);
-    });
   }, []);
 
-  const handleVoteUp = useCallback(
-    async (place) => {
-      if (!isSupabaseConfigured) {
-        Alert.alert('尚未連接雲端', '請先設定 Supabase 後再投票。');
+  const recenterOnUser = useCallback(async () => {
+    if (recentering) return;
+    setRecentering(true);
+    try {
+      const { status: perm } = await Location.requestForegroundPermissionsAsync();
+      if (perm !== 'granted') {
+        Alert.alert('無法定位', '請允許定位權限，才能回到目前位置');
         return;
       }
-      if (votes.myVotes?.[place.id]) {
-        Alert.alert('已投過票', '每個廁所只能投票一次');
-        return;
-      }
-      try {
-        const result = await submitVote(place.id, 1);
-        if (!result.applied) {
-          Alert.alert('已投過票', '每個廁所只能投票一次');
-        }
-        setVotes((prev) => mergeVoteState(prev, result));
-      } catch (e) {
-        Alert.alert('投票失敗', e?.message || '請稍後再試');
-      }
-    },
-    [votes.myVotes],
-  );
 
-  const handleVoteDown = useCallback(
-    async (place) => {
-      if (!isSupabaseConfigured) {
-        Alert.alert('尚未連接雲端', '請先設定 Supabase 後再投票。');
-        return;
-      }
-      if (votes.myVotes?.[place.id]) {
-        Alert.alert('已投過票', '每個廁所只能投票一次');
-        return;
-      }
+      let pos = userPos;
       try {
-        const result = await submitVote(place.id, -1);
-        if (!result.applied) {
-          Alert.alert('已投過票', '每個廁所只能投票一次');
-          setVotes((prev) => mergeVoteState(prev, result));
+        const loc = await withTimeout(
+          Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Low,
+          }),
+          LOCATE_TIMEOUT_MS,
+        );
+        pos = coordsFrom(loc);
+        setUserPos(pos);
+        setStatus('ready');
+      } catch {
+        if (!pos || status !== 'ready') {
+          Alert.alert('無法定位', '請稍後再試');
           return;
         }
-        setVotes((prev) => mergeVoteState(prev, result));
-        setHiddenIds((ids) => {
-          const next = new Set(ids);
-          next.add(place.id);
-          return next;
-        });
-        if (selectedId === place.id) closeSelected();
-      } catch (e) {
-        Alert.alert('投票失敗', e?.message || '請稍後再試');
       }
-    },
-    [votes.myVotes, selectedId, closeSelected],
-  );
+
+      const homeRegion = regionAround(pos.lat, pos.lng);
+      setMapCenter({ lat: pos.lat, lng: pos.lng });
+      setMapRegion(homeRegion);
+      skipNextRegion.current = true;
+      mapRef.current?.animateToRegion(homeRegion, 400);
+      setTimeout(() => {
+        skipNextRegion.current = false;
+      }, 500);
+    } finally {
+      setRecentering(false);
+    }
+  }, [recentering, userPos, status]);
 
   const handleSubmitComment = useCallback(
     async (text) => {
@@ -504,14 +488,14 @@ export default function MapScreen() {
   const statusText = (() => {
     if (status === 'locating') return '正在定位…';
     if (placesStatus === 'loading') return '載入附近地點…';
-    if (showAll && cityStatus === 'loading' && currentCity) {
-      return `載入${currentCity}地點…`;
-    }
+    if (showAll && viewportStatus === 'loading') return '載入地圖範圍地點…';
     if (placesStatus === 'error') return '地點資料載入失敗';
     if (status === 'denied') return '無法取得定位，改用高雄市中心示範';
     if (status === 'error') return '定位失敗，改用高雄市中心示範';
     return '';
   })();
+
+  const markerCount = mapMarkers.length;
 
   return (
     <View style={styles.fill}>
@@ -520,6 +504,22 @@ export default function MapScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.brand}>急廁 Go</Text>
             {!!statusText && <Text style={styles.status}>{statusText}</Text>}
+          </View>
+          <View style={styles.tabRow}>
+            <TouchableOpacity
+              style={[styles.tab, !showAll && styles.tabActive]}
+              onPress={() => setShowAll(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.tabText, !showAll && styles.tabTextActive]}>附近</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, showAll && styles.tabActive]}
+              onPress={() => setShowAll(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.tabText, showAll && styles.tabTextActive]}>全部</Text>
+            </TouchableOpacity>
           </View>
           <TouchableOpacity
             style={styles.helpBtn}
@@ -530,9 +530,17 @@ export default function MapScreen() {
           </TouchableOpacity>
         </View>
 
+        {showAll && markerCount > 0 && (
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>
+              地圖範圍 {markerCount} 間營業中
+            </Text>
+          </View>
+        )}
+
         <View style={styles.mapWrap}>
           {userPos ? (
-            <MapView
+            <ClusteredMapView
               ref={mapRef}
               style={StyleSheet.absoluteFill}
               initialRegion={{
@@ -543,27 +551,32 @@ export default function MapScreen() {
               }}
               showsUserLocation={status === 'ready'}
               showsMyLocationButton={false}
-              onPress={collapseList}
               onRegionChangeComplete={handleRegionChange}
+              clusterColor={colors.brand}
+              clusterTextColor="#fff"
+              clusterFontFamily={Platform.OS === 'ios' ? 'System' : 'sans-serif-medium'}
+              radius={40}
+              minZoom={1}
+              maxZoom={20}
+              extent={256}
+              animationEnabled={false}
+              tracksViewChanges={false}
             >
-              {mapMarkers.map((place, index) => {
-                const tone = voteTone(votes.scores?.[place.id] || 0);
-                return (
-                  <Marker
-                    key={place.id}
-                    coordinate={{ latitude: place.lat, longitude: place.lng }}
-                    title={`${index + 1}. ${placeLabel(place)}`}
-                    description={place.地址}
-                    pinColor={tone.sparkle ? '#FFD700' : tone.fill}
-                    tracksViewChanges={false}
-                    onPress={(e) => {
-                      e?.stopPropagation?.();
-                      selectPlace(place);
-                    }}
-                  />
-                );
-              })}
-            </MapView>
+              {mapMarkers.map((place, index) => (
+                <Marker
+                  key={place.id}
+                  coordinate={{ latitude: place.lat, longitude: place.lng }}
+                  title={`${index + 1}. ${placeLabel(place)}`}
+                  description={place.地址}
+                  pinColor={colors.brand}
+                  tracksViewChanges={false}
+                  onPress={(e) => {
+                    e?.stopPropagation?.();
+                    selectPlace(place);
+                  }}
+                />
+              ))}
+            </ClusteredMapView>
           ) : (
             <View style={styles.loading}>
               <ActivityIndicator size="large" color={colors.brand} />
@@ -571,91 +584,10 @@ export default function MapScreen() {
           )}
         </View>
 
-        <BottomSheet
-          ref={listSheetRef}
-          index={1}
-          snapPoints={LIST_SNAPS}
-          enableHandlePanningGesture={!selected}
-          enableContentPanningGesture={!selected}
-          backgroundStyle={styles.sheetBg}
-          handleIndicatorStyle={styles.sheetHandle}
-        >
-            <View style={styles.tabRow}>
-              <TouchableOpacity
-                style={[styles.tab, !showAll && styles.tabActive]}
-                onPress={() => setShowAll(false)}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.tabText, !showAll && styles.tabTextActive]}>附近</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tab, showAll && styles.tabActive]}
-                onPress={() => setShowAll(true)}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.tabText, showAll && styles.tabTextActive]}>
-                  全部{currentCity ? ` · ${currentCity}` : ''}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {(status === 'locating' ||
-              (!showAll && placesStatus === 'loading') ||
-              (showAll && cityStatus === 'loading')) && (
-              <Text style={styles.empty}>
-                {status === 'locating'
-                  ? '定位中，請稍候…'
-                  : showAll && currentCity
-                    ? `載入${currentCity}地點…`
-                    : '載入附近地點…'}
-              </Text>
-            )}
-            {status !== 'locating' &&
-              !(showAll ? cityStatus === 'loading' : placesStatus === 'loading') &&
-              visiblePlaces.length === 0 && (
-              <Text style={styles.empty}>
-                {showAll && cityStatus === 'error'
-                  ? '縣市資料載入失敗'
-                  : placesStatus === 'error'
-                    ? '地點資料載入失敗'
-                    : showAll
-                      ? '此縣市找不到營業中的廁所'
-                      : '附近找不到營業中的廁所'}
-              </Text>
-            )}
-
-            <BottomSheetFlatList
-              data={visiblePlaces}
-              keyExtractor={(p) => p.id}
-              contentContainerStyle={styles.sheetContent}
-              renderItem={({ item: place, index }) => (
-                <PlaceCard
-                  place={place}
-                  index={index}
-                  vote={votes.scores?.[place.id] || 0}
-                  hasVoted={!!votes.myVotes?.[place.id]}
-                  onPress={selectPlace}
-                  onLongPress={setActionPlace}
-                  onVoteUp={handleVoteUp}
-                  onVoteDown={handleVoteDown}
-                  onNavigate={openGoogleMaps}
-                />
-              )}
-              ListFooterComponent={
-                visiblePlaces.length > 0 ? (
-                  <Text style={styles.hint}>
-                    右滑讚 · 左滑倒讚換下一間 · 長按可複製／分享 · 點選看詳情
-                  </Text>
-                ) : null
-              }
-            />
-          </BottomSheet>
-
         {selected && (
           <PlaceDetailSheet
             key={selected.id}
             place={selected}
-            vote={votes.scores?.[selected.id] || 0}
             comments={comments[selected.id] || []}
             seedNotes={selected.備註 || []}
             onClose={closeSelected}
@@ -663,6 +595,30 @@ export default function MapScreen() {
             onSubmitComment={handleSubmitComment}
           />
         )}
+
+        {userPos ? (
+          <TouchableOpacity
+            style={[
+              styles.locateBtn,
+              {
+                bottom: selected
+                  ? Math.round(Dimensions.get('window').height * 0.34) + 12
+                  : 28,
+              },
+            ]}
+            onPress={recenterOnUser}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="回到目前位置"
+            disabled={recentering}
+          >
+            {recentering ? (
+              <ActivityIndicator size="small" color={colors.brand} />
+            ) : (
+              <MaterialIcons name="my-location" size={22} color={colors.brandDeep} />
+            )}
+          </TouchableOpacity>
+        ) : null}
 
         <HelpModal
           visible={helpOpen}
@@ -708,43 +664,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.muted,
   },
-  helpBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-    backgroundColor: '#E7F6F3',
-  },
-  helpText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.brandDeep,
-  },
-  mapWrap: {
-    flex: 1,
-    backgroundColor: colors.mapBg,
-  },
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sheetBg: {
-    backgroundColor: colors.sheet,
-    borderTopLeftRadius: radius.sheet,
-    borderTopRightRadius: radius.sheet,
-  },
-  sheetHandle: {
-    backgroundColor: 'rgba(23,51,47,0.2)',
-    width: 42,
-  },
   tabRow: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingBottom: 8,
+    gap: 6,
   },
   tab: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: radius.pill,
     backgroundColor: '#E8F7F4',
@@ -760,20 +685,60 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: '#fff',
   },
-  sheetContent: {
-    padding: 14,
-    paddingBottom: 28,
+  helpBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: '#E7F6F3',
   },
-  empty: {
-    textAlign: 'center',
-    color: colors.muted,
-    marginVertical: 12,
+  helpText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.brandDeep,
   },
-  hint: {
-    textAlign: 'center',
-    color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 4,
+  countBadge: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 106 : 68,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    zIndex: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  countText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.brandDeep,
+  },
+  mapWrap: {
+    flex: 1,
+    backgroundColor: colors.mapBg,
+  },
+  locateBtn: {
+    position: 'absolute',
+    right: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
+  },
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

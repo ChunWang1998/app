@@ -9,13 +9,12 @@ import {
   Platform,
 } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { colors, radius, voteTone } from '../theme';
+import { colors, radius } from '../theme';
 import { formatDistance, formatHours, isHoursUnknown } from '../lib/geo';
 import { MAX_COMMENT_LEN, MAX_COMMENTS_PER_PLACE } from '../lib/community';
 
 export default function PlaceDetailSheet({
   place,
-  vote = 0,
   comments = [],
   seedNotes = [],
   onClose,
@@ -26,7 +25,6 @@ export default function PlaceDetailSheet({
   const [sheetIndex, setSheetIndex] = useState(0);
   const [draft, setDraft] = useState('');
   const snapPoints = useMemo(() => ['34%', '78%'], []);
-  const tone = voteTone(vote);
 
   const previewComments = useMemo(() => {
     const local = comments.map((c) => c.text);
@@ -69,21 +67,8 @@ export default function PlaceDetailSheet({
       >
         <BottomSheetScrollView contentContainerStyle={styles.content}>
           <View style={styles.headerRow}>
-            <View
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: tone.fill,
-                  borderColor: tone.sparkle ? colors.voteGoldBright : 'transparent',
-                  borderWidth: tone.sparkle ? 2 : 0,
-                  shadowColor: tone.sparkle ? colors.voteGoldBright : 'transparent',
-                  shadowOpacity: tone.sparkle ? 0.85 : 0,
-                  shadowRadius: tone.sparkle ? 8 : 0,
-                  shadowOffset: { width: 0, height: 0 },
-                },
-              ]}
-            >
-              <Text style={styles.badgeText}>{tone.sparkle ? '★' : 'WC'}</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>WC</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.title}>
@@ -103,18 +88,6 @@ export default function PlaceDetailSheet({
               {isHoursUnknown(place.營業時間)
                 ? '營業時間不明，建議出發前確認'
                 : formatHours(place.營業時間)}
-            </Text>
-            <Text
-              style={[
-                styles.meta,
-                tone.sparkle && {
-                  color: colors.voteGoldDeep,
-                  backgroundColor: colors.voteGoldBright,
-                  fontWeight: '800',
-                },
-              ]}
-            >
-              {tone.sparkle ? `★ 評價 +${vote}` : `評價 ${vote > 0 ? `+${vote}` : vote}`}
             </Text>
           </View>
 
@@ -197,6 +170,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.brand,
   },
   badgeText: {
     color: '#fff',
