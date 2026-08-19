@@ -389,6 +389,13 @@ const loaders = {
   '1264_6077': () => require('../../assets/places/cells/1264_6077.json'),
 };
 
+const cityLoaders = {
+  '台北市': () => require('../../assets/places/cities/台北市.json'),
+  '台南市': () => require('../../assets/places/cities/台南市.json'),
+  '新北市': () => require('../../assets/places/cities/新北市.json'),
+  '高雄市': () => require('../../assets/places/cities/高雄市.json'),
+};
+
 export function loadCellSync(key) {
   const load = loaders[key];
   if (!load) return [];
@@ -396,4 +403,12 @@ export function loadCellSync(key) {
   return Array.isArray(rows) ? rows : [];
 }
 
+export function loadCitySync(city) {
+  const load = cityLoaders[city];
+  if (!load) return [];
+  const rows = load();
+  return Array.isArray(rows) ? rows : [];
+}
+
 export const CELL_KEYS = Object.keys(loaders);
+export const CITY_KEYS = Object.keys(cityLoaders);

@@ -110,17 +110,60 @@ export function uniqueTypes(places) {
 }
 
 /** Rough city labels from Taiwan-style addresses (前 3 字，如「高雄市」). */
+export function cityFromAddress(addr) {
+  return String(addr || '').match(/^(.{2,3}[縣市])/)?.[1] || null;
+}
+
 export function uniqueCities(places) {
   const seen = new Set();
   const out = [];
   for (const p of places) {
-    const addr = String(p?.地址 || '');
-    const city = addr.match(/^(.{2,3}[縣市])/)?.[1];
+    const city = cityFromAddress(p?.地址);
     if (!city || seen.has(city)) continue;
     seen.add(city);
     out.push(city);
   }
   return out;
+}
+
+/** Majority city among the places closest to `origin`. */
+export function cityNear(origin, places, sample = 8) {
+  if (!origin || !places?.length) return null;
+  const ranked = places
+    .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+    .map((p) => ({
+      city: cityFromAddress(p.地址),
+      d: haversineMeters(origin, { lat: p.lat, lng: p.lng }),
+    }))
+    .filter((p) => p.city)
+    .sort((a, b) => a.d - b.d)
+    .slice(0, sample);
+  if (!ranked.length) return null;
+  const counts = new Map();
+  for (const row of ranked) {
+    counts.set(row.city, (counts.get(row.city) || 0) + 1);
+  }
+  let best = ranked[0].city;
+  let bestN = 0;
+  for (const [city, n] of counts) {
+    if (n > bestN) {
+      best = city;
+      bestN = n;
+    }
+  }
+  return best;
+}
+
+/** True if `place` sits inside a MapView region (optional padding). */
+export function placeInRegion(place, region, pad = 1.2) {
+  if (!place || !region) return false;
+  const latPad = (Number(region.latitudeDelta) * pad) / 2;
+  const lngPad = (Number(region.longitudeDelta) * pad) / 2;
+  if (!Number.isFinite(latPad) || !Number.isFinite(lngPad)) return false;
+  return (
+    Math.abs(place.lat - region.latitude) <= latPad &&
+    Math.abs(place.lng - region.longitude) <= lngPad
+  );
 }
 
 export function formatDistance(meters) {

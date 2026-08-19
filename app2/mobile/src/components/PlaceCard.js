@@ -80,11 +80,7 @@ export default function PlaceCard({
       }}
     >
       <GoldSparkle active={!!tone.sparkle}>
-        <TouchableOpacity
-          activeOpacity={0.88}
-          onPress={() => onPress?.(place)}
-          onLongPress={() => onLongPress?.(place)}
-          delayLongPress={380}
+        <View
           style={[
             styles.card,
             {
@@ -94,45 +90,53 @@ export default function PlaceCard({
             },
           ]}
         >
-          <View
-            style={[
-              styles.rank,
-              {
-                backgroundColor: tone.fill,
-                borderColor: tone.sparkle ? colors.voteGoldBright : 'transparent',
-                borderWidth: tone.sparkle ? 1.5 : 0,
-              },
-            ]}
+          <TouchableOpacity
+            style={styles.cardPress}
+            activeOpacity={0.88}
+            onPress={() => onPress?.(place)}
+            onLongPress={() => onLongPress?.(place)}
+            delayLongPress={380}
           >
-            <Text style={styles.rankText}>{index + 1}</Text>
-          </View>
-          <View style={styles.cardBody}>
-            <Text style={styles.cardTitle}>
-              {place.type}
-              {place.name ? ` ${place.name}` : ''}
-            </Text>
-            <Text style={styles.cardAddr} numberOfLines={1}>
-              {place.地址}
-            </Text>
-            <View style={styles.metaRow}>
-              <Text style={styles.meta}>{formatDistance(place.distance)}</Text>
-              <Text style={[styles.meta, isHoursUnknown(place.營業時間) && styles.metaUnknown]}>
-                {formatHours(place.營業時間)}
-              </Text>
-              {vote !== 0 && (
-                <Text
-                  style={[
-                    styles.meta,
-                    tone.sparkle && styles.metaGold,
-                    { color: tone.sparkle ? colors.voteGoldDeep : tone.fill },
-                  ]}
-                >
-                  {vote > 0 ? `★ +${vote}` : vote}
-                </Text>
-              )}
-              {hasVoted && <Text style={styles.meta}>已投票</Text>}
+            <View
+              style={[
+                styles.rank,
+                {
+                  backgroundColor: tone.fill,
+                  borderColor: tone.sparkle ? colors.voteGoldBright : 'transparent',
+                  borderWidth: tone.sparkle ? 1.5 : 0,
+                },
+              ]}
+            >
+              <Text style={styles.rankText}>{index + 1}</Text>
             </View>
-          </View>
+            <View style={styles.cardBody}>
+              <Text style={styles.cardTitle}>
+                {place.type}
+                {place.name ? ` ${place.name}` : ''}
+              </Text>
+              <Text style={styles.cardAddr} numberOfLines={1}>
+                {place.地址}
+              </Text>
+              <View style={styles.metaRow}>
+                <Text style={styles.meta}>{formatDistance(place.distance)}</Text>
+                <Text style={[styles.meta, isHoursUnknown(place.營業時間) && styles.metaUnknown]}>
+                  {formatHours(place.營業時間)}
+                </Text>
+                {vote !== 0 && (
+                  <Text
+                    style={[
+                      styles.meta,
+                      tone.sparkle && styles.metaGold,
+                      { color: tone.sparkle ? colors.voteGoldDeep : tone.fill },
+                    ]}
+                  >
+                    {vote > 0 ? `★ +${vote}` : vote}
+                  </Text>
+                )}
+                {hasVoted && <Text style={styles.meta}>已投票</Text>}
+              </View>
+            </View>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.navBtn}
             activeOpacity={0.85}
@@ -140,7 +144,7 @@ export default function PlaceCard({
           >
             <Text style={styles.navText}>導航</Text>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </View>
       </GoldSparkle>
     </Swipeable>
   );
@@ -169,6 +173,12 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: radius.card,
     backgroundColor: '#fff',
+  },
+  cardPress: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   rank: {
     width: 30,

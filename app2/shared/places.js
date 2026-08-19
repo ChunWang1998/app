@@ -29,18 +29,37 @@ export function nearbyCellKeys(lat, lng) {
 
 const memoryCache = new Map()
 
+function asRows(data) {
+  return Array.isArray(data) ? data : []
+}
+
+/**
+ * @param {string} path relative to baseUrl, e.g. `cells/1_2.json`
+ * @param {string} baseUrl
+ */
+async function fetchJsonRows(path, baseUrl) {
+  const root = String(baseUrl || '').replace(/\/$/, '')
+  const url = `${root}/${path}`
+  const res = await fetch(url)
+  if (res.status === 404) return []
+  if (!res.ok) throw new Error(`places ${path}: HTTP ${res.status}`)
+  return asRows(await res.json())
+}
+
 /**
  * @param {string} key
  * @param {string} baseUrl
  */
 async function fetchCell(key, baseUrl) {
-  const root = String(baseUrl || '').replace(/\/$/, '')
-  const url = `${root}/cells/${key}.json`
-  const res = await fetch(url)
-  if (res.status === 404) return []
-  if (!res.ok) throw new Error(`places cell ${key}: HTTP ${res.status}`)
-  const rows = await res.json()
-  return Array.isArray(rows) ? rows : []
+  return fetchJsonRows(`cells/${key}.json`, baseUrl)
+}
+
+/**
+ * @param {string} city
+ * @param {string} baseUrl
+ */
+async function fetchCity(city, baseUrl) {
+  return fetchJsonRows(`cities/${encodeURIComponent(city)}.json`, baseUrl)
 }
 
 /**
@@ -82,6 +101,42 @@ export async function loadPlacesNear(lat, lng, options = {}) {
     if (row?.id != null) byId.set(row.id, row)
   }
   return [...byId.values()]
+}
+
+/**
+ * Load every place in a Taiwan city (高雄市, 台南市, …).
+ * Tries CDN first, then bundled `loadCitySync` so Expo works before deploy.
+ *
+ * @param {string} city
+ * @param {{
+ *   baseUrl?: string,
+ *   loadCitySync?: (city: string) => unknown[],
+ *   cache?: boolean,
+ * }} [options]
+ */
+export async function loadPlacesByCity(city, options = {}) {
+  const { baseUrl = '', loadCitySync, cache = true } = options
+  const name = String(city || '').trim()
+  if (!name) return []
+
+  const cacheKey = `city:${name}`
+  if (cache && memoryCache.has(cacheKey)) return memoryCache.get(cacheKey)
+
+  let rows = []
+  if (baseUrl) {
+    try {
+      rows = await fetchCity(name, baseUrl)
+    } catch (e) {
+      console.warn('city CDN load failed', name, e?.message || e)
+      rows = []
+    }
+  }
+  if (!rows.length && typeof loadCitySync === 'function') {
+    rows = asRows(loadCitySync(name))
+  }
+
+  if (cache && rows.length) memoryCache.set(cacheKey, rows)
+  return rows
 }
 
 /** Clear in-memory cell cache (tests / hot reload). */

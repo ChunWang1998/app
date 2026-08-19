@@ -2,8 +2,9 @@
 set -euo pipefail
 
 # Deploy data/dist/ to GitHub Pages (gh-pages branch) under /places/
-# After running, cells are available at:
+# After running, cells and cities are available at:
 #   https://chunwang1998.github.io/app/places/cells/{i}_{j}.json
+#   https://chunwang1998.github.io/app/places/cities/{縣市}.json
 
 DIST_DIR="$(cd "$(dirname "$0")/data/dist" && pwd)"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -32,7 +33,11 @@ fi
 rm -rf "$TEMP_DIR/places"
 mkdir -p "$TEMP_DIR/places"
 cp -r "$DIST_DIR/cells" "$TEMP_DIR/places/cells"
+if [ -d "$DIST_DIR/cities" ]; then
+  cp -r "$DIST_DIR/cities" "$TEMP_DIR/places/cities"
+fi
 cp "$DIST_DIR/manifest.json" "$TEMP_DIR/places/manifest.json" 2>/dev/null || true
+cp "$DIST_DIR/index.slim.json" "$TEMP_DIR/places/index.slim.json" 2>/dev/null || true
 
 cd "$TEMP_DIR"
 git add -A

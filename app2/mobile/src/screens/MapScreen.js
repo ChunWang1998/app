@@ -16,7 +16,7 @@ import * as Location from 'expo-location';
 import * as Clipboard from 'expo-clipboard';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { colors, radius, voteTone } from '../theme';
-import { nearestOpen } from '../lib/geo';
+import { nearestOpen, cityNear, placeInRegion } from '../lib/geo';
 import {
   fetchVoteState,
   fetchComments,
@@ -25,13 +25,17 @@ import {
   mergeVoteState,
 } from '../lib/community';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { cellKey, loadPlacesNear } from '@shared/places';
+import { cellKey, loadPlacesNear, loadPlacesByCity } from '@shared/places';
 
 let _loadCellSync;
+let _loadCitySync;
 try {
-  _loadCellSync = require('../data/cellRegistry').loadCellSync;
+  const reg = require('../data/cellRegistry');
+  _loadCellSync = reg.loadCellSync;
+  _loadCitySync = reg.loadCitySync;
 } catch {
   _loadCellSync = undefined;
+  _loadCitySync = undefined;
 }
 import PlaceCard from '../components/PlaceCard';
 import PlaceDetailSheet from '../components/PlaceDetailSheet';
@@ -66,14 +70,34 @@ function shareMessage(place) {
 }
 
 async function openGoogleMaps(place) {
-  const dest = `${place.lat},${place.lng}`;
-  const appUrl = `comgooglemaps://?daddr=${dest}&directionsmode=walking`;
-  const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=walking`;
+  const lat = Number(place?.lat);
+  const lng = Number(place?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    Alert.alert('無法導航', '此地點沒有有效座標');
+    return;
+  }
+
+  const dest = `${lat},${lng}`;
+  const appleUrl = `http://maps.apple.com/?daddr=${encodeURIComponent(dest)}&dirflg=w`;
+  const googleWebUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=walking`;
+  const googleAppUrl = `comgooglemaps://?daddr=${dest}&directionsmode=walking`;
+  const fallbackUrl = Platform.OS === 'ios' ? appleUrl : googleWebUrl;
+
   try {
-    const canOpenApp = await Linking.canOpenURL(appUrl);
-    await Linking.openURL(canOpenApp ? appUrl : webUrl);
-  } catch {
-    await Linking.openURL(webUrl);
+    if (Platform.OS === 'ios') {
+      // Expo Go / Simulator have Apple Maps, not Google Maps, and cannot
+      // query comgooglemaps:// (LSApplicationQueriesSchemes is not applied).
+      await Linking.openURL(appleUrl);
+      return;
+    }
+    const canOpenApp = await Linking.canOpenURL(googleAppUrl).catch(() => false);
+    await Linking.openURL(canOpenApp ? googleAppUrl : googleWebUrl);
+  } catch (e) {
+    try {
+      await Linking.openURL(fallbackUrl);
+    } catch {
+      Alert.alert('無法開啟地圖', e?.message || '請稍後再試');
+    }
   }
 }
 
@@ -86,6 +110,11 @@ export default function MapScreen() {
   const [userPos, setUserPos] = useState(null);
   const [places, setPlaces] = useState([]);
   const [placesStatus, setPlacesStatus] = useState('idle');
+  const [cityPlaces, setCityPlaces] = useState([]);
+  const [cityStatus, setCityStatus] = useState('idle');
+  const [currentCity, setCurrentCity] = useState(null);
+  const [mapCenter, setMapCenter] = useState(null);
+  const [mapRegion, setMapRegion] = useState(null);
   const [votes, setVotes] = useState({ scores: {}, myVotes: {} });
   const [comments, setComments] = useState({});
   const [hiddenIds, setHiddenIds] = useState(() => new Set());
@@ -96,31 +125,31 @@ export default function MapScreen() {
 
   const userCell = userPos ? cellKey(userPos.lat, userPos.lng) : null;
   const regionTimer = useRef(null);
-  const loadedCells = useRef(new Set());
+  const didInitialFit = useRef(false);
 
-  const loadCellsAround = useCallback(
-    async (lat, lng) => {
-      const key = cellKey(lat, lng);
-      if (loadedCells.current.has(key)) return;
-      loadedCells.current.add(key);
-      try {
-        const rows = await loadPlacesNear(lat, lng, {
-          baseUrl: PLACES_BASE_URL,
-          loadCellSync: PLACES_BASE_URL ? undefined : _loadCellSync,
-        });
-        if (!rows.length) return;
-        setPlaces((prev) => {
-          const byId = new Map(prev.map((p) => [p.id, p]));
-          for (const r of rows) if (r?.id != null) byId.set(r.id, r);
-          return [...byId.values()];
-        });
+  const loadRegion = useCallback(async (lat, lng, { mergePlaces = false } = {}) => {
+    try {
+      const rows = await loadPlacesNear(lat, lng, {
+        baseUrl: PLACES_BASE_URL,
+        loadCellSync: PLACES_BASE_URL ? undefined : _loadCellSync,
+      });
+      const city = cityNear({ lat, lng }, rows);
+      if (city) setCurrentCity(city);
+      if (mergePlaces) {
+        if (rows.length) {
+          setPlaces((prev) => {
+            const byId = new Map(prev.map((p) => [p.id, p]));
+            for (const r of rows) if (r?.id != null) byId.set(r.id, r);
+            return [...byId.values()];
+          });
+        }
         setPlacesStatus('ready');
-      } catch (e) {
-        console.warn('places load failed', e?.message || e);
       }
-    },
-    [],
-  );
+    } catch (e) {
+      console.warn('places load failed', e?.message || e);
+      if (mergePlaces) setPlacesStatus('error');
+    }
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -134,17 +163,57 @@ export default function MapScreen() {
   useEffect(() => {
     if (!userPos) return;
     setPlacesStatus('loading');
-    loadCellsAround(userPos.lat, userPos.lng);
-  }, [userCell, loadCellsAround]);
+    setMapCenter((prev) => prev || { lat: userPos.lat, lng: userPos.lng });
+    setMapRegion((prev) => prev || {
+      latitude: userPos.lat,
+      longitude: userPos.lng,
+      latitudeDelta: 0.04,
+      longitudeDelta: 0.04,
+    });
+    loadRegion(userPos.lat, userPos.lng, { mergePlaces: true });
+  }, [userCell, loadRegion]);
+
+  useEffect(() => {
+    if (!currentCity) return;
+    let alive = true;
+    setCityPlaces([]);
+    setCityStatus('loading');
+    loadPlacesByCity(currentCity, {
+      baseUrl: PLACES_BASE_URL,
+      loadCitySync: _loadCitySync,
+    })
+      .then((rows) => {
+        if (!alive) return;
+        setCityPlaces(Array.isArray(rows) ? rows : []);
+        setCityStatus('ready');
+      })
+      .catch((e) => {
+        console.warn('city load failed', e?.message || e);
+        if (!alive) return;
+        setCityPlaces([]);
+        setCityStatus('error');
+      });
+    return () => {
+      alive = false;
+    };
+  }, [currentCity]);
+
+  useEffect(() => {
+    return () => {
+      if (regionTimer.current) clearTimeout(regionTimer.current);
+    };
+  }, []);
 
   const handleRegionChange = useCallback(
     (region) => {
+      setMapRegion(region);
+      setMapCenter({ lat: region.latitude, lng: region.longitude });
       if (regionTimer.current) clearTimeout(regionTimer.current);
       regionTimer.current = setTimeout(() => {
-        loadCellsAround(region.latitude, region.longitude);
+        loadRegion(region.latitude, region.longitude, { mergePlaces: false });
       }, REGION_LOAD_DEBOUNCE_MS);
     },
-    [loadCellsAround],
+    [loadRegion],
   );
 
   const refreshCommunity = useCallback(async (placeIds) => {
@@ -164,10 +233,12 @@ export default function MapScreen() {
   }, []);
 
   useEffect(() => {
-    if (!userPos || !places.length || !isSupabaseConfigured) return;
-    const ids = nearestOpen(userPos, places, POOL_SIZE).map((p) => p.id);
+    const origin = showAll ? mapCenter || userPos : userPos;
+    const source = showAll ? cityPlaces : places;
+    if (!origin || !source.length || !isSupabaseConfigured) return;
+    const ids = nearestOpen(origin, source, POOL_SIZE).map((p) => p.id);
     refreshCommunity(ids);
-  }, [userPos, places, refreshCommunity]);
+  }, [userPos, mapCenter, places, cityPlaces, showAll, refreshCommunity]);
 
   useEffect(() => {
     let alive = true;
@@ -222,9 +293,10 @@ export default function MapScreen() {
   }, [userPos, places]);
 
   const allOpen = useMemo(() => {
-    if (!userPos || !places.length) return [];
-    return nearestOpen(userPos, places, Infinity);
-  }, [userPos, places]);
+    const origin = mapCenter || userPos;
+    if (!origin || !cityPlaces.length) return [];
+    return nearestOpen(origin, cityPlaces, Infinity);
+  }, [mapCenter, userPos, cityPlaces]);
 
   const nearest = useMemo(
     () => pool.filter((p) => !hiddenIds.has(p.id)).slice(0, 3),
@@ -236,17 +308,29 @@ export default function MapScreen() {
     [showAll, allOpen, nearest],
   );
 
+  const mapMarkers = useMemo(() => {
+    if (!showAll) return nearest;
+    if (!mapRegion) return allOpen.slice(0, 80);
+    return allOpen.filter((p) => placeInRegion(p, mapRegion));
+  }, [showAll, nearest, allOpen, mapRegion]);
+
   const selected = useMemo(
-    () => allOpen.find((p) => p.id === selectedId) || null,
-    [allOpen, selectedId],
+    () =>
+      allOpen.find((p) => p.id === selectedId) ||
+      nearest.find((p) => p.id === selectedId) ||
+      places.find((p) => p.id === selectedId) ||
+      cityPlaces.find((p) => p.id === selectedId) ||
+      null,
+    [allOpen, nearest, places, cityPlaces, selectedId],
   );
 
   useEffect(() => {
-    if (!mapRef.current || !userPos) return;
-    const pts = showAll ? visiblePlaces.slice(0, 50) : nearest;
+    if (didInitialFit.current || !mapRef.current || !userPos) return;
+    if (placesStatus === 'idle' || placesStatus === 'loading') return;
+    didInitialFit.current = true;
     const coords = [
       { latitude: userPos.lat, longitude: userPos.lng },
-      ...pts.map((p) => ({ latitude: p.lat, longitude: p.lng })),
+      ...nearest.map((p) => ({ latitude: p.lat, longitude: p.lng })),
     ];
     if (coords.length === 1) {
       mapRef.current.animateToRegion(
@@ -261,10 +345,10 @@ export default function MapScreen() {
       return;
     }
     mapRef.current.fitToCoordinates(coords, {
-      edgePadding: { top: 60, right: 40, bottom: selected ? 280 : 40, left: 40 },
+      edgePadding: { top: 60, right: 40, bottom: 40, left: 40 },
       animated: true,
     });
-  }, [userPos, nearest, visiblePlaces, showAll, selected]);
+  }, [userPos, nearest, placesStatus]);
 
   const collapseList = useCallback(() => {
     listSheetRef.current?.snapToIndex(0);
@@ -377,6 +461,9 @@ export default function MapScreen() {
   const statusText = (() => {
     if (status === 'locating') return '正在定位…';
     if (placesStatus === 'loading') return '載入附近地點…';
+    if (showAll && cityStatus === 'loading' && currentCity) {
+      return `載入${currentCity}地點…`;
+    }
     if (placesStatus === 'error') return '地點資料載入失敗';
     if (status === 'denied') return '無法取得定位，改用高雄市中心示範';
     if (status === 'error') return '定位失敗，改用高雄市中心示範';
@@ -416,7 +503,7 @@ export default function MapScreen() {
               onPress={collapseList}
               onRegionChangeComplete={handleRegionChange}
             >
-              {visiblePlaces.map((place, index) => {
+              {mapMarkers.map((place, index) => {
                 const tone = voteTone(votes.scores?.[place.id] || 0);
                 return (
                   <Marker
@@ -460,22 +547,33 @@ export default function MapScreen() {
               >
                 <Text style={[styles.tabText, showAll && styles.tabTextActive]}>
                   全部{allOpen.length ? ` (${allOpen.length})` : ''}
+                  {currentCity ? ` · ${currentCity}` : ''}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {(status === 'locating' || placesStatus === 'loading') && (
+            {(status === 'locating' ||
+              (!showAll && placesStatus === 'loading') ||
+              (showAll && cityStatus === 'loading')) && (
               <Text style={styles.empty}>
-                {status === 'locating' ? '定位中，請稍候…' : '載入附近地點…'}
+                {status === 'locating'
+                  ? '定位中，請稍候…'
+                  : showAll && currentCity
+                    ? `載入${currentCity}地點…`
+                    : '載入附近地點…'}
               </Text>
             )}
             {status !== 'locating' &&
-              placesStatus !== 'loading' &&
+              !(showAll ? cityStatus === 'loading' : placesStatus === 'loading') &&
               visiblePlaces.length === 0 && (
               <Text style={styles.empty}>
-                {placesStatus === 'error'
-                  ? '地點資料載入失敗'
-                  : '附近找不到營業中的廁所'}
+                {showAll && cityStatus === 'error'
+                  ? '縣市資料載入失敗'
+                  : placesStatus === 'error'
+                    ? '地點資料載入失敗'
+                    : showAll
+                      ? '此縣市找不到營業中的廁所'
+                      : '附近找不到營業中的廁所'}
               </Text>
             )}
 

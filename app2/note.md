@@ -14,6 +14,7 @@
 - 先 `getLastKnownPositionAsync` 立刻出圖，再 `getCurrentPositionAsync`（Low accuracy + 約 6s timeout）精修
 - 定位成功時靠 `showsUserLocation` 顯示系統藍點；不再另外畫「我的位置」Marker
 - 權限拒絕或定位失敗 → 改用高雄市中心示範座標
+- 鏡頭只在**第一次定位成功**時對齊附近三間；之後使用者拖地圖**不會**被拉回 GPS（可從高雄滑去台南）
 
 ## UX（MapScreen）
 
@@ -24,6 +25,10 @@
   - 再往上（~78%）：全部評論 + 留言輸入（**最多 30 字**；每店最多 **10** 則，超額刪最舊）
   - 詳情為實心底板，直接蓋過清單（不半透明）
 - 長按清單卡片 → 選「複製地址」或「分享」（內容為地址，非座標）
+- 頁籤 **附近 / 全部**：
+  - **附近**：依 GPS 最近 3 間（營業中）
+  - **全部**：目前地圖中心所在**縣市**的全部營業中地點（不是全台灣、也不是「已載入格子的聯集」）。拖到台南後，數量與 marker 改為台南市
+  - 全部 tab 標籤顯示 `全部 (N) · 高雄市`；marker 依目前畫面範圍篩選，避免一次畫全市幾百個 pin
 - 右上角「說明」：
   - **支援類型：** 7-11（陸續開放路易莎、全家等等）
   - **支援地點：** 高雄市、台南市、新北市、台北市（陸續開放其他縣市）
@@ -45,8 +50,9 @@
 - 左右滑圖示：`assets/vote-icons.jpeg`
 
 # 資料來源
-可從 `fetchData/` run 各個 python script 取得 json 到 `data/`，再集合到 `dataSet.json`，並切成空間格子到 `data/dist/`（同步 `web/public/places/`、`mobile/assets/places/`）。  
-admin 會定期重跑 `buildDataSet.py`。客戶端只載入使用者附近 9 格，不再整包 import `dataSet.json`。
+可從 `fetchData/` run 各個 python script 取得 json 到 `data/`（例如 `711_with_toilet.json`），再由 `buildDataSet.py` **產出** `dataSet.json`、空間格子、以及縣市檔。  
+**注意：** `dataSet.json` 是產物不是輸入；只改它再跑 build 會被 `711_with_toilet.json` 覆蓋。要改店家請改 source JSON 或重跑抓資料腳本。  
+admin 會定期重跑 `buildDataSet.py`。客戶端「附近」只載入 9 格；「全部」載入該市 `cities/{縣市}.json`，不再整包 import `dataSet.json`。
 
 ## json schema
 ```json
@@ -150,7 +156,8 @@ for each slot:
 | `src/lib/supabase.js` | Supabase client |
 | `src/lib/deviceId.js` | 匿名裝置 ID |
 | `supabase/schema.sql` | DB schema（SQL Editor 執行） |
-| `src/lib/geo.js` | 距離、營業、`nearestOpen(pool)` |
+| `src/lib/geo.js` | 距離、營業、`nearestOpen`、`cityNear`（縣市判斷） |
+| `shared/places.js` | 載入附近 9 格 + `loadPlacesByCity` |
 
 依賴：`@gorhom/bottom-sheet`、`react-native-gesture-handler`、`react-native-reanimated`、`@react-native-async-storage/async-storage`、`expo-clipboard`
 
@@ -160,8 +167,9 @@ for each slot:
 1. ~~**看全部地點**~~ — 主清單改為 `@gorhom/bottom-sheet`（三段 snap 14%/45%/85%）+ `BottomSheetFlatList`，加「附近 / 全部」切換頁籤
 2. ~~**點空白處收合面板**~~ — MapView `onPress` 收合 sheet 到最小 snap
 3. ~~**Handle 無營業時間資料**~~ — PlaceCard 灰色「時間未知」標籤；詳情頁「營業時間不明，建議出發前確認」
-4. ~~**拖地圖載入其他區域**~~ — `onRegionChangeComplete` + debounce 600ms 自動載入新區域 cells（在高雄可拖到台南看資料）
+4. ~~**拖地圖載入其他區域**~~ — `onRegionChangeComplete` + debounce 600ms 依地圖中心判斷縣市，載入該市全部（鏡頭不再自動拉回 GPS）
 5. ~~**CDN 資料託管**~~ — 改用 `EXPO_PUBLIC_PLACES_URL` 指向 GitHub Pages（或其他靜態主機），`cellRegistry.js` 降為離線 fallback
+6. ~~**全部 = 該市全部**~~ — `buildDataSet.py` 產出 `cities/{縣市}.json`；tab 數量與 marker 隨地圖中心縣市切換
 
 ## Nice to have
 - **用戶自訂地點（本地端）** — 用 AsyncStorage 存用戶新增的地點，合併進 places state，地圖上用不同顏色 marker 標示
@@ -170,39 +178,50 @@ for each slot:
 
 ## 資料流（CDN 模式）
 ```
-fetchData/*.py → data/dataSet.json → buildDataSet.py → data/dist/cells/*.json
-                                                         ↓
-                                              deploy-places.sh → GitHub Pages
-                                                         ↓
-                                   https://chunwang1998.github.io/app/places/cells/{i}_{j}.json
-                                                         ↓
-                                            mobile app（EXPO_PUBLIC_PLACES_URL）
+fetchData/*.py → data/711_with_toilet.json → buildDataSet.py
+                      ↓
+              data/dataSet.json
+              data/dist/cells/{i}_{j}.json
+              data/dist/cities/{縣市}.json
+                      ↓
+              deploy-places.sh → GitHub Pages
+                      ↓
+  https://chunwang1998.github.io/app/places/cells/{i}_{j}.json
+  https://chunwang1998.github.io/app/places/cities/{縣市}.json
+                      ↓
+              mobile app（EXPO_PUBLIC_PLACES_URL）
 ```
 
 ## 離線 fallback
-若 `EXPO_PUBLIC_PLACES_URL` 未設定，mobile 會退回使用打包在 app 內的 `cellRegistry.js`（bundled assets）。  
-此模式只適合小量資料（<500 cells）；超過後建議改用 CDN。
+若 `EXPO_PUBLIC_PLACES_URL` 未設定，mobile 會退回使用打包在 app 內的 `cellRegistry.js`（bundled cells + cities）。  
+縣市檔即使 CDN 尚未更新，也會再試 bundled `loadCitySync`。  
+cell 模式只適合小量資料（<500 cells）；超過後建議改用 CDN。
 
 ## 拖地圖載入
 - 用戶拖地圖到新區域時，`onRegionChangeComplete` 觸發（debounce 600ms）
-- 呼叫 `loadPlacesNear(新中心)` 載入該區域 9 cells
-- 結果**合併**進現有 `places` state（不覆蓋），所以越拖看到的資料越多
-- `shared/places.js` 內建 memory cache，同一個 cell 不會重複請求
+- 用該中心附近 9 格判斷目前縣市（地址前綴，如「台南市」）
+- 「附近」仍用 GPS 附近 9 格；「全部」改載 `cities/{縣市}.json`（替換，不與前一個市合併）
+- 鏡頭**不會**因新資料載入而 `fitToCoordinates` 回 GPS
+- `shared/places.js` 內建 memory cache，同一個 cell / 縣市不會重複請求
 
 # cmd
 
 ```bash
-# 1) 抓資料
-python3 fetchData/get711List.py
-python3 fetchData/getLuisaList.py
+# 在 app2/ 目錄執行
 
-# 2) 合併 → data/dataSet.json + 空間格子 shards
+# 1) （可選）重新抓 7-11 → data/711_with_toilet.json
+python3 fetchData/get711List.py
+
+# 2) 合併 source → dataSet.json + cells + cities，並同步
+#    web/public/places/ 與 mobile/assets/places/ + cellRegistry.js
+#    請改 711_with_toilet.json（或其它 SOURCE_FILES），不要只改 dataSet.json
 python3 fetchData/buildDataSet.py
 
-# 3) 部署到 GitHub Pages（首次需先在 repo 開啟 Pages → gh-pages branch）
+# 3) 部署到 GitHub Pages（手機讀 CDN 時必跑；首次需先開啟 Pages → gh-pages）
 bash deploy-places.sh
 
 # 4) Expo demo
 cd mobile && npm install && npm start
 # 需設定 EXPO_PUBLIC_PLACES_URL（見 mobile/.env.example）
+# 部署後請重開 app（memory cache / GitHub Pages 可能仍是舊檔）
 ```
