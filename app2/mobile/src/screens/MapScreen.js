@@ -26,7 +26,13 @@ import {
 } from '../lib/community';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { cellKey, loadPlacesNear } from '@shared/places';
-import { loadCellSync } from '../data/cellRegistry';
+
+let _loadCellSync;
+try {
+  _loadCellSync = require('../data/cellRegistry').loadCellSync;
+} catch {
+  _loadCellSync = undefined;
+}
 import PlaceCard from '../components/PlaceCard';
 import PlaceDetailSheet from '../components/PlaceDetailSheet';
 import HelpModal from '../components/HelpModal';
@@ -35,6 +41,7 @@ import PlaceActionsModal from '../components/PlaceActionsModal';
 const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 }; // Kaohsiung
 const LOCATE_TIMEOUT_MS = 6000;
 const POOL_SIZE = 25;
+const REGION_LOAD_DEBOUNCE_MS = 600;
 const PLACES_BASE_URL = (process.env.EXPO_PUBLIC_PLACES_URL || '').replace(/\/$/, '');
 
 function coordsFrom(loc) {
@@ -88,6 +95,32 @@ export default function MapScreen() {
   const [actionPlace, setActionPlace] = useState(null);
 
   const userCell = userPos ? cellKey(userPos.lat, userPos.lng) : null;
+  const regionTimer = useRef(null);
+  const loadedCells = useRef(new Set());
+
+  const loadCellsAround = useCallback(
+    async (lat, lng) => {
+      const key = cellKey(lat, lng);
+      if (loadedCells.current.has(key)) return;
+      loadedCells.current.add(key);
+      try {
+        const rows = await loadPlacesNear(lat, lng, {
+          baseUrl: PLACES_BASE_URL,
+          loadCellSync: PLACES_BASE_URL ? undefined : _loadCellSync,
+        });
+        if (!rows.length) return;
+        setPlaces((prev) => {
+          const byId = new Map(prev.map((p) => [p.id, p]));
+          for (const r of rows) if (r?.id != null) byId.set(r.id, r);
+          return [...byId.values()];
+        });
+        setPlacesStatus('ready');
+      } catch (e) {
+        console.warn('places load failed', e?.message || e);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -100,27 +133,19 @@ export default function MapScreen() {
 
   useEffect(() => {
     if (!userPos) return;
-    let cancelled = false;
     setPlacesStatus('loading');
-    loadPlacesNear(userPos.lat, userPos.lng, {
-      baseUrl: PLACES_BASE_URL,
-      loadCellSync: PLACES_BASE_URL ? undefined : loadCellSync,
-    })
-      .then((rows) => {
-        if (cancelled) return;
-        setPlaces(rows);
-        setPlacesStatus('ready');
-      })
-      .catch((e) => {
-        if (cancelled) return;
-        console.warn('places load failed', e?.message || e);
-        setPlaces([]);
-        setPlacesStatus('error');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userCell]);
+    loadCellsAround(userPos.lat, userPos.lng);
+  }, [userCell, loadCellsAround]);
+
+  const handleRegionChange = useCallback(
+    (region) => {
+      if (regionTimer.current) clearTimeout(regionTimer.current);
+      regionTimer.current = setTimeout(() => {
+        loadCellsAround(region.latitude, region.longitude);
+      }, REGION_LOAD_DEBOUNCE_MS);
+    },
+    [loadCellsAround],
+  );
 
   const refreshCommunity = useCallback(async (placeIds) => {
     if (!isSupabaseConfigured || !placeIds?.length) return;
@@ -389,6 +414,7 @@ export default function MapScreen() {
               showsUserLocation={status === 'ready'}
               showsMyLocationButton={false}
               onPress={collapseList}
+              onRegionChangeComplete={handleRegionChange}
             >
               {visiblePlaces.map((place, index) => {
                 const tone = voteTone(votes.scores?.[place.id] || 0);

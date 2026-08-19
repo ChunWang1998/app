@@ -156,13 +156,38 @@ for each slot:
 
 # TODO
 
-## 待做
-1. **看全部地點** — 目前只顯示最近 3 間，改為可切換「附近 3 間 / 全部」；列表改 FlatList 做虛擬化，地圖多 marker 時考慮 clustering
-2. **點空白處收合面板（like Wemo）** — 主清單從固定 View 改為 `@gorhom/bottom-sheet`（已有依賴），設定多段 snap points；MapView 加 `onPress` 收合到最小
-3. **Handle 無營業時間資料** — 目前 `isOpenNow` 對 unknown 預設回 true，UI 顯示「營業時間未提供」。改善：PlaceCard 加灰色「時間未知」標籤，詳情頁顯示「營業時間不明，建議出發前確認」
+## 已完成
+1. ~~**看全部地點**~~ — 主清單改為 `@gorhom/bottom-sheet`（三段 snap 14%/45%/85%）+ `BottomSheetFlatList`，加「附近 / 全部」切換頁籤
+2. ~~**點空白處收合面板**~~ — MapView `onPress` 收合 sheet 到最小 snap
+3. ~~**Handle 無營業時間資料**~~ — PlaceCard 灰色「時間未知」標籤；詳情頁「營業時間不明，建議出發前確認」
+4. ~~**拖地圖載入其他區域**~~ — `onRegionChangeComplete` + debounce 600ms 自動載入新區域 cells（在高雄可拖到台南看資料）
+5. ~~**CDN 資料託管**~~ — 改用 `EXPO_PUBLIC_PLACES_URL` 指向 GitHub Pages（或其他靜態主機），`cellRegistry.js` 降為離線 fallback
 
 ## Nice to have
 - **用戶自訂地點（本地端）** — 用 AsyncStorage 存用戶新增的地點，合併進 places state，地圖上用不同顏色 marker 標示
+
+# 資料架構
+
+## 資料流（CDN 模式）
+```
+fetchData/*.py → data/dataSet.json → buildDataSet.py → data/dist/cells/*.json
+                                                         ↓
+                                              deploy-places.sh → GitHub Pages
+                                                         ↓
+                                   https://chunwang1998.github.io/app/places/cells/{i}_{j}.json
+                                                         ↓
+                                            mobile app（EXPO_PUBLIC_PLACES_URL）
+```
+
+## 離線 fallback
+若 `EXPO_PUBLIC_PLACES_URL` 未設定，mobile 會退回使用打包在 app 內的 `cellRegistry.js`（bundled assets）。  
+此模式只適合小量資料（<500 cells）；超過後建議改用 CDN。
+
+## 拖地圖載入
+- 用戶拖地圖到新區域時，`onRegionChangeComplete` 觸發（debounce 600ms）
+- 呼叫 `loadPlacesNear(新中心)` 載入該區域 9 cells
+- 結果**合併**進現有 `places` state（不覆蓋），所以越拖看到的資料越多
+- `shared/places.js` 內建 memory cache，同一個 cell 不會重複請求
 
 # cmd
 
@@ -171,11 +196,13 @@ for each slot:
 python3 fetchData/get711List.py
 python3 fetchData/getLuisaList.py
 
-# 2) 合併 → data/dataSet.json + 空間格子 shards（同步到 web/public、mobile assets；已 gitignore）
+# 2) 合併 → data/dataSet.json + 空間格子 shards
 python3 fetchData/buildDataSet.py
-# clone / 更新資料後務必重跑，否則 web/mobile 沒有 cells
 
-# 3) Expo demo（同 app1）
+# 3) 部署到 GitHub Pages（首次需先在 repo 開啟 Pages → gh-pages branch）
+bash deploy-places.sh
+
+# 4) Expo demo
 cd mobile && npm install && npm start
-# 可選：EXPO_PUBLIC_PLACES_URL 指向 CDN 或本機 Vite /places（見 mobile/.env.example）
+# 需設定 EXPO_PUBLIC_PLACES_URL（見 mobile/.env.example）
 ```
