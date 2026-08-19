@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Linking,
   Platform,
   ActivityIndicator,
@@ -12,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import * as Location from 'expo-location';
 import * as Clipboard from 'expo-clipboard';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -70,8 +70,11 @@ async function openGoogleMaps(place) {
   }
 }
 
+const LIST_SNAPS = ['14%', '45%', '85%'];
+
 export default function MapScreen() {
   const mapRef = useRef(null);
+  const listSheetRef = useRef(null);
   const [status, setStatus] = useState('locating');
   const [userPos, setUserPos] = useState(null);
   const [places, setPlaces] = useState([]);
@@ -80,6 +83,7 @@ export default function MapScreen() {
   const [comments, setComments] = useState({});
   const [hiddenIds, setHiddenIds] = useState(() => new Set());
   const [selectedId, setSelectedId] = useState(null);
+  const [showAll, setShowAll] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [actionPlace, setActionPlace] = useState(null);
 
@@ -192,21 +196,32 @@ export default function MapScreen() {
     return nearestOpen(userPos, places, POOL_SIZE);
   }, [userPos, places]);
 
+  const allOpen = useMemo(() => {
+    if (!userPos || !places.length) return [];
+    return nearestOpen(userPos, places, Infinity);
+  }, [userPos, places]);
+
   const nearest = useMemo(
     () => pool.filter((p) => !hiddenIds.has(p.id)).slice(0, 3),
     [pool, hiddenIds],
   );
 
+  const visiblePlaces = useMemo(
+    () => (showAll ? allOpen : nearest),
+    [showAll, allOpen, nearest],
+  );
+
   const selected = useMemo(
-    () => pool.find((p) => p.id === selectedId) || nearest.find((p) => p.id === selectedId) || null,
-    [pool, nearest, selectedId],
+    () => allOpen.find((p) => p.id === selectedId) || null,
+    [allOpen, selectedId],
   );
 
   useEffect(() => {
     if (!mapRef.current || !userPos) return;
+    const pts = showAll ? visiblePlaces.slice(0, 50) : nearest;
     const coords = [
       { latitude: userPos.lat, longitude: userPos.lng },
-      ...nearest.map((p) => ({ latitude: p.lat, longitude: p.lng })),
+      ...pts.map((p) => ({ latitude: p.lat, longitude: p.lng })),
     ];
     if (coords.length === 1) {
       mapRef.current.animateToRegion(
@@ -224,7 +239,11 @@ export default function MapScreen() {
       edgePadding: { top: 60, right: 40, bottom: selected ? 280 : 40, left: 40 },
       animated: true,
     });
-  }, [userPos, nearest, selected]);
+  }, [userPos, nearest, visiblePlaces, showAll, selected]);
+
+  const collapseList = useCallback(() => {
+    listSheetRef.current?.snapToIndex(0);
+  }, []);
 
   const selectPlace = useCallback((place) => {
     setSelectedId(place.id);
@@ -369,8 +388,9 @@ export default function MapScreen() {
               }}
               showsUserLocation={status === 'ready'}
               showsMyLocationButton={false}
+              onPress={collapseList}
             >
-              {nearest.map((place, index) => {
+              {visiblePlaces.map((place, index) => {
                 const tone = voteTone(votes.scores?.[place.id] || 0);
                 return (
                   <Marker
@@ -392,25 +412,53 @@ export default function MapScreen() {
         </View>
 
         {!selected && (
-          <View style={styles.sheet}>
-            <ScrollView contentContainerStyle={styles.sheetContent}>
-              {(status === 'locating' || placesStatus === 'loading') && (
-                <Text style={styles.empty}>
-                  {status === 'locating' ? '定位中，請稍候…' : '載入附近地點…'}
+          <BottomSheet
+            ref={listSheetRef}
+            index={1}
+            snapPoints={LIST_SNAPS}
+            backgroundStyle={styles.sheetBg}
+            handleIndicatorStyle={styles.sheetHandle}
+          >
+            <View style={styles.tabRow}>
+              <TouchableOpacity
+                style={[styles.tab, !showAll && styles.tabActive]}
+                onPress={() => setShowAll(false)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.tabText, !showAll && styles.tabTextActive]}>附近</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, showAll && styles.tabActive]}
+                onPress={() => setShowAll(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.tabText, showAll && styles.tabTextActive]}>
+                  全部{allOpen.length ? ` (${allOpen.length})` : ''}
                 </Text>
-              )}
-              {status !== 'locating' &&
-                placesStatus !== 'loading' &&
-                nearest.length === 0 && (
-                <Text style={styles.empty}>
-                  {placesStatus === 'error'
-                    ? '地點資料載入失敗'
-                    : '附近找不到營業中的廁所'}
-                </Text>
-              )}
-              {nearest.map((place, index) => (
+              </TouchableOpacity>
+            </View>
+
+            {(status === 'locating' || placesStatus === 'loading') && (
+              <Text style={styles.empty}>
+                {status === 'locating' ? '定位中，請稍候…' : '載入附近地點…'}
+              </Text>
+            )}
+            {status !== 'locating' &&
+              placesStatus !== 'loading' &&
+              visiblePlaces.length === 0 && (
+              <Text style={styles.empty}>
+                {placesStatus === 'error'
+                  ? '地點資料載入失敗'
+                  : '附近找不到營業中的廁所'}
+              </Text>
+            )}
+
+            <BottomSheetFlatList
+              data={visiblePlaces}
+              keyExtractor={(p) => p.id}
+              contentContainerStyle={styles.sheetContent}
+              renderItem={({ item: place, index }) => (
                 <PlaceCard
-                  key={place.id}
                   place={place}
                   index={index}
                   vote={votes.scores?.[place.id] || 0}
@@ -421,14 +469,16 @@ export default function MapScreen() {
                   onVoteDown={handleVoteDown}
                   onNavigate={openGoogleMaps}
                 />
-              ))}
-              {nearest.length > 0 && (
-                <Text style={styles.hint}>
-                  右滑讚 · 左滑倒讚換下一間 · 長按可複製／分享 · 點選看詳情
-                </Text>
               )}
-            </ScrollView>
-          </View>
+              ListFooterComponent={
+                visiblePlaces.length > 0 ? (
+                  <Text style={styles.hint}>
+                    右滑讚 · 左滑倒讚換下一間 · 長按可複製／分享 · 點選看詳情
+                  </Text>
+                ) : null
+              }
+            />
+          </BottomSheet>
         )}
 
         {selected && (
@@ -500,7 +550,7 @@ const styles = StyleSheet.create({
     color: colors.brandDeep,
   },
   mapWrap: {
-    flex: 1.1,
+    flex: 1,
     backgroundColor: colors.mapBg,
   },
   loading: {
@@ -508,18 +558,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sheet: {
-    flex: 0.95,
-    marginTop: -18,
+  sheetBg: {
     backgroundColor: colors.sheet,
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
-    shadowColor: '#17332F',
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 8,
-    zIndex: 1,
+  },
+  sheetHandle: {
+    backgroundColor: 'rgba(23,51,47,0.2)',
+    width: 42,
+  },
+  tabRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingBottom: 8,
+  },
+  tab: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    backgroundColor: '#E8F7F4',
+  },
+  tabActive: {
+    backgroundColor: colors.brand,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.brandDeep,
+  },
+  tabTextActive: {
+    color: '#fff',
   },
   sheetContent: {
     padding: 14,

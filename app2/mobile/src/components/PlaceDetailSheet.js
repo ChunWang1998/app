@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { colors, radius, voteTone } from '../theme';
-import { formatDistance, formatHours } from '../lib/geo';
+import { formatDistance, formatHours, isHoursUnknown } from '../lib/geo';
 import { MAX_COMMENT_LEN, MAX_COMMENTS_PER_PLACE } from '../lib/community';
 
 export default function PlaceDetailSheet({
@@ -99,7 +99,11 @@ export default function PlaceDetailSheet({
 
           <View style={styles.metaRow}>
             <Text style={styles.meta}>{formatDistance(place.distance)}</Text>
-            <Text style={styles.meta}>{formatHours(place.營業時間)}</Text>
+            <Text style={[styles.meta, isHoursUnknown(place.營業時間) && styles.metaUnknown]}>
+              {isHoursUnknown(place.營業時間)
+                ? '營業時間不明，建議出發前確認'
+                : formatHours(place.營業時間)}
+            </Text>
             <Text
               style={[
                 styles.meta,
@@ -228,6 +232,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: radius.pill,
     overflow: 'hidden',
+  },
+  metaUnknown: {
+    color: '#999',
+    backgroundColor: '#F0F0F0',
   },
   navBtn: {
     marginTop: 14,

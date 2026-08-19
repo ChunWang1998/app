@@ -154,6 +154,16 @@ for each slot:
 
 依賴：`@gorhom/bottom-sheet`、`react-native-gesture-handler`、`react-native-reanimated`、`@react-native-async-storage/async-storage`、`expo-clipboard`
 
+# TODO
+
+## 待做
+1. **看全部地點** — 目前只顯示最近 3 間，改為可切換「附近 3 間 / 全部」；列表改 FlatList 做虛擬化，地圖多 marker 時考慮 clustering
+2. **點空白處收合面板（like Wemo）** — 主清單從固定 View 改為 `@gorhom/bottom-sheet`（已有依賴），設定多段 snap points；MapView 加 `onPress` 收合到最小
+3. **Handle 無營業時間資料** — 目前 `isOpenNow` 對 unknown 預設回 true，UI 顯示「營業時間未提供」。改善：PlaceCard 加灰色「時間未知」標籤，詳情頁顯示「營業時間不明，建議出發前確認」
+
+## Nice to have
+- **用戶自訂地點（本地端）** — 用 AsyncStorage 存用戶新增的地點，合併進 places state，地圖上用不同顏色 marker 標示
+
 # cmd
 
 ```bash

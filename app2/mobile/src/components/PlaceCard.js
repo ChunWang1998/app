@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { colors, radius, voteTone } from '../theme';
-import { formatDistance, formatHours } from '../lib/geo';
+import { formatDistance, formatHours, isHoursUnknown } from '../lib/geo';
 import GoldSparkle from './GoldSparkle';
 
 const voteIcons = require('../../assets/vote-icons.jpeg');
@@ -116,7 +116,9 @@ export default function PlaceCard({
             </Text>
             <View style={styles.metaRow}>
               <Text style={styles.meta}>{formatDistance(place.distance)}</Text>
-              <Text style={styles.meta}>{formatHours(place.營業時間)}</Text>
+              <Text style={[styles.meta, isHoursUnknown(place.營業時間) && styles.metaUnknown]}>
+                {formatHours(place.營業時間)}
+              </Text>
               {vote !== 0 && (
                 <Text
                   style={[
@@ -210,6 +212,10 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: radius.pill,
     maxWidth: '100%',
+  },
+  metaUnknown: {
+    color: '#999',
+    backgroundColor: '#F0F0F0',
   },
   metaGold: {
     backgroundColor: colors.voteGoldBright,
