@@ -20,7 +20,8 @@ import { colors, radius } from '../theme';
 import { nearestOpen, haversineMeters, isOpenNow } from '../lib/geo';
 import { fetchComments, submitComment } from '../lib/community';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { cellKey, loadPlacesNear, loadPlacesInRegion } from '@shared/places';
+import { cellKey, loadPlacesNear, loadPlacesInRegion, regionExceedsCellLimit } from '@shared/places';
+import { createPlacesCacheAdapter, syncPlacesManifest } from '../lib/placesCache';
 
 let _loadCellSync;
 try {
@@ -37,10 +38,20 @@ const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 };
 const LOCATE_TIMEOUT_MS = 6000;
 const POOL_SIZE = 25;
 const NEAR_MARKER_CAP = 3;
+const ALL_MARKER_INITIAL = 20;
 const ALL_MARKER_CAP = 80;
 const REGION_LOAD_DEBOUNCE_MS = 600;
 const RECENTER_DELTA = 0.04;
 const PLACES_BASE_URL = (process.env.EXPO_PUBLIC_PLACES_URL || '').replace(/\/$/, '');
+const placesCacheAdapter = createPlacesCacheAdapter();
+
+function placesLoadOptions() {
+  return {
+    baseUrl: PLACES_BASE_URL,
+    loadCellSync: _loadCellSync,
+    cacheAdapter: placesCacheAdapter,
+  };
+}
 
 function regionAround(lat, lng, delta = RECENTER_DELTA) {
   return {
@@ -49,6 +60,21 @@ function regionAround(lat, lng, delta = RECENTER_DELTA) {
     latitudeDelta: delta,
     longitudeDelta: delta,
   };
+}
+
+/** Ignore clustering / GPS jitter that retriggers onRegionChangeComplete. */
+function regionChangedEnough(prev, next) {
+  if (!next) return false;
+  if (!prev) return true;
+  const latEps = Math.max(0.0005, Number(prev.latitudeDelta) * 0.02);
+  const lngEps = Math.max(0.0005, Number(prev.longitudeDelta) * 0.02);
+  const dEps = Math.max(0.002, Number(prev.latitudeDelta) * 0.08);
+  return (
+    Math.abs(prev.latitude - next.latitude) > latEps ||
+    Math.abs(prev.longitude - next.longitude) > lngEps ||
+    Math.abs(prev.latitudeDelta - next.latitudeDelta) > dEps ||
+    Math.abs(prev.longitudeDelta - next.longitudeDelta) > dEps
+  );
 }
 
 function placeInRegion(place, region) {
@@ -144,20 +170,21 @@ export default function MapScreen() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [actionPlace, setActionPlace] = useState(null);
   const [recentering, setRecentering] = useState(false);
+  const [allMarkerLimit, setAllMarkerLimit] = useState(ALL_MARKER_INITIAL);
 
+  const [cacheReady, setCacheReady] = useState(!PLACES_BASE_URL);
   const userCell = userPos ? cellKey(userPos.lat, userPos.lng) : null;
   const regionTimer = useRef(null);
   const didInitialFit = useRef(false);
   const skipNextRegion = useRef(false);
   const viewportReq = useRef(0);
   const lastCommunityKey = useRef('');
+  const mapRegionRef = useRef(null);
+  const showAllRef = useRef(false);
 
   const loadRegion = useCallback(async (lat, lng, { mergePlaces = false } = {}) => {
     try {
-      const rows = await loadPlacesNear(lat, lng, {
-        baseUrl: PLACES_BASE_URL,
-        loadCellSync: PLACES_BASE_URL ? undefined : _loadCellSync,
-      });
+      const rows = await loadPlacesNear(lat, lng, placesLoadOptions());
       if (mergePlaces) {
         if (rows.length) {
           setPlaces((prev) => {
@@ -177,12 +204,14 @@ export default function MapScreen() {
   const loadViewport = useCallback(async (region) => {
     if (!region) return;
     const req = ++viewportReq.current;
+    if (regionExceedsCellLimit(region)) {
+      setViewportPlaces([]);
+      setViewportStatus('zoomedOut');
+      return;
+    }
     setViewportStatus('loading');
     try {
-      const rows = await loadPlacesInRegion(region, {
-        baseUrl: PLACES_BASE_URL,
-        loadCellSync: PLACES_BASE_URL ? undefined : _loadCellSync,
-      });
+      const rows = await loadPlacesInRegion(region, placesLoadOptions());
       if (req !== viewportReq.current) return;
       setViewportPlaces(rows);
       setViewportStatus('ready');
@@ -191,6 +220,17 @@ export default function MapScreen() {
       console.warn('viewport load failed', e?.message || e);
       setViewportStatus('error');
     }
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      await syncPlacesManifest(PLACES_BASE_URL);
+      if (alive) setCacheReady(true);
+    })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -203,17 +243,22 @@ export default function MapScreen() {
   }, []);
 
   useEffect(() => {
-    if (!userPos) return;
+    if (!userPos || !cacheReady) return;
     setPlacesStatus('loading');
     setMapCenter((prev) => prev || { lat: userPos.lat, lng: userPos.lng });
-    setMapRegion((prev) => prev || {
-      latitude: userPos.lat,
-      longitude: userPos.lng,
-      latitudeDelta: 0.04,
-      longitudeDelta: 0.04,
+    setMapRegion((prev) => {
+      if (prev) return prev;
+      const next = {
+        latitude: userPos.lat,
+        longitude: userPos.lng,
+        latitudeDelta: 0.04,
+        longitudeDelta: 0.04,
+      };
+      mapRegionRef.current = next;
+      return next;
     });
     loadRegion(userPos.lat, userPos.lng, { mergePlaces: true });
-  }, [userCell, loadRegion]);
+  }, [userCell, loadRegion, cacheReady]);
 
   useEffect(() => {
     return () => {
@@ -227,22 +272,41 @@ export default function MapScreen() {
         skipNextRegion.current = false;
         return;
       }
+      if (!regionChangedEnough(mapRegionRef.current, region)) return;
+
+      mapRegionRef.current = region;
       setMapRegion(region);
       setMapCenter({ lat: region.latitude, lng: region.longitude });
       if (regionTimer.current) clearTimeout(regionTimer.current);
       regionTimer.current = setTimeout(() => {
         loadRegion(region.latitude, region.longitude, { mergePlaces: false });
+        if (showAllRef.current) loadViewport(region);
       }, REGION_LOAD_DEBOUNCE_MS);
     },
-    [loadRegion],
+    [loadRegion, loadViewport],
   );
 
-  // When switching to "全部", load viewport cells immediately
   useEffect(() => {
-    if (showAll && mapRegion) {
-      loadViewport(mapRegion);
+    showAllRef.current = showAll;
+  }, [showAll]);
+
+  // Load viewport once when entering 全部 (later pans go through the debounce above).
+  useEffect(() => {
+    if (!showAll || !cacheReady) return;
+    const region = mapRegionRef.current;
+    if (!region) return;
+    loadViewport(region);
+  }, [showAll, cacheReady, loadViewport]);
+
+  useEffect(() => {
+    if (!showAll) {
+      setAllMarkerLimit(ALL_MARKER_INITIAL);
+      return;
     }
-  }, [showAll, loadViewport, mapRegion]);
+    setAllMarkerLimit(ALL_MARKER_INITIAL);
+    const t = setTimeout(() => setAllMarkerLimit(ALL_MARKER_CAP), 400);
+    return () => clearTimeout(t);
+  }, [showAll, viewportPlaces]);
 
   const refreshCommunity = useCallback(async (placeIds) => {
     if (!isSupabaseConfigured || !placeIds?.length) return;
@@ -338,8 +402,8 @@ export default function MapScreen() {
           : 0,
       }))
       .sort((a, b) => a.distance - b.distance)
-      .slice(0, ALL_MARKER_CAP);
-  }, [viewportPlaces, mapRegion, mapCenter, userPos]);
+      .slice(0, allMarkerLimit);
+  }, [viewportPlaces, mapRegion, mapCenter, userPos, allMarkerLimit]);
 
   const mapMarkers = useMemo(
     () => (showAll ? allOpen : nearest),
@@ -438,17 +502,19 @@ export default function MapScreen() {
       }
 
       const homeRegion = regionAround(pos.lat, pos.lng);
+      mapRegionRef.current = homeRegion;
       setMapCenter({ lat: pos.lat, lng: pos.lng });
       setMapRegion(homeRegion);
       skipNextRegion.current = true;
       mapRef.current?.animateToRegion(homeRegion, 400);
+      if (showAllRef.current) loadViewport(homeRegion);
       setTimeout(() => {
         skipNextRegion.current = false;
       }, 500);
     } finally {
       setRecentering(false);
     }
-  }, [recentering, userPos, status]);
+  }, [recentering, userPos, status, loadViewport]);
 
   const handleSubmitComment = useCallback(
     async (text) => {
@@ -488,6 +554,7 @@ export default function MapScreen() {
   const statusText = (() => {
     if (status === 'locating') return '正在定位…';
     if (placesStatus === 'loading') return '載入附近地點…';
+    if (showAll && viewportStatus === 'zoomedOut') return '請放大地圖以載入地點';
     if (showAll && viewportStatus === 'loading') return '載入地圖範圍地點…';
     if (placesStatus === 'error') return '地點資料載入失敗';
     if (status === 'denied') return '無法取得定位，改用高雄市中心示範';

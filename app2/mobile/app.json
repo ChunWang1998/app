@@ -47,7 +47,8 @@
           "locationWhenInUsePermission": "需要你的位置來找出附近有廁所的超商／咖啡廳。"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-file-system"
     ],
     "extra": {
       "eas": {

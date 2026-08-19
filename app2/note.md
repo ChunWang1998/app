@@ -27,8 +27,9 @@
 - 長按清單卡片 → 選「複製地址」或「分享」（內容為地址，非座標）
 - 頁籤 **附近 / 全部**：
   - **附近**：依 GPS 最近 3 間（營業中）
-  - **全部**：目前地圖中心所在**縣市**的全部營業中地點（不是全台灣、也不是「已載入格子的聯集」）。拖到台南後，數量與 marker 改為台南市
-  - 全部 tab 標籤顯示 `全部 (N) · 高雄市`；marker 依目前畫面範圍篩選，避免一次畫全市幾百個 pin
+  - **全部**：目前**地圖畫面範圍**內的營業中地點（按 cell 抓取，有上限；拉太遠會提示放大）
+  - marker 先畫 20 個再升到 `ALL_MARKER_CAP`（80），避免 clustering 一次塞太多 pin 閃退
+  - 拖地圖：region 需超過門檻才更新；viewport 載入 debounce 600ms（與附近相同）
 - 右上角「說明」：
   - **支援類型：** 7-11（陸續開放路易莎、全家等等）
   - **支援地點：** 高雄市、台南市、新北市、台北市（陸續開放其他縣市）
@@ -52,7 +53,7 @@
 # 資料來源
 可從 `fetchData/` run 各個 python script 取得 json 到 `data/`（例如 `711_with_toilet.json`），再由 `buildDataSet.py` **產出** `dataSet.json`、空間格子、以及縣市檔。  
 **注意：** `dataSet.json` 是產物不是輸入；只改它再跑 build 會被 `711_with_toilet.json` 覆蓋。要改店家請改 source JSON 或重跑抓資料腳本。  
-admin 會定期重跑 `buildDataSet.py`。客戶端「附近」只載入 9 格；「全部」載入該市 `cities/{縣市}.json`，不再整包 import `dataSet.json`。
+admin 會定期重跑 `buildDataSet.py`。客戶端「附近」只載入 9 格；「全部」載入畫面範圍內的 cells（超過 60 格則不載），不再整包 import `dataSet.json`。
 
 ## json schema
 ```json
@@ -193,16 +194,104 @@ fetchData/*.py → data/711_with_toilet.json → buildDataSet.py
 ```
 
 ## 離線 fallback
-若 `EXPO_PUBLIC_PLACES_URL` 未設定，mobile 會退回使用打包在 app 內的 `cellRegistry.js`（bundled cells + cities）。  
-縣市檔即使 CDN 尚未更新，也會再試 bundled `loadCitySync`。  
-cell 模式只適合小量資料（<500 cells）；超過後建議改用 CDN。
+若 `EXPO_PUBLIC_PLACES_URL` 未設定，mobile 只打包**高雄示範中心 9 格**（`cellRegistry.js`），不再 bundle 全台 cells / cities。  
+正式路徑：CDN 按格抓取 + `expo-file-system` 磁碟快取（去過的格子可離線）。  
+`manifest.json` 的 `version` / `builtAt` 用來做 lazy invalidation（版本變了不整包清空，下次讀該格再重抓）。
 
 ## 拖地圖載入
 - 用戶拖地圖到新區域時，`onRegionChangeComplete` 觸發（debounce 600ms）
-- 用該中心附近 9 格判斷目前縣市（地址前綴，如「台南市」）
-- 「附近」仍用 GPS 附近 9 格；「全部」改載 `cities/{縣市}.json`（替換，不與前一個市合併）
+- 「附近」仍用 GPS 附近 9 格；「全部」依**目前畫面範圍**載入重疊的 cells（`loadPlacesInRegion`）
+- 畫面涵蓋超過 `MAX_CELLS_PER_LOAD`（60 格）時不抓資料，提示「請放大地圖以載入地點」
 - 鏡頭**不會**因新資料載入而 `fitToCoordinates` 回 GPS
-- `shared/places.js` 內建 memory cache，同一個 cell / 縣市不會重複請求
+- `shared/places.js`：記憶體 LRU（最多 200）→ 磁碟 cacheAdapter → CDN → bundled 9 格
+
+## 落地狀態（方案 C）
+- [x] `loadPlacesInRegion` cell 上限 + zoom-out UI
+- [x] 記憶體 LRU
+- [x] `cacheAdapter` + `mobile/src/lib/placesCache.js`（documentDirectory）
+- [x] `manifest.json` `version` / `builtAt` + 啟動時 sync
+- [ ] 可選：用戶自選縣市離線包（尚未做）
+
+
+# 擴充性：按需抓取 + 持久快取（方案 C）
+
+> 目標：資料量成長到 100 倍（`dataSet.json` ≈ 184MB、cell 數上萬）也不會爆。  
+> 核心觀念：**App 永遠不整包載入資料**，只抓「使用者實際會用到的格子」，抓過就存進裝置持久快取，去過的區域即可離線。
+
+## 為什麼選 C（vs 其他方案）
+| 方案 | App 體積 | 首次啟動 | 離線範圍 | 100 倍可行性 |
+|------|---------|---------|---------|-------------|
+| A. 全部 bundle 進 App（現行離線 fallback） | 極大 | 慢 | 完整 | ❌ 上架體積爆炸、Metro 靜態 `require` 上萬檔 |
+| B. 首次下載全部到手機 | 小 | 慢（下 184MB） | 完整 | △ 可行但體驗差、多數是浪費 |
+| **C. 按需抓 cell + 持久快取** | **最小** | **快** | 去過的區域 | ✅ **最佳** |
+
+現有 CDN 路徑（`EXPO_PUBLIC_PLACES_URL` + 按 cell 分片）本身就是 C 的雛形，  
+唯一缺口是：目前只有記憶體快取（`shared/places.js` 的 `memoryCache`），關 App 就消失。  
+方案 C = 把記憶體快取升級為**磁碟持久快取**，並補上兩個保護閥。
+
+## 實作方式
+
+### 1) 持久快取層（核心）
+用 `expo-file-system` 把抓下來的 cell JSON 存到裝置，讀取順序：
+**記憶體 → 磁碟 → 網路（抓完寫回磁碟）**。
+
+- 快取目錄：`FileSystem.cacheDirectory + 'places/cells/'`（`cacheDirectory` 系統可回收；要保證常駐改用 `documentDirectory`）
+- 檔名：`{i}_{j}.json`、`{縣市}.json`，與 CDN 路徑一致
+- 建議在 `shared/places.js` 的 `fetchCell` / `fetchCity` 外包一層 `readThroughCache(key, fetcher)`：
+  ```
+  async function readThroughCache(relPath, fetcher) {
+    if (memoryCache.has(relPath)) return memoryCache.get(relPath)
+    const file = CACHE_ROOT + relPath
+    const info = await FileSystem.getInfoAsync(file)
+    if (info.exists && !isStale(info)) {
+      const rows = JSON.parse(await FileSystem.readAsStringAsync(file))
+      memoryCache.set(relPath, rows); return rows
+    }
+    const rows = await fetcher()                         // 走 CDN
+    await FileSystem.makeDirectoryAsync(dir, { intermediates: true }).catch(() => {})
+    await FileSystem.writeAsStringAsync(file, JSON.stringify(rows))
+    memoryCache.set(relPath, rows); return rows
+  }
+  ```
+- `shared/places.js` 是純 JS（web 也用），`expo-file-system` 只在 mobile 有。  
+  作法：把「快取讀寫函式」以 option 形式注入（如 `loadPlacesNear(lat,lng,{ cacheAdapter })`），  
+  mobile 傳入 FS adapter、web 不傳（維持記憶體快取）。避免在 shared 直接 import expo。
+
+### 2) 保護閥 A：`loadPlacesInRegion` 加上限
+目前拉遠地圖會把 bounding box 內**所有 cell** 一次 `Promise.all` 抓，100 倍時會炸。
+- 加 `MAX_CELLS_PER_LOAD`（例如 60）；超過就不逐格抓，改走 `cities/{縣市}.json` 或提示「請放大以載入地點」。
+- 或設定「最小 zoom 門檻」，低於門檻不載入 marker（只顯示叢集）。
+
+### 3) 保護閥 B：記憶體快取加 LRU 上限
+`memoryCache` 目前只增不減。改成有上限的 LRU（例如最多 200 格），  
+避免長時間使用累積過多資料在 RAM。磁碟快取則靠 TTL / 版本淘汰。
+
+### 4) 版本與新鮮度（增量更新）
+- `manifest.json` 已含 `placeCount` / `cellCount`，建議再加 `version` 或 `builtAt`。
+- App 啟動時抓 `manifest.json`（很小）比對本地版本；版本變了就把磁碟快取標記為過期，  
+  下次讀到該 cell 再重抓（lazy invalidation，不用一次清空）。
+- 單一 cell 也可用 HTTP `ETag` / `Last-Modified` 條件請求,減少流量。
+
+### 5)（可選）離線地圖包
+沿用既有的 `cities/{縣市}.json` 分片，讓用戶「自選縣市」預先下載到 `documentDirectory`，  
+需要完全離線去某地時才下該區，而非強迫全量下載（即方案 B 的痛點）。
+
+## 落地順序（建議）
+1. 先做 **2)+3)** 兩個保護閥（純前端、風險低，先擋住 zoom-out / RAM 問題）。
+2. 再做 **1)** 持久快取（改 `shared/places.js` 加 cacheAdapter + mobile FS adapter）。
+3. 最後做 **4)** 版本比對，讓資料能安全更新。
+4. **5)** 視產品定位再決定要不要做離線包。
+
+## 影響到的檔案
+| 檔案 | 變更 |
+|------|------|
+| `shared/places.js` | `fetch*` 外包 read-through cache；`loadPlacesInRegion` 加 cell 上限；`memoryCache` 改 LRU |
+| `mobile/src/screens/MapScreen.js` | 傳入 mobile FS cacheAdapter；zoom 門檻 UI |
+| `mobile/src/lib/`（新增 `placesCache.js`） | 用 `expo-file-system` 實作磁碟讀寫 / TTL / 版本 |
+| `fetchData/buildDataSet.py` | `manifest.json` 增加 `version` / `builtAt` |
+
+> 備註：`cellRegistry.js`（全量 bundled cells）在 C 之下應**縮小或移除**，  
+> 只保留極少數熱區 cell 當「完全沒網路且沒快取」時的最後保底，避免 App 體積隨資料成長。
 
 # cmd
 
@@ -212,8 +301,9 @@ cell 模式只適合小量資料（<500 cells）；超過後建議改用 CDN。
 # 1) （可選）重新抓 7-11 → data/711_with_toilet.json
 python3 fetchData/get711List.py
 
-# 2) 合併 source → dataSet.json + cells + cities，並同步
-#    web/public/places/ 與 mobile/assets/places/ + cellRegistry.js
+# 2) 合併 source → dataSet.json + cells + cities + manifest.version，並同步
+#    web/public/places/ 與 mobile/assets/places/
+#    cellRegistry.js 只打包高雄示範 9 格（其餘走 CDN + 裝置快取）
 #    請改 711_with_toilet.json（或其它 SOURCE_FILES），不要只改 dataSet.json
 python3 fetchData/buildDataSet.py
 
