@@ -48,7 +48,8 @@
         }
       ],
       "expo-font",
-      "expo-file-system"
+      "expo-file-system",
+      "expo-iap"
     ],
     "extra": {
       "eas": {

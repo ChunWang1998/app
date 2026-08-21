@@ -16,13 +16,13 @@ export default function HelpModal({ visible, onClose }) {
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.title}>說明</Text>
 
-          <Text style={styles.label}>支援類型</Text>
-          <Text style={styles.body}>7-11</Text>
-          <Text style={styles.note}>陸續開放路易莎、全家等等</Text>
+          <Text style={styles.label}>免費版</Text>
+          <Text style={styles.body}>全台 7-11（線上載入）</Text>
+          <Text style={styles.note}>右上角「解鎖」可買斷完整資料包</Text>
 
-          <Text style={[styles.label, { marginTop: 14 }]}>支援地點</Text>
-          <Text style={styles.body}>高雄市、台南市、新北市、台北市</Text>
-          <Text style={styles.note}>陸續開放其他縣市</Text>
+          <Text style={[styles.label, { marginTop: 14 }]}>完整資料包（買斷）</Text>
+          <Text style={styles.body}>公廁、全家、加油站、路易莎、星巴克、寶雅、百貨、捷運等</Text>
+          <Text style={styles.note}>下載後可離線使用；支援恢復購買</Text>
 
           <TouchableOpacity style={styles.btn} onPress={onClose} activeOpacity={0.85}>
             <Text style={styles.btnText}>知道了</Text>

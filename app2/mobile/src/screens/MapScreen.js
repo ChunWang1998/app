@@ -20,8 +20,21 @@ import { colors, radius } from '../theme';
 import { nearestOpen, haversineMeters, isOpenNow } from '../lib/geo';
 import { fetchComments, submitComment } from '../lib/community';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { cellKey, loadPlacesNear, loadPlacesInRegion, regionExceedsCellLimit } from '@shared/places';
+import {
+  cellKey,
+  clearPlacesCache,
+  loadPlacesNear,
+  loadPlacesInRegion,
+  regionExceedsCellLimit,
+} from '@shared/places';
 import { createPlacesCacheAdapter, syncPlacesManifest } from '../lib/placesCache';
+import { isProUnlocked } from '../lib/entitlements';
+import {
+  ensureFullPackIndexed,
+  hasLocalFullPack,
+  isFullPackIndexed,
+  loadCellFromFullPack,
+} from '../lib/fullPack';
 
 let _loadCellSync;
 try {
@@ -33,6 +46,7 @@ try {
 import PlaceDetailSheet from '../components/PlaceDetailSheet';
 import HelpModal from '../components/HelpModal';
 import PlaceActionsModal from '../components/PlaceActionsModal';
+import UnlockProModal from '../components/UnlockProModal';
 
 const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 };
 const LOCATE_TIMEOUT_MS = 6000;
@@ -44,14 +58,6 @@ const REGION_LOAD_DEBOUNCE_MS = 600;
 const RECENTER_DELTA = 0.04;
 const PLACES_BASE_URL = (process.env.EXPO_PUBLIC_PLACES_URL || '').replace(/\/$/, '');
 const placesCacheAdapter = createPlacesCacheAdapter();
-
-function placesLoadOptions() {
-  return {
-    baseUrl: PLACES_BASE_URL,
-    loadCellSync: _loadCellSync,
-    cacheAdapter: placesCacheAdapter,
-  };
-}
 
 function regionAround(lat, lng, delta = RECENTER_DELTA) {
   return {
@@ -168,6 +174,8 @@ export default function MapScreen() {
   const [selectedId, setSelectedId] = useState(null);
   const [showAll, setShowAll] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [unlockOpen, setUnlockOpen] = useState(false);
+  const [packReady, setPackReady] = useState(false);
   const [actionPlace, setActionPlace] = useState(null);
   const [recentering, setRecentering] = useState(false);
   const [allMarkerLimit, setAllMarkerLimit] = useState(ALL_MARKER_INITIAL);
@@ -181,6 +189,22 @@ export default function MapScreen() {
   const lastCommunityKey = useRef('');
   const mapRegionRef = useRef(null);
   const showAllRef = useRef(false);
+  const packReadyRef = useRef(false);
+
+  const placesLoadOptions = useCallback(() => {
+    if (packReadyRef.current && isFullPackIndexed()) {
+      return {
+        baseUrl: '',
+        loadCellSync: loadCellFromFullPack,
+        cache: true,
+      };
+    }
+    return {
+      baseUrl: PLACES_BASE_URL,
+      loadCellSync: _loadCellSync,
+      cacheAdapter: placesCacheAdapter,
+    };
+  }, []);
 
   const loadRegion = useCallback(async (lat, lng, { mergePlaces = false } = {}) => {
     try {
@@ -199,7 +223,7 @@ export default function MapScreen() {
       console.warn('places load failed', e?.message || e);
       if (mergePlaces) setPlacesStatus('error');
     }
-  }, []);
+  }, [placesLoadOptions]);
 
   const loadViewport = useCallback(async (region) => {
     if (!region) return;
@@ -220,11 +244,33 @@ export default function MapScreen() {
       console.warn('viewport load failed', e?.message || e);
       setViewportStatus('error');
     }
-  }, []);
+  }, [placesLoadOptions]);
+
+  const reloadAfterPack = useCallback(async () => {
+    clearPlacesCache();
+    packReadyRef.current = true;
+    setPackReady(true);
+    if (!userPos) return;
+    setPlacesStatus('loading');
+    setPlaces([]);
+    setViewportPlaces([]);
+    await loadRegion(userPos.lat, userPos.lng, { mergePlaces: true });
+    if (showAllRef.current && mapRegionRef.current) {
+      await loadViewport(mapRegionRef.current);
+    }
+  }, [userPos, loadRegion, loadViewport]);
 
   useEffect(() => {
     let alive = true;
     (async () => {
+      const unlocked = await isProUnlocked();
+      if (unlocked && (await hasLocalFullPack())) {
+        const ok = await ensureFullPackIndexed();
+        if (alive && ok) {
+          packReadyRef.current = true;
+          setPackReady(true);
+        }
+      }
       await syncPlacesManifest(PLACES_BASE_URL);
       if (alive) setCacheReady(true);
     })();
@@ -559,6 +605,7 @@ export default function MapScreen() {
     if (placesStatus === 'error') return '地點資料載入失敗';
     if (status === 'denied') return '無法取得定位，改用高雄市中心示範';
     if (status === 'error') return '定位失敗，改用高雄市中心示範';
+    if (packReady) return '完整資料包 · 可離線';
     return '';
   })();
 
@@ -588,6 +635,17 @@ export default function MapScreen() {
               <Text style={[styles.tabText, showAll && styles.tabTextActive]}>全部</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            style={[styles.helpBtn, packReady ? styles.unlockBtnReady : styles.unlockBtn]}
+            onPress={() => setUnlockOpen(true)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={packReady ? '完整資料包已解鎖' : '解鎖完整廁所資料包'}
+          >
+            <Text style={[styles.helpText, packReady && styles.unlockTextReady]}>
+              {packReady ? '離線' : '解鎖'}
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.helpBtn}
             onPress={() => setHelpOpen(true)}
@@ -692,6 +750,13 @@ export default function MapScreen() {
           onClose={() => setHelpOpen(false)}
         />
 
+        <UnlockProModal
+          visible={unlockOpen}
+          onClose={() => setUnlockOpen(false)}
+          placesBaseUrl={PLACES_BASE_URL}
+          onPackReady={reloadAfterPack}
+        />
+
         <PlaceActionsModal
           visible={!!actionPlace}
           place={actionPlace}
@@ -758,9 +823,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: '#E7F6F3',
   },
+  unlockBtn: {
+    backgroundColor: colors.accent,
+  },
+  unlockBtnReady: {
+    backgroundColor: '#E7F6F3',
+  },
   helpText: {
     fontSize: 13,
     fontWeight: '700',
+    color: colors.brandDeep,
+  },
+  unlockTextReady: {
     color: colors.brandDeep,
   },
   countBadge: {
