@@ -10,15 +10,30 @@
     },
     "preview": {
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview-ios-sim": {
+      "distribution": "internal",
       "ios": {
         "simulator": true
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_PLACES_URL": "https://chunwang1998.github.io/app/places",
+        "EXPO_PUBLIC_IAP_PRODUCT_ID": "com.toiletgo.app.pro"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
   }
 }

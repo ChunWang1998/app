@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { colors, radius } from '../theme';
-import { isProUnlocked } from '../lib/entitlements';
+import { isProUnlocked, clearProUnlocked } from '../lib/entitlements';
 import { purchaseProUnlock, restoreProUnlock } from '../lib/iap';
 import {
   downloadFullPack,
@@ -20,6 +20,7 @@ import {
   getInstalledPackMeta,
   hasLocalFullPack,
   isFullPackIndexed,
+  clearLocalFullPack,
 } from '../lib/fullPack';
 
 /**
@@ -30,6 +31,7 @@ import {
  *   onClose: () => void,
  *   placesBaseUrl: string,
  *   onPackReady: () => void,
+ *   onPackCleared?: () => void,
  * }} props
  */
 export default function UnlockProModal({
@@ -37,6 +39,7 @@ export default function UnlockProModal({
   onClose,
   placesBaseUrl,
   onPackReady,
+  onPackCleared,
 }) {
   const [pro, setPro] = useState(false);
   const [packReady, setPackReady] = useState(false);
@@ -153,6 +156,32 @@ export default function UnlockProModal({
     }
   };
 
+  const handleDevReset = () => {
+    Alert.alert('清除本機解鎖（開發用）', '會清除 Pro 標記與已下載資料包，不會取消商店購買。', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '清除',
+        style: 'destructive',
+        onPress: async () => {
+          setBusy(true);
+          try {
+            await clearProUnlocked();
+            await clearLocalFullPack();
+            setPro(false);
+            setPackReady(false);
+            setLocalMeta(null);
+            onPackCleared?.();
+            Alert.alert('已清除', '可重新測試解鎖流程。');
+          } catch (e) {
+            setError(String(e?.message || e || '清除失敗'));
+          } finally {
+            setBusy(false);
+          }
+        },
+      },
+    ]);
+  };
+
   const sizeLabel = formatBytes(
     remoteMeta?.byteSize || localMeta?.byteSize || 0,
   );
@@ -230,6 +259,17 @@ export default function UnlockProModal({
           >
             <Text style={styles.linkText}>恢復購買</Text>
           </TouchableOpacity>
+
+          {typeof __DEV__ !== 'undefined' && __DEV__ ? (
+            <TouchableOpacity
+              style={styles.linkBtn}
+              onPress={handleDevReset}
+              disabled={busy}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.linkText, styles.devResetText]}>清除解鎖（開發）</Text>
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={styles.secondary}
@@ -331,6 +371,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.brandDeep,
+  },
+  devResetText: {
+    color: '#B42318',
   },
   secondary: {
     marginTop: 4,

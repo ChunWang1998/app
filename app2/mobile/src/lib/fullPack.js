@@ -77,6 +77,19 @@ export function clearFullPackIndex() {
   cellIndex = null;
 }
 
+/** Delete on-device full pack files and clear memory index. */
+export async function clearLocalFullPack() {
+  clearFullPackIndex();
+  try {
+    const info = await FileSystem.getInfoAsync(PACK_DIR);
+    if (info.exists) {
+      await FileSystem.deleteAsync(PACK_DIR, { idempotent: true });
+    }
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Fetch remote pack manifest (size / version) without downloading the body.
  * @param {string} baseUrl

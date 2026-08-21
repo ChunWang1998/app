@@ -260,6 +260,20 @@ export default function MapScreen() {
     }
   }, [userPos, loadRegion, loadViewport]);
 
+  const reloadAfterPackCleared = useCallback(async () => {
+    clearPlacesCache();
+    packReadyRef.current = false;
+    setPackReady(false);
+    if (!userPos) return;
+    setPlacesStatus('loading');
+    setPlaces([]);
+    setViewportPlaces([]);
+    await loadRegion(userPos.lat, userPos.lng, { mergePlaces: true });
+    if (showAllRef.current && mapRegionRef.current) {
+      await loadViewport(mapRegionRef.current);
+    }
+  }, [userPos, loadRegion, loadViewport]);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -755,6 +769,7 @@ export default function MapScreen() {
           onClose={() => setUnlockOpen(false)}
           placesBaseUrl={PLACES_BASE_URL}
           onPackReady={reloadAfterPack}
+          onPackCleared={reloadAfterPackCleared}
         />
 
         <PlaceActionsModal

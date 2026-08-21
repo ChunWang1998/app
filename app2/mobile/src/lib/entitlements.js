@@ -15,3 +15,8 @@ export async function isProUnlocked() {
 export async function setProUnlocked(value) {
   await AsyncStorage.setItem(PRO_KEY, value ? '1' : '0');
 }
+
+/** Clear local Pro entitlement (does not refund store purchases). */
+export async function clearProUnlocked() {
+  await AsyncStorage.removeItem(PRO_KEY);
+}
