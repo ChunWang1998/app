@@ -13,22 +13,9 @@ const loaders = {
   '1132_6016': () => require('../../assets/places/cells/1132_6016.json'),
 };
 
-const cityLoaders = {
-};
-
 export function loadCellSync(key) {
   const load = loaders[key];
   if (!load) return [];
   const rows = load();
   return Array.isArray(rows) ? rows : [];
 }
-
-export function loadCitySync(city) {
-  const load = cityLoaders[city];
-  if (!load) return [];
-  const rows = load();
-  return Array.isArray(rows) ? rows : [];
-}
-
-export const CELL_KEYS = Object.keys(loaders);
-export const CITY_KEYS = Object.keys(cityLoaders);

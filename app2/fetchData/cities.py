@@ -29,7 +29,6 @@ CITIES: list[str] = [
     "金門縣",
     "連江縣",
 ]
-CITY_SET: set[str] = set(CITIES)
 
 # MOI / MOENV county codes used by FAC_P_07 and similar open data.
 COUNTY_CODES: dict[str, str] = {
@@ -90,7 +89,3 @@ def city_from_text(text: str) -> str | None:
         return None
     ranked.sort(reverse=True)
     return ranked[0][1]
-
-
-def in_cities(text: str) -> bool:
-    return city_from_text(text) is not None

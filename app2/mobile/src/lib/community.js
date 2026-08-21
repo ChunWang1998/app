@@ -8,7 +8,7 @@ export const MAX_COMMENTS_PER_PLACE = 10;
  * @typedef {{ id: string, text: string, createdAt: number }} Comment
  */
 
-export function assertBackendReady() {
+function assertBackendReady() {
   if (!isSupabaseConfigured || !supabase) {
     const err = new Error(
       '尚未設定 Supabase。請在 mobile/.env 填入 EXPO_PUBLIC_SUPABASE_URL 與 EXPO_PUBLIC_SUPABASE_ANON_KEY，並執行 supabase/schema.sql。',

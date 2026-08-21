@@ -1,15 +1,12 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import { cellKey } from '@shared/places';
 
 const PACK_DIR = `${FileSystem.documentDirectory}packs/`;
 const PACK_FILE = `${PACK_DIR}full.json`;
 const PACK_META_FILE = `${PACK_DIR}meta.json`;
-const PACK_VERSION_KEY = 'toiletgo:fullPackVersion';
 
 /** @type {Map<string, object[]>|null} */
 let cellIndex = null;
-let indexedVersion = '';
 
 function packUrls(baseUrl) {
   const root = String(baseUrl || '').replace(/\/$/, '');
@@ -73,13 +70,11 @@ export async function ensureFullPackIndexed() {
     bucket.push(p);
   }
   cellIndex = map;
-  indexedVersion = (await AsyncStorage.getItem(PACK_VERSION_KEY)) || '';
   return true;
 }
 
 export function clearFullPackIndex() {
   cellIndex = null;
-  indexedVersion = '';
 }
 
 /**
@@ -130,35 +125,12 @@ export async function downloadFullPack(baseUrl, onProgress) {
   if (!result?.uri) throw new Error('下載失敗');
 
   await FileSystem.writeAsStringAsync(PACK_META_FILE, JSON.stringify(remote));
-  const version = String(remote.version || remote.builtAt || '');
-  if (version) await AsyncStorage.setItem(PACK_VERSION_KEY, version);
 
   clearFullPackIndex();
   const ok = await ensureFullPackIndexed();
   if (!ok) throw new Error('資料包損毀，請重試下載');
   onProgress?.(1);
   return remote;
-}
-
-/**
- * True when local pack version matches remote (or remote unreachable → keep local).
- * @param {string} baseUrl
- */
-export async function isPackUpToDate(baseUrl) {
-  const local = await getInstalledPackMeta();
-  if (!local) return false;
-  try {
-    const remote = await fetchPackManifest(baseUrl);
-    const rv = String(remote.version || remote.builtAt || '');
-    const lv = String(local.version || local.builtAt || '');
-    return !!rv && rv === lv;
-  } catch {
-    return true;
-  }
-}
-
-export function getIndexedVersion() {
-  return indexedVersion;
 }
 
 /** Format bytes for UI. */

@@ -4,5 +4,11 @@ data/dist/
 # Web static copy (rebuild syncs from data/dist)
 web/public/places/
 
-# Mobile offline places + cellRegistry MUST be tracked so EAS can bundle them.
+# Web Vite build output
+web/dist/
+
+# Python bytecode
+fetchData/__pycache__/
+
+# Mobile offline hotspot cells + cellRegistry MUST be tracked so EAS can bundle them.
 # Regenerate with: python3 fetchData/buildDataSet.py

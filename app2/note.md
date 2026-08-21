@@ -48,7 +48,6 @@
   - `EXPO_PUBLIC_SUPABASE_ANON_KEY` = anon 或 publishable key
 - 本機只存匿名 `toiletgo:device_id`（AsyncStorage）
 - 程式：`src/lib/supabase.js`、`community.js`、`deviceId.js`
-- 左右滑圖示：`assets/vote-icons.jpeg`
 
 # 資料來源
 可從 `fetchData/` run 各個 python script 取得 json 到 `data/`（例如 `711_with_toilet.json`），再由 `buildDataSet.py` **產出** `dataSet.json`、空間格子、以及縣市檔。  
@@ -149,16 +148,16 @@ for each slot:
 | `src/screens/LandingScreen.js` | Landing＋WcFlag |
 | `src/screens/MapScreen.js` | 地圖／清單／投票／詳情 |
 | `src/components/WcFlag.js` | Q 版木頭 WC 旗 |
-| `src/components/PlaceCard.js` | 可左右滑的清單卡 |
 | `src/components/PlaceDetailSheet.js` | 兩段式詳情＋留言 |
 | `src/components/HelpModal.js` | 右上角說明 |
 | `src/components/PlaceActionsModal.js` | 長按：複製／分享 |
-| `src/lib/community.js` | Supabase 全局 votes／comments |
+| `src/components/UnlockProModal.js` | Pro 解鎖／離線包下載 |
+| `src/lib/community.js` | Supabase 全局 comments |
 | `src/lib/supabase.js` | Supabase client |
 | `src/lib/deviceId.js` | 匿名裝置 ID |
 | `supabase/schema.sql` | DB schema（SQL Editor 執行） |
-| `src/lib/geo.js` | 距離、營業、`nearestOpen`、`cityNear`（縣市判斷） |
-| `shared/places.js` | 載入附近 9 格 + `loadPlacesByCity` |
+| `src/lib/geo.js` | 距離、營業、`nearestOpen` |
+| `shared/places.js` | 載入附近 9 格 + `loadPlacesInRegion` |
 
 依賴：`@gorhom/bottom-sheet`、`react-native-gesture-handler`、`react-native-reanimated`、`@react-native-async-storage/async-storage`、`expo-clipboard`
 
@@ -167,7 +166,7 @@ for each slot:
 ## 已完成
 1. ~~**看全部地點**~~ — 主清單改為 `@gorhom/bottom-sheet`（三段 snap 14%/45%/85%）+ `BottomSheetFlatList`，加「附近 / 全部」切換頁籤
 2. ~~**點空白處收合面板**~~ — MapView `onPress` 收合 sheet 到最小 snap
-3. ~~**Handle 無營業時間資料**~~ — PlaceCard 灰色「時間未知」標籤；詳情頁「營業時間不明，建議出發前確認」
+3. ~~**Handle 無營業時間資料**~~ — 詳情頁「營業時間不明，建議出發前確認」
 4. ~~**拖地圖載入其他區域**~~ — `onRegionChangeComplete` + debounce 600ms 依地圖中心判斷縣市，載入該市全部（鏡頭不再自動拉回 GPS）
 5. ~~**CDN 資料託管**~~ — 改用 `EXPO_PUBLIC_PLACES_URL` 指向 GitHub Pages（或其他靜態主機），`cellRegistry.js` 降為離線 fallback
 6. ~~**全部 = 該市全部**~~ — `buildDataSet.py` 產出 `cities/{縣市}.json`；tab 數量與 marker 隨地圖中心縣市切換

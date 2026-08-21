@@ -58,14 +58,6 @@ export function isOpenNow(hours, now = new Date()) {
 }
 
 /** @param {string|HoursSpec|null|undefined} hours */
-export function isHoursUnknown(hours) {
-  if (!hours) return true
-  if (typeof hours === 'string') return !hours.trim()
-  if (hours.unknown) return true
-  return false
-}
-
-/** @param {string|HoursSpec|null|undefined} hours */
 export function formatHours(hours) {
   if (!hours) return '時間未知'
   if (typeof hours === 'string') return hours || '時間未知'

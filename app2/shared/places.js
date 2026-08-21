@@ -91,10 +91,6 @@ function cellPath(key) {
   return `cells/${key}.json`
 }
 
-function cityPath(city) {
-  return `cities/${encodeURIComponent(city)}.json`
-}
-
 /**
  * @param {string} path relative to baseUrl, e.g. `cells/1_2.json`
  * @param {string} baseUrl
@@ -209,27 +205,6 @@ export async function loadPlacesNear(lat, lng, options = {}) {
     ),
   )
   return mergeById(parts)
-}
-
-/**
- * Load every place in a Taiwan city (高雄市, 台南市, …).
- *
- * @param {string} city
- * @param {{
- *   baseUrl?: string,
- *   loadCitySync?: (city: string) => unknown[],
- *   cacheAdapter?: { get?: Function, set?: Function },
- *   cache?: boolean,
- * }} [options]
- */
-export async function loadPlacesByCity(city, options = {}) {
-  const { loadCitySync } = options
-  const name = String(city || '').trim()
-  if (!name) return []
-  return readThrough(cityPath(name), {
-    ...options,
-    loadSync: typeof loadCitySync === 'function' ? () => loadCitySync(name) : undefined,
-  })
 }
 
 /**
