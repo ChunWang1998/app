@@ -32,12 +32,27 @@ v2（尚未做）：Apple 內購月繳；未訂閱可建檔、看人／聚會、
 
 1. 新建 Supabase 專案，SQL Editor 執行 [`supabase/schema.sql`](./supabase/schema.sql)。
 2. 本機：`mobile/.env` 填 `EXPO_PUBLIC_SUPABASE_URL`、`EXPO_PUBLIC_SUPABASE_ANON_KEY`。
-3. **EAS / App Store：** 同名變數必須做成 EAS Secret 再打 production，否則上架包連不到雲端。
+3. **EAS / 商店建置：** 同名變數必須 push 到 EAS 再打 preview／production，否則上架包連不到雲端。
 
 ```bash
-eas secret:create --name EXPO_PUBLIC_SUPABASE_URL --value https://xxxx.supabase.co
-eas secret:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value eyJ...
-eas build --platform ios --profile production
+cd mobile
+npm run eas:env:push:preview
+npm run eas:env:push:production
+npm run eas:env:list
 ```
 
-v1 **不收款**。付費訂閱在 v2 走 Apple 內購；v1 註冊的 100 人自動進白名單。
+### Android（Google Play）
+
+對照文案與檢查清單見 [`PLAY_STORE.md`](./PLAY_STORE.md)。隱私／支援頁：[`store/privacy.html`](./store/privacy.html)、[`store/support.html`](./store/support.html)。
+
+```bash
+cd mobile
+
+# 內部測試 APK
+npm run build:android:preview
+
+# 正式 AAB 並提交 Play internal / draft
+npm run deploy:play
+```
+
+Package：`com.linwang.app`。v1 **不收款**。付費訂閱在 v2；v1 註冊的 100 人自動進白名單。

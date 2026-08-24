@@ -133,24 +133,29 @@ npm run deploy:play
 - `EXPO_PUBLIC_PLACES_URL=https://chunwang1998.github.io/app/places`
 - `EXPO_PUBLIC_IAP_PRODUCT_ID=com.toiletgo.app.pro`
 
-Supabase 金鑰請用 EAS Secrets（勿寫進 repo）：
+Supabase 金鑰請用 EAS Environment Variables（勿寫進 repo）。本機已有 `mobile/.env` 時：
 
 ```bash
-eas secret:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://...."
-eas secret:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "...."
+cd app2/mobile
+npm run eas:env:push:preview      # 給 preview APK
+npm run eas:env:push:production   # 給正式 AAB
+npm run eas:env:list              # 確認名稱有出現（勿在公開場合印出值）
 ```
 
-並在 `eas.json` production.env 加上對應變數名稱，或於 EAS 專案環境變數綁定。
+`eas.json` 的 preview / production 已內建公開變數 `EXPO_PUBLIC_PLACES_URL`、`EXPO_PUBLIC_IAP_PRODUCT_ID`；Supabase 兩項必須從 `.env` push 到 EAS。
 
 ---
 
 ## 帳號核准前可完成
 
 - [x] `eas.json` Android preview APK + production env（places / IAP）
-- [x] `npm run deploy:play` / `build:android*` scripts
+- [x] `npm run deploy:play` / `build:android*` / `eas:env:push:*` scripts
 - [x] Expo Go「清除解鎖（開發）」重測流程
 - [x] 本檔 Play 文案與資料安全草稿
 - [x] Feature graphic：`store/feature-graphic.png`（1024×500）
+- [x] 本機 `eas login`
+- [x] `eas env:push` preview + production（含 Supabase）
+- [ ] `npm run build:android:preview` 產出 APK（重試中：https://expo.dev/accounts/leowang1105/projects/toilet-go/builds/e1da676c-eb36-4371-b3e1-69bb13c92bab ）
 - [ ] 確認隱私／支援頁已部署到 github.io（含買斷說明）
 - [ ] 備好開發者身分／金流文件
 - [ ] （可選）`eas build -p android --profile production --local` 預先打 AAB

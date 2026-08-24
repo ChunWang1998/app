@@ -25,7 +25,14 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "deploy:testflight": "eas build --platform ios --profile production --auto-submit"
+    "build:android:preview": "eas build --platform android --profile preview",
+    "build:android": "eas build --platform android --profile production",
+    "submit:android": "eas submit --platform android --latest --profile production",
+    "deploy:play": "eas build --platform android --profile production && eas submit --platform android --latest --profile production",
+    "deploy:testflight": "eas build --platform ios --profile production --auto-submit",
+    "eas:env:push:preview": "eas env:push preview --path .env --force",
+    "eas:env:push:production": "eas env:push production --path .env --force",
+    "eas:env:list": "eas env:list preview && eas env:list production"
   },
   "private": true
 }
