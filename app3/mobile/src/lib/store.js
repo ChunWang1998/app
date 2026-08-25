@@ -11,7 +11,7 @@ import {
   normalizeSlot,
 } from '../data/constants';
 import { findSeedGathering, seedGatheringRows, seedGatheringsForCity } from '../data/gatherings';
-import { GLOBAL_GUIDES, getGuide, isGuideId } from '../data/globalGuides';
+import { GLOBAL_GUIDES, getGuide } from '../data/globalGuides';
 import { seedAllOwners, seedOwnersForCity } from '../data/seedOwners';
 import { normalizeProfile, emptyDog } from './dogs';
 import {
@@ -60,8 +60,6 @@ const KEYS = {
   gatherings: 'linwang:gatherings',
   gatheringLikes: 'linwang:gatheringLikes',
   gatheringEnded: 'linwang:gatheringEnded',
-  hiddenChats: 'linwang:hiddenChats',
-  selectedCity: 'linwang:selectedCity',
   demoInvite: 'linwang:demoInvite',
 };
 
@@ -288,17 +286,6 @@ export async function registerWithProfile(phoneRaw, profile) {
   return { session, profile: saved, founderCount };
 }
 
-export async function markPaid() {
-  const session = await loadSession();
-  if (!session) return null;
-  session.subscription = 'paid';
-  return saveSession(session);
-}
-
-export async function signOut() {
-  await AsyncStorage.multiRemove([KEYS.session, KEYS.profile]);
-}
-
 export async function deleteAccount() {
   const session = await loadSession();
   if (isCloudReady() && session?.loginKey) {
@@ -373,11 +360,6 @@ export async function listOwners(cityFilter) {
     }),
   );
   return [...guides, ...local, ...remote];
-}
-
-export async function getOwner(id, cityFilter) {
-  const all = await listOwners(cityFilter);
-  return all.find((o) => o.id === id) || getGuide(id) || null;
 }
 
 export async function listConnects() {
@@ -582,14 +564,6 @@ async function bumpOutingCount(ids) {
     }
   }
   await writeJson(KEYS.overrides, overrides);
-}
-
-export async function demoAccept(connectId) {
-  return setConnectStatus(connectId, 'accepted');
-}
-
-export async function demoOtherConfirm(connectId) {
-  return confirmMeet(connectId, 'seed-other');
 }
 
 export async function loadTour() {
@@ -926,33 +900,6 @@ export async function likeGatheringHost(id, userId) {
   return listGatherings(null, userId);
 }
 
-export async function loadHiddenChats() {
-  return readJson(KEYS.hiddenChats, []);
-}
-
-export async function hideChat(connectId) {
-  const ids = await readJson(KEYS.hiddenChats, []);
-  if (!ids.includes(connectId)) ids.push(connectId);
-  await writeJson(KEYS.hiddenChats, ids);
-  return ids;
-}
-
-export async function unhideChat(connectId) {
-  const ids = (await readJson(KEYS.hiddenChats, [])).filter((id) => id !== connectId);
-  await writeJson(KEYS.hiddenChats, ids);
-  return ids;
-}
-
-export async function loadSelectedCity() {
-  const city = await readJson(KEYS.selectedCity, null);
-  return TRIAL_CITIES.includes(city) ? city : null;
-}
-
-export async function saveSelectedCity(city) {
-  await writeJson(KEYS.selectedCity, city);
-  return city;
-}
-
 export async function maybeSendDemoInvite(userId) {
   if (isCloudReady()) return null;
   if (!userId) return null;
@@ -968,5 +915,3 @@ export async function maybeSendDemoInvite(userId) {
   await writeJson(KEYS.demoInvite, true);
   return { row, peer };
 }
-
-export { isGuideId, getGuide, isCloudReady };

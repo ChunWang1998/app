@@ -1,10 +1,10 @@
 /** Spatial cell helpers + nearby place loading. CELL_SIZE must match buildDataSet.py */
 
-export const CELL_SIZE = 0.02
+const CELL_SIZE = 0.02
 /** Viewport cell fetch cap (~city-scale). Zoom out further → skip grid load. */
-export const MAX_CELLS_PER_LOAD = 60
+const MAX_CELLS_PER_LOAD = 60
 /** In-memory LRU cap (cells + cities). Disk cache is separate. */
-export const MEMORY_CACHE_LIMIT = 200
+const MEMORY_CACHE_LIMIT = 200
 
 /**
  * @param {number} lat
@@ -19,7 +19,7 @@ export function cellKey(lat, lng) {
  * @param {number} lat
  * @param {number} lng
  */
-export function nearbyCellKeys(lat, lng) {
+function nearbyCellKeys(lat, lng) {
   const i = Math.floor(lat / CELL_SIZE)
   const j = Math.floor(lng / CELL_SIZE)
   const keys = []
@@ -35,7 +35,7 @@ export function nearbyCellKeys(lat, lng) {
  * Cell keys that overlap a MapView region bounding box.
  * @param {{ latitude: number, longitude: number, latitudeDelta: number, longitudeDelta: number }} region
  */
-export function cellKeysInRegion(region) {
+function cellKeysInRegion(region) {
   const latMin = region.latitude - region.latitudeDelta / 2
   const latMax = region.latitude + region.latitudeDelta / 2
   const lngMin = region.longitude - region.longitudeDelta / 2

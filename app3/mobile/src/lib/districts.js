@@ -1,4 +1,4 @@
-import { COUNTY_CODE, canonicalCity } from '../data/constants';
+import { COUNTY_CODE } from '../data/constants';
 
 const NLSC = 'https://api.nlsc.gov.tw/other';
 
@@ -25,17 +25,6 @@ async function fetchText(url) {
   }
 }
 
-/** Reverse geocode via NLSC — lon,lat order. */
-export async function reverseCityDistrict(coords) {
-  const url = `${NLSC}/TownVillagePointQuery/${coords.lng}/${coords.lat}/4326`;
-  const xml = await fetchText(url);
-  const cityRaw = xmlTags(xml, 'ctyName')[0] || xmlTags(xml, 'ctyname')[0];
-  const districtRaw =
-    xmlTags(xml, 'townName')[0] || xmlTags(xml, 'townname')[0];
-  if (!cityRaw) throw new Error('nlsc reverse empty');
-  return { cityRaw, districtRaw: districtRaw || '' };
-}
-
 /** Live district list for one county code only. */
 export async function fetchDistrictsForCity(city) {
   const code = COUNTY_CODE[city];
@@ -43,8 +32,4 @@ export async function fetchDistrictsForCity(city) {
   const xml = await fetchText(`${NLSC}/ListTown/${code}`);
   const names = xmlTags(xml, 'townname');
   return names.filter(Boolean);
-}
-
-export function cityFromRaw(raw) {
-  return canonicalCity(raw);
 }

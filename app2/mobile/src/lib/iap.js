@@ -1,7 +1,7 @@
 import { Platform, Alert } from 'react-native';
 import { setProUnlocked, isProUnlocked } from './entitlements';
 
-export const PRO_PRODUCT_ID =
+const PRO_PRODUCT_ID =
   process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.toiletgo.app.pro';
 
 function runningInExpoGo() {

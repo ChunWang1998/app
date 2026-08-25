@@ -7,7 +7,7 @@ function toMinutes(hhmm) {
 }
 
 /** ISO weekday 1=Mon … 7=Sun */
-export function isoWeekday(date = new Date()) {
+function isoWeekday(date = new Date()) {
   const js = date.getDay(); // 0=Sun
   return js === 0 ? 7 : js;
 }

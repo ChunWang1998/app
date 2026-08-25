@@ -5,13 +5,9 @@ export const colors = {
   muted: '#7A6A58',
   brand: '#E07A3D',
   brandDeep: '#B85A28',
-  accent: '#E8B923',
   card: '#FFFFFF',
   line: '#F0E4D4',
   newGlow: '#F4C15D',
-  crownGold: '#D4A017',
-  crownSilver: '#9AA3AD',
-  crownBronze: '#C47A3A',
   danger: '#C45C4A',
   ok: '#2F8F6B',
 };

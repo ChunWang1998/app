@@ -34,7 +34,6 @@ import { AwareTextInput, useKeyboardAwareScroll } from '../lib/keyboard';
 import Chip from '../components/Chip';
 
 export default function EditProfileScreen({
-  districts: districtsProp,
   initial,
   registerMode,
   onBack,
@@ -50,7 +49,7 @@ export default function EditProfileScreen({
   const [places, setPlaces] = useState(base.places || []);
   const [placeDraft, setPlaceDraft] = useState('');
   const [city, setCity] = useState(base.city || TRIAL_CITIES[0]);
-  const [districtList, setDistrictList] = useState(districtsProp || []);
+  const [districtList, setDistrictList] = useState([]);
   const [district, setDistrict] = useState(base.district || '');
   const [loadingTowns, setLoadingTowns] = useState(false);
   const [dogs, setDogs] = useState(
@@ -71,9 +70,6 @@ export default function EditProfileScreen({
     const loadTowns = async () => {
       if (!city) return;
       if (onCityChange) onCityChange(city);
-      if (districtsProp?.length && city === (initial?.city || city)) {
-        // prefer live fetch always when city changes
-      }
       setLoadingTowns(true);
       try {
         const towns = await fetchDistrictsForCity(city);

@@ -73,7 +73,7 @@ export async function ensureFullPackIndexed() {
   return true;
 }
 
-export function clearFullPackIndex() {
+function clearFullPackIndex() {
   cellIndex = null;
 }
 

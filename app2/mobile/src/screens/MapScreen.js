@@ -7,14 +7,12 @@ import {
   Linking,
   Platform,
   ActivityIndicator,
-  Share,
   Alert,
   Dimensions,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import * as Clipboard from 'expo-clipboard';
 import { colors, radius } from '../theme';
 import { nearestOpen, haversineMeters, isOpenNow } from '../lib/geo';
 import { fetchComments, submitComment } from '../lib/community';
@@ -44,7 +42,6 @@ try {
 }
 import PlaceDetailSheet from '../components/PlaceDetailSheet';
 import HelpModal from '../components/HelpModal';
-import PlaceActionsModal from '../components/PlaceActionsModal';
 import UnlockProModal from '../components/UnlockProModal';
 
 const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 };
@@ -111,10 +108,6 @@ function placeLabel(place) {
   return `${place.type}${place.name ? ` ${place.name}` : ''}`;
 }
 
-function shareMessage(place) {
-  return `${placeLabel(place)}\n${place.地址 || ''}`;
-}
-
 function runningInExpoGo() {
   try {
     const Constants = require('expo-constants').default ?? require('expo-constants');
@@ -175,7 +168,6 @@ export default function MapScreen() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [packReady, setPackReady] = useState(false);
-  const [actionPlace, setActionPlace] = useState(null);
   const [recentering, setRecentering] = useState(false);
   const [allMarkerLimit, setAllMarkerLimit] = useState(ALL_MARKER_INITIAL);
 
@@ -604,24 +596,6 @@ export default function MapScreen() {
     [selectedId],
   );
 
-  const handleCopy = useCallback(async () => {
-    if (!actionPlace) return;
-    const payload = actionPlace.地址 || placeLabel(actionPlace);
-    await Clipboard.setStringAsync(payload);
-    setActionPlace(null);
-    Alert.alert('已複製地址', payload);
-  }, [actionPlace]);
-
-  const handleShare = useCallback(async () => {
-    if (!actionPlace) return;
-    try {
-      await Share.share({ message: shareMessage(actionPlace) });
-    } catch {
-      // user cancelled
-    }
-    setActionPlace(null);
-  }, [actionPlace]);
-
   const statusText = (() => {
     if (status === 'locating') return '正在定位…';
     if (placesStatus === 'loading') return '載入附近地點…';
@@ -776,14 +750,6 @@ export default function MapScreen() {
           onPackReady={reloadAfterPack}
           onPackCleared={reloadAfterPackCleared}
         />
-
-        <PlaceActionsModal
-          visible={!!actionPlace}
-          place={actionPlace}
-          onCopy={handleCopy}
-          onShare={handleShare}
-          onClose={() => setActionPlace(null)}
-        />
       </View>
     </View>
   );
@@ -914,10 +880,5 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 5,
-  },
-  loading: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

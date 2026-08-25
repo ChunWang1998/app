@@ -69,7 +69,7 @@ export const DEFAULT_GATHERING_CAPACITY = 8;
 export const CONNECT_REMINDER =
   '見面提醒：雙方主人請全程在場。第一次請約公共公園，不要約私人庭院或室內。全程牽繩，直到雙方口頭同意才靠近。體型差大時預設平行走、不互相撲。若任一方的狗出現壓力訊號（躲、吠、低吼、身體僵硬），立刻拉開並結束當次。合照需當下口頭同意；夜間不要用閃光燈直射眼睛。現場怎麼走由你們自己決定。';
 
-export function normalizeSlotId(id) {
+function normalizeSlotId(id) {
   if (id === 'noon') return 'afternoon';
   if (id === 'night') return 'evening';
   return id;
@@ -130,17 +130,4 @@ export function isGatheringDateAllowed(dateISO, now = new Date()) {
   const max = new Date(today);
   max.setDate(max.getDate() + GATHERING_MAX_DAYS_AHEAD);
   return picked >= min.getTime() && picked <= max.getTime();
-}
-
-export function canonicalCity(raw) {
-  const n = String(raw || '').replace(/台/g, '臺');
-  if (n.includes('臺北')) return '臺北市';
-  if (n.includes('新北')) return '新北市';
-  if (n.includes('臺南')) return '臺南市';
-  if (n.includes('高雄')) return '高雄市';
-  return null;
-}
-
-export function isTrialCity(city) {
-  return TRIAL_CITIES.includes(city);
 }

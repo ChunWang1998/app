@@ -265,10 +265,6 @@ export default function App() {
         ? '教學：再試著 Connect 可可。可可會回覆並主動傳訊息。'
         : null;
 
-  const profileDistricts = profile?.city
-    ? districtsByCity[profile.city] || []
-    : [];
-
   let body = null;
   if (!started) {
     body = <LandingScreen onStart={() => setStarted(true)} />;
@@ -287,7 +283,6 @@ export default function App() {
     body = (
       <View style={{ flex: 1 }}>
         <EditProfileScreen
-          districts={profileDistricts}
           initial={profile}
           registerMode={Boolean(pendingPhone) && !session}
           onBack={() => {
@@ -578,7 +573,6 @@ export default function App() {
     body = (
       <View style={{ flex: 1 }}>
         <EditProfileScreen
-          districts={profileDistricts}
           initial={null}
           registerMode
           onBack={() => {}}

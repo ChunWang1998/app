@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Dimensions, Keyboard, Platform, TextInput } from 'react-native';
 
 /**
@@ -9,7 +9,6 @@ export function useKeyboardAwareScroll() {
   const scrollY = useRef(0);
   const focused = useRef(null);
   const kbRef = useRef(0);
-  const [kbHeight, setKbHeight] = useState(0);
 
   const scrollFocusedIntoView = () => {
     const node = focused.current;
@@ -32,12 +31,10 @@ export function useKeyboardAwareScroll() {
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const show = Keyboard.addListener(showEvt, (e) => {
       kbRef.current = e.endCoordinates.height;
-      setKbHeight(e.endCoordinates.height);
       setTimeout(scrollFocusedIntoView, Platform.OS === 'ios' ? 80 : 40);
     });
     const hide = Keyboard.addListener(hideEvt, () => {
       kbRef.current = 0;
-      setKbHeight(0);
     });
     return () => {
       show.remove();
@@ -47,7 +44,6 @@ export function useKeyboardAwareScroll() {
 
   return {
     scrollRef,
-    kbHeight,
     onScroll: (e) => {
       scrollY.current = e.nativeEvent.contentOffset.y;
     },

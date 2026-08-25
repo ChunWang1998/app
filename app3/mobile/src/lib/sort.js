@@ -1,6 +1,6 @@
 import { MAX_PLACES, MAX_SLOTS } from '../data/constants';
 
-export function richnessScore(owner) {
+function richnessScore(owner) {
   if (!owner) return 0;
   let n = 0;
   if (owner.photoOk) n += 3;
