@@ -1,33 +1,38 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors } from '../theme';
-import { allSlotCombos, slotKey } from '../data/constants';
+import { allSlotCombos, slotKey, TRIAL_CITIES } from '../data/constants';
+import { flattenOwnersToDogCards } from '../lib/dogs';
 import { sortOwners, crownsForDistrict } from '../lib/sort';
 import OwnerRow from '../components/OwnerRow';
 import Chip from '../components/Chip';
 import ScreenHeader from '../components/ScreenHeader';
 
 export default function ExploreScreen({
-  city,
-  districts,
-  guessedDistrict,
+  districtsByCity = {},
+  onNeedDistricts,
   owners,
   profile,
   onOpenOwner,
   onProfile,
 }) {
-  const [district, setDistrict] = useState(guessedDistrict || '');
+  const [city, setCity] = useState('');
+  const [district, setDistrict] = useState('');
   const [slotKeys, setSlotKeys] = useState([]);
 
   useEffect(() => {
     setDistrict('');
+    if (city && onNeedDistricts) onNeedDistricts(city);
   }, [city]);
 
-  const guides = owners.filter((o) => o.isGuide);
-  const inCity = owners.filter((o) => !o.isGuide && o.city === city);
+  const districts = city ? districtsByCity[city] || [] : [];
+  const cards = useMemo(() => flattenOwnersToDogCards(owners), [owners]);
+  const guides = cards.filter((o) => o.isGuide);
+  const people = cards.filter((o) => !o.isGuide);
+  const byCity = city ? people.filter((o) => o.city === city) : people;
   const byDistrict = district
-    ? inCity.filter((o) => o.district === district)
-    : inCity;
+    ? byCity.filter((o) => o.district === district)
+    : byCity;
 
   const filtered = byDistrict.filter((o) => {
     if (!slotKeys.length) return true;
@@ -36,8 +41,8 @@ export default function ExploreScreen({
 
   const sorted = useMemo(() => sortOwners(filtered), [filtered]);
   const crowns = useMemo(
-    () => (district ? crownsForDistrict(inCity, district) : {}),
-    [inCity, district],
+    () => (district ? crownsForDistrict(byCity, district) : {}),
+    [byCity, district],
   );
 
   const toggleSlot = (key) => {
@@ -49,8 +54,8 @@ export default function ExploreScreen({
   return (
     <View style={styles.fill}>
       <ScreenHeader
-        title={city}
-        subtitle="鄰汪夥伴可用時段篩選"
+        title="鄰汪夥伴"
+        subtitle="全台配對 · 可用縣市與時段篩選"
         photoUri={profile?.photoUri}
         onProfile={onProfile}
       />
@@ -60,17 +65,36 @@ export default function ExploreScreen({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.modes}
         >
-          <Chip label="全區" selected={!district} onPress={() => setDistrict('')} />
-          {districts.map((d) => (
+          <Chip label="全台" selected={!city} onPress={() => setCity('')} />
+          {TRIAL_CITIES.map((c) => (
             <Chip
-              key={d}
-              label={d}
-              selected={district === d}
-              onPress={() => setDistrict(d)}
+              key={c}
+              label={c.replace(/市$/, '')}
+              selected={city === c}
+              onPress={() => setCity(c)}
             />
           ))}
         </ScrollView>
       </View>
+      {city ? (
+        <View style={styles.districts}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.modes}
+          >
+            <Chip label="全區" selected={!district} onPress={() => setDistrict('')} />
+            {districts.map((d) => (
+              <Chip
+                key={d}
+                label={d}
+                selected={district === d}
+                onPress={() => setDistrict(d)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
       <ScrollView
         contentContainerStyle={styles.list}
@@ -79,7 +103,11 @@ export default function ExploreScreen({
         <Text style={styles.groupTitle}>範例汪汪</Text>
         <Text style={styles.sub}>團團／可可 · 每位登入的人都看得到</Text>
         {guides.map((o) => (
-          <OwnerRow key={o.id} owner={o} onPress={() => onOpenOwner(o.id)} />
+          <OwnerRow
+            key={o.cardKey}
+            owner={o}
+            onPress={() => onOpenOwner(o.ownerId || o.id, o.dogId)}
+          />
         ))}
 
         <Text style={[styles.groupTitle, { marginTop: 10 }]}>時段篩選</Text>
@@ -109,10 +137,10 @@ export default function ExploreScreen({
         ) : (
           sorted.map((o) => (
             <OwnerRow
-              key={o.id}
+              key={o.cardKey}
               owner={o}
-              crown={district ? crowns[o.id] : undefined}
-              onPress={() => onOpenOwner(o.id)}
+              crown={district ? crowns[o.ownerId || o.id] : undefined}
+              onPress={() => onOpenOwner(o.ownerId || o.id, o.dogId)}
             />
           ))
         )}

@@ -29,8 +29,15 @@ export function sortOwners(list) {
 /** Crowns by outing count in one district; ties: connectCount then registeredAt. */
 export function crownsForDistrict(list, district) {
   if (!district) return {};
+  const seen = new Set();
   const rows = list
-    .filter((o) => o.district === district && o.photoOk && !o.isGuide)
+    .filter((o) => {
+      if (o.district !== district || !o.photoOk || o.isGuide) return false;
+      const key = o.ownerId || o.id;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
     .sort((a, b) => {
       const out = (b.outingCount || 0) - (a.outingCount || 0);
       if (out !== 0) return out;
@@ -40,7 +47,7 @@ export function crownsForDistrict(list, district) {
     });
   const map = {};
   rows.slice(0, 3).forEach((o, i) => {
-    map[o.id] = i + 1;
+    map[o.ownerId || o.id] = i + 1;
   });
   return map;
 }

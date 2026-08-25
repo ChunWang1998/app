@@ -144,6 +144,29 @@ npm run eas:env:list              # 確認名稱有出現（勿在公開場合�
 
 `eas.json` 的 preview / production 已內建公開變數 `EXPO_PUBLIC_PLACES_URL`、`EXPO_PUBLIC_IAP_PRODUCT_ID`；Supabase 兩項必須從 `.env` push 到 EAS。
 
+### Android 地圖（必做，否則獨立 APK 一進地圖就閃退）
+
+Android 正式包走 Google Maps，**一定要有 Maps SDK for Android API key**。Expo Go 不用，所以本機看起來正常、下載 APK 卻看不到地圖／定位。
+
+1. [Google Cloud Console](https://console.cloud.google.com/google/maps-apis) 開專案 → 啟用 **Maps SDK for Android** → 建立 API key  
+2. 限制：套件名 `com.toiletgo.app` + EAS 簽章 SHA-1（`eas credentials -p android` 或 Expo 網站 Credentials）  
+3. 寫進 `mobile/.env`：
+
+```
+GOOGLE_MAPS_API_KEY=你的key
+```
+
+4. Push 到 EAS 後**重新打 native 包**（JS OTA 無效）：
+
+```bash
+cd app2/mobile
+npm run eas:env:push:preview
+npm run eas:env:push:production
+npm run build:android:preview
+```
+
+`app.config.js` 會在 Android EAS build 缺 key 時直接失敗，避免再產出會閃退的 APK。
+
 ---
 
 ## 帳號核准前可完成
@@ -155,7 +178,8 @@ npm run eas:env:list              # 確認名稱有出現（勿在公開場合�
 - [x] Feature graphic：`store/feature-graphic.png`（1024×500）
 - [x] 本機 `eas login`
 - [x] `eas env:push` preview + production（含 Supabase）
-- [ ] `npm run build:android:preview` 產出 APK（重試中：https://expo.dev/accounts/leowang1105/projects/toilet-go/builds/e1da676c-eb36-4371-b3e1-69bb13c92bab ）
+- [ ] 建立 Google Maps Android API key，寫入 `mobile/.env` 的 `GOOGLE_MAPS_API_KEY` 後再 `eas:env:push:*` 並重打 APK
+- [ ] `npm run build:android:preview` 產出 APK（舊包會閃退：缺 Maps key）
 - [ ] 確認隱私／支援頁已部署到 github.io（含買斷說明）
 - [ ] 備好開發者身分／金流文件
 - [ ] （可選）`eas build -p android --profile production --local` 預先打 AAB

@@ -23,54 +23,60 @@ import {
   PLAY_OPTIONS,
   MAX_SLOTS,
   MAX_PLACES,
+  MAX_DOGS,
   MAX_INTRO,
+  TRIAL_CITIES,
   slotLabel,
 } from '../data/constants';
 import { fetchDistrictsForCity } from '../lib/districts';
+import { emptyDog, normalizeProfile } from '../lib/dogs';
 import { AwareTextInput, useKeyboardAwareScroll } from '../lib/keyboard';
 import Chip from '../components/Chip';
 
 export default function EditProfileScreen({
-  city,
-  districts,
+  districts: districtsProp,
   initial,
   registerMode,
   onBack,
   onSave,
+  onCityChange,
 }) {
   const insets = useSafeAreaInsets();
   const { scrollRef, onScroll, onInputFocus, onInputBlur } =
     useKeyboardAwareScroll();
-  const [dogName, setDogName] = useState(initial?.dogName || '');
-  const [ownerNick, setOwnerNick] = useState(initial?.ownerNick || '');
-  const [intro, setIntro] = useState(initial?.intro || '');
-  const [breed, setBreed] = useState(initial?.breed || '');
-  const [size, setSize] = useState(initial?.size || '中型');
-  const [ageRange, setAgeRange] = useState(initial?.ageRange || AGE_RANGES[1]);
-  const [personalities, setPersonalities] = useState(initial?.personalities || []);
-  const [slots, setSlots] = useState(initial?.slots || []);
-  const [places, setPlaces] = useState(initial?.places || []);
+  const base = normalizeProfile(initial) || normalizeProfile({});
+  const [ownerNick, setOwnerNick] = useState(base.ownerNick || '');
+  const [slots, setSlots] = useState(base.slots || []);
+  const [places, setPlaces] = useState(base.places || []);
   const [placeDraft, setPlaceDraft] = useState('');
-  const locatedCity = city || initial?.city || '';
-  const [districtList, setDistrictList] = useState(districts || []);
-  const [district, setDistrict] = useState(initial?.district || districts?.[0] || '');
+  const [city, setCity] = useState(base.city || TRIAL_CITIES[0]);
+  const [districtList, setDistrictList] = useState(districtsProp || []);
+  const [district, setDistrict] = useState(base.district || '');
   const [loadingTowns, setLoadingTowns] = useState(false);
-  const [playWith, setPlayWith] = useState(initial?.playWith || 'parallel');
-  const [canPhoto, setCanPhoto] = useState(initial?.canPhoto !== false);
-  const [photoUri, setPhotoUri] = useState(initial?.photoUri || null);
+  const [dogs, setDogs] = useState(
+    (base.dogs || [emptyDog()]).map((d) => emptyDog(d)),
+  );
+  const [dogIndex, setDogIndex] = useState(0);
+
+  const dog = dogs[dogIndex] || dogs[0];
+
+  const updateDog = (patch) => {
+    setDogs((prev) =>
+      prev.map((d, i) => (i === dogIndex ? emptyDog({ ...d, ...patch }) : d)),
+    );
+  };
 
   useEffect(() => {
     let cancelled = false;
     const loadTowns = async () => {
-      if (!locatedCity) return;
-      if (locatedCity === city && districts?.length) {
-        setDistrictList(districts);
-        if (!districts.includes(district)) setDistrict(districts[0] || '');
-        return;
+      if (!city) return;
+      if (onCityChange) onCityChange(city);
+      if (districtsProp?.length && city === (initial?.city || city)) {
+        // prefer live fetch always when city changes
       }
       setLoadingTowns(true);
       try {
-        const towns = await fetchDistrictsForCity(locatedCity);
+        const towns = await fetchDistrictsForCity(city);
         if (cancelled) return;
         setDistrictList(towns);
         setDistrict((prev) => (towns.includes(prev) ? prev : towns[0] || ''));
@@ -87,10 +93,15 @@ export default function EditProfileScreen({
     return () => {
       cancelled = true;
     };
-  }, [locatedCity]);
+  }, [city]);
 
-  const toggle = (arr, setArr, id) => {
-    setArr(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
+  const togglePersonality = (p) => {
+    const list = dog.personalities || [];
+    updateDog({
+      personalities: list.includes(p)
+        ? list.filter((x) => x !== p)
+        : [...list, p],
+    });
   };
 
   const toggleSlot = (day, slot) => {
@@ -118,50 +129,81 @@ export default function EditProfileScreen({
       quality: 0.7,
     });
     if (!res.canceled && res.assets?.[0]?.uri) {
-      setPhotoUri(res.assets[0].uri);
+      updateDog({ photoUri: res.assets[0].uri, photoOk: true });
     }
   };
 
+  const addDog = () => {
+    if (dogs.length >= MAX_DOGS) {
+      Alert.alert('最多 3 隻狗');
+      return;
+    }
+    setDogs([...dogs, emptyDog()]);
+    setDogIndex(dogs.length);
+  };
+
+  const removeDog = () => {
+    if (dogs.length <= 1) {
+      Alert.alert('至少要有一隻狗');
+      return;
+    }
+    Alert.alert('移除這隻狗？', dog.dogName || '未命名', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '移除',
+        style: 'destructive',
+        onPress: () => {
+          const next = dogs.filter((_, i) => i !== dogIndex);
+          setDogs(next);
+          setDogIndex(Math.max(0, dogIndex - 1));
+        },
+      },
+    ]);
+  };
+
   const save = () => {
-    if (!dogName.trim()) {
-      Alert.alert('請填狗名');
-      return;
+    for (const d of dogs) {
+      if (!d.dogName.trim()) {
+        Alert.alert('請填狗名', '每隻狗都要有名字。');
+        return;
+      }
+      if (!d.photoUri && !d.photoOk) {
+        Alert.alert('請上傳合照', `「${d.dogName}」需要主人與狗都入鏡的合照。`);
+        return;
+      }
     }
-    if (!photoUri && !initial?.photoOk) {
-      Alert.alert('請上傳合照', '清單只接受主人與狗都入鏡的合照（示範：選一張照片即可）。');
-      return;
-    }
-    if (!locatedCity) {
-      Alert.alert('請先完成定位', '縣市由定位判定，不能手選。');
+    if (!city) {
+      Alert.alert('請選手選縣市');
       return;
     }
     if (!district) {
       Alert.alert('請選行政區');
       return;
     }
-    onSave({
-      dogName: dogName.trim(),
-      ownerNick: ownerNick.trim(),
-      intro: intro.trim().slice(0, MAX_INTRO),
-      breed: breed.trim(),
-      size,
-      ageRange,
-      personalities,
-      slots,
-      places,
-      district,
-      city: locatedCity,
-      playWith,
-      canPhoto,
-      photoUri,
-      photoOk: Boolean(photoUri) || initial?.photoOk,
-      outingCount: initial?.outingCount || 0,
-      connectCount: initial?.connectCount || 0,
-      captainCount: initial?.captainCount || 0,
-      memberCount: initial?.memberCount || 0,
-      captainScore: initial?.captainScore || 0,
-      registeredAt: initial?.registeredAt || new Date().toISOString(),
-    });
+    onSave(
+      normalizeProfile({
+        ownerNick: ownerNick.trim(),
+        slots,
+        places,
+        district,
+        city,
+        dogs: dogs.map((d) =>
+          emptyDog({
+            ...d,
+            dogName: d.dogName.trim(),
+            breed: (d.breed || '').trim(),
+            intro: (d.intro || '').trim().slice(0, MAX_INTRO),
+            photoOk: Boolean(d.photoUri) || Boolean(d.photoOk),
+          }),
+        ),
+        outingCount: initial?.outingCount || 0,
+        connectCount: initial?.connectCount || 0,
+        captainCount: initial?.captainCount || 0,
+        memberCount: initial?.memberCount || 0,
+        captainScore: initial?.captainScore || 0,
+        registeredAt: initial?.registeredAt || new Date().toISOString(),
+      }),
+    );
   };
 
   return (
@@ -170,188 +212,242 @@ export default function EditProfileScreen({
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={0}
     >
-    <ScrollView
-      ref={scrollRef}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-      automaticallyAdjustKeyboardInsets={false}
-      contentContainerStyle={[
-        styles.pad,
-        { paddingTop: insets.top + 8, paddingBottom: 48 },
-      ]}
-    >
-      {registerMode ? null : (
-        <TouchableOpacity onPress={onBack}>
-          <Text style={styles.back}>← 返回</Text>
-        </TouchableOpacity>
-      )}
-      <Text style={styles.h}>{registerMode ? '免費註冊' : '汪汪檔案'}</Text>
-      {registerMode ? (
-        <Text style={styles.hint}>
-          填手機號的同時必須建立汪汪檔案，才算完成註冊。
-        </Text>
-      ) : (
-        <View style={{ height: 18 }} />
-      )}
+      <ScrollView
+        ref={scrollRef}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        automaticallyAdjustKeyboardInsets={false}
+        contentContainerStyle={[
+          styles.pad,
+          { paddingTop: insets.top + 8, paddingBottom: 48 },
+        ]}
+      >
+        {registerMode ? null : (
+          <TouchableOpacity onPress={onBack}>
+            <Text style={styles.back}>← 返回</Text>
+          </TouchableOpacity>
+        )}
+        <Text style={styles.h}>{registerMode ? '免費註冊' : '汪汪檔案'}</Text>
+        {registerMode ? (
+          <Text style={styles.hint}>
+            填手機號的同時必須建立汪汪檔案，才算完成註冊。可新增最多 {MAX_DOGS}{' '}
+            隻狗。
+          </Text>
+        ) : (
+          <View style={{ height: 12 }} />
+        )}
 
-      <View style={styles.photoWrap}>
-        <TouchableOpacity style={styles.photoBtn} onPress={pickPhoto}>
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.photo} />
-          ) : (
-            <Text style={styles.photoTxt}>合照</Text>
-          )}
-        </TouchableOpacity>
-        <Text style={styles.photoHint}>上傳主人＋狗合照</Text>
-      </View>
-
-      <AwareTextInput
-        style={styles.input}
-        placeholder="狗名"
-        value={dogName}
-        onChangeText={setDogName}
-        scrollOnFocus={onInputFocus}
-        scrollOnBlur={onInputBlur}
-      />
-      <AwareTextInput
-        style={styles.input}
-        placeholder="主人暱稱（選填）"
-        value={ownerNick}
-        onChangeText={setOwnerNick}
-        scrollOnFocus={onInputFocus}
-        scrollOnBlur={onInputBlur}
-      />
-      <AwareTextInput
-        style={[styles.input, styles.intro]}
-        placeholder="簡短介紹（50 字內）"
-        value={intro}
-        maxLength={MAX_INTRO}
-        multiline
-        onChangeText={(t) => setIntro(t.slice(0, MAX_INTRO))}
-        scrollOnFocus={onInputFocus}
-        scrollOnBlur={onInputBlur}
-      />
-      <Text style={styles.count}>{intro.length}/{MAX_INTRO}</Text>
-      <AwareTextInput
-        style={styles.input}
-        placeholder="品種／混種"
-        value={breed}
-        onChangeText={setBreed}
-        scrollOnFocus={onInputFocus}
-        scrollOnBlur={onInputBlur}
-      />
-
-      <Text style={styles.k}>體型</Text>
-      <RowChips items={SIZES} value={size} onPick={setSize} />
-      <Text style={styles.k}>年齡</Text>
-      <RowChips items={AGE_RANGES} value={ageRange} onPick={setAgeRange} />
-
-      <Text style={styles.k}>個性</Text>
-      <View style={styles.wrap}>
-        {PERSONALITIES.map((p) => (
-          <Chip
-            key={p}
-            label={p}
-            selected={personalities.includes(p)}
-            onPress={() => toggle(personalities, setPersonalities, p)}
-          />
-        ))}
-      </View>
-
-      <Text style={styles.k}>時段（最多 3）</Text>
-      {DAY_TYPES.map((d) => (
-        <View key={d.id} style={{ marginBottom: 6 }}>
-          <Text style={styles.subk}>{d.label}</Text>
-          <View style={styles.wrap}>
-            {TIME_SLOTS.map((t) => (
-              <Chip
-                key={t.id}
-                label={t.label}
-                selected={slots.some((s) => s.day === d.id && s.slot === t.id)}
-                onPress={() => toggleSlot(d.id, t.id)}
-              />
-            ))}
-          </View>
-        </View>
-      ))}
-
-      <Text style={styles.k}>縣市</Text>
-      <Text style={styles.hint}>
-        {locatedCity || '尚未定位'}（由定位判定，不能手選其他縣市）
-      </Text>
-
-      <Text style={styles.k}>行政區</Text>
-      {loadingTowns ? (
-        <ActivityIndicator color={colors.brand} style={{ marginVertical: 8 }} />
-      ) : (
-        <View style={styles.wrap}>
-          {districtList.map((d) => (
-            <Chip key={d} label={d} selected={district === d} onPress={() => setDistrict(d)} />
-          ))}
-        </View>
-      )}
-
-      <Text style={styles.k}>地點（最多 3）</Text>
-      <View style={styles.addRow}>
         <AwareTextInput
-          style={[styles.input, { flex: 1, marginBottom: 0 }]}
-          placeholder="例如 中央公園"
-          value={placeDraft}
-          onChangeText={setPlaceDraft}
+          style={styles.input}
+          placeholder="主人暱稱（選填）"
+          value={ownerNick}
+          onChangeText={setOwnerNick}
           scrollOnFocus={onInputFocus}
           scrollOnBlur={onInputBlur}
         />
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => {
-            const p = placeDraft.trim();
-            if (!p) return;
-            if (places.length >= MAX_PLACES) {
-              Alert.alert('地點最多 3 個');
-              return;
-            }
-            if (!places.includes(p)) setPlaces([...places, p]);
-            setPlaceDraft('');
-          }}
-        >
-          <Text style={styles.addTxt}>加入</Text>
+
+        <Text style={styles.k}>縣市（手選）</Text>
+        <View style={styles.wrap}>
+          {TRIAL_CITIES.map((c) => (
+            <Chip
+              key={c}
+              label={c}
+              selected={city === c}
+              onPress={() => setCity(c)}
+            />
+          ))}
+        </View>
+
+        <Text style={styles.k}>行政區</Text>
+        {loadingTowns ? (
+          <ActivityIndicator color={colors.brand} style={{ marginVertical: 8 }} />
+        ) : (
+          <View style={styles.wrap}>
+            {districtList.map((d) => (
+              <Chip
+                key={d}
+                label={d}
+                selected={district === d}
+                onPress={() => setDistrict(d)}
+              />
+            ))}
+          </View>
+        )}
+
+        <Text style={styles.k}>時段（最多 3，全家共用）</Text>
+        {DAY_TYPES.map((d) => (
+          <View key={d.id} style={{ marginBottom: 6 }}>
+            <Text style={styles.subk}>{d.label}</Text>
+            <View style={styles.wrap}>
+              {TIME_SLOTS.map((t) => (
+                <Chip
+                  key={t.id}
+                  label={t.label}
+                  selected={slots.some((s) => s.day === d.id && s.slot === t.id)}
+                  onPress={() => toggleSlot(d.id, t.id)}
+                />
+              ))}
+            </View>
+          </View>
+        ))}
+
+        <Text style={styles.k}>地點（最多 3，全家共用）</Text>
+        <View style={styles.addRow}>
+          <AwareTextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            placeholder="例如 中央公園"
+            value={placeDraft}
+            onChangeText={setPlaceDraft}
+            scrollOnFocus={onInputFocus}
+            scrollOnBlur={onInputBlur}
+          />
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => {
+              const p = placeDraft.trim();
+              if (!p) return;
+              if (places.length >= MAX_PLACES) {
+                Alert.alert('地點最多 3 個');
+                return;
+              }
+              if (!places.includes(p)) setPlaces([...places, p]);
+              setPlaceDraft('');
+            }}
+          >
+            <Text style={styles.addTxt}>加入</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.wrap}>
+          {places.map((p) => (
+            <Chip
+              key={p}
+              label={`${p} ×`}
+              selected
+              onPress={() => setPlaces(places.filter((x) => x !== p))}
+            />
+          ))}
+        </View>
+
+        <Text style={styles.k}>我的汪汪（{dogs.length}/{MAX_DOGS}）</Text>
+        <View style={styles.wrap}>
+          {dogs.map((d, i) => (
+            <Chip
+              key={d.id}
+              label={d.dogName || `狗 ${i + 1}`}
+              selected={dogIndex === i}
+              onPress={() => setDogIndex(i)}
+            />
+          ))}
+          {dogs.length < MAX_DOGS ? (
+            <Chip label="+ 新增" selected={false} onPress={addDog} />
+          ) : null}
+        </View>
+        {dogs.length > 1 ? (
+          <TouchableOpacity onPress={removeDog}>
+            <Text style={styles.removeDog}>移除這隻狗</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        <View style={styles.photoWrap}>
+          <TouchableOpacity style={styles.photoBtn} onPress={pickPhoto}>
+            {dog?.photoUri ? (
+              <Image source={{ uri: dog.photoUri }} style={styles.photo} />
+            ) : (
+              <Text style={styles.photoTxt}>合照</Text>
+            )}
+          </TouchableOpacity>
+          <Text style={styles.photoHint}>上傳主人＋這隻狗的合照</Text>
+        </View>
+
+        <AwareTextInput
+          style={styles.input}
+          placeholder="狗名"
+          value={dog?.dogName || ''}
+          onChangeText={(t) => updateDog({ dogName: t })}
+          scrollOnFocus={onInputFocus}
+          scrollOnBlur={onInputBlur}
+        />
+        <AwareTextInput
+          style={[styles.input, styles.intro]}
+          placeholder="簡短介紹（50 字內）"
+          value={dog?.intro || ''}
+          maxLength={MAX_INTRO}
+          multiline
+          onChangeText={(t) => updateDog({ intro: t.slice(0, MAX_INTRO) })}
+          scrollOnFocus={onInputFocus}
+          scrollOnBlur={onInputBlur}
+        />
+        <Text style={styles.count}>
+          {(dog?.intro || '').length}/{MAX_INTRO}
+        </Text>
+        <AwareTextInput
+          style={styles.input}
+          placeholder="品種／混種"
+          value={dog?.breed || ''}
+          onChangeText={(t) => updateDog({ breed: t })}
+          scrollOnFocus={onInputFocus}
+          scrollOnBlur={onInputBlur}
+        />
+
+        <Text style={styles.k}>體型</Text>
+        <RowChips
+          items={SIZES}
+          value={dog?.size || '中型'}
+          onPick={(v) => updateDog({ size: v })}
+        />
+        <Text style={styles.k}>年齡</Text>
+        <RowChips
+          items={AGE_RANGES}
+          value={dog?.ageRange || AGE_RANGES[1]}
+          onPick={(v) => updateDog({ ageRange: v })}
+        />
+
+        <Text style={styles.k}>個性</Text>
+        <View style={styles.wrap}>
+          {PERSONALITIES.map((p) => (
+            <Chip
+              key={p}
+              label={p}
+              selected={(dog?.personalities || []).includes(p)}
+              onPress={() => togglePersonality(p)}
+            />
+          ))}
+        </View>
+
+        <Text style={styles.k}>與其他狗</Text>
+        <View style={styles.wrap}>
+          {PLAY_OPTIONS.map((p) => (
+            <Chip
+              key={p.id}
+              label={p.label}
+              selected={(dog?.playWith || 'parallel') === p.id}
+              onPress={() => updateDog({ playWith: p.id })}
+            />
+          ))}
+        </View>
+
+        <Text style={styles.k}>可否合照</Text>
+        <View style={styles.wrap}>
+          <Chip
+            label="可以"
+            selected={dog?.canPhoto !== false}
+            onPress={() => updateDog({ canPhoto: true })}
+          />
+          <Chip
+            label="先不要"
+            selected={dog?.canPhoto === false}
+            onPress={() => updateDog({ canPhoto: false })}
+          />
+        </View>
+
+        <TouchableOpacity style={styles.save} onPress={save}>
+          <Text style={styles.saveTxt}>
+            {registerMode ? '完成註冊' : '儲存檔案'}
+          </Text>
         </TouchableOpacity>
-      </View>
-      <View style={styles.wrap}>
-        {places.map((p) => (
-          <Chip
-            key={p}
-            label={`${p} ×`}
-            selected
-            onPress={() => setPlaces(places.filter((x) => x !== p))}
-          />
-        ))}
-      </View>
-
-      <Text style={styles.k}>與其他狗</Text>
-      <View style={styles.wrap}>
-        {PLAY_OPTIONS.map((p) => (
-          <Chip
-            key={p.id}
-            label={p.label}
-            selected={playWith === p.id}
-            onPress={() => setPlayWith(p.id)}
-          />
-        ))}
-      </View>
-
-      <Text style={styles.k}>可否合照</Text>
-      <View style={styles.wrap}>
-        <Chip label="可以" selected={canPhoto} onPress={() => setCanPhoto(true)} />
-        <Chip label="先不要" selected={!canPhoto} onPress={() => setCanPhoto(false)} />
-      </View>
-
-      <TouchableOpacity style={styles.save} onPress={save}>
-        <Text style={styles.saveTxt}>{registerMode ? '完成註冊' : '儲存檔案'}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -371,8 +467,14 @@ const styles = StyleSheet.create({
   pad: { paddingHorizontal: 16 },
   back: { color: colors.brandDeep, fontWeight: '800', marginBottom: 8 },
   h: { fontSize: 24, fontWeight: '800', color: colors.ink, marginBottom: 4 },
-  hint: { marginTop: 6, marginBottom: 8, color: colors.muted, fontSize: 12, lineHeight: 18 },
-  photoWrap: { alignItems: 'center', marginTop: 16, marginBottom: 18 },
+  hint: {
+    marginTop: 6,
+    marginBottom: 8,
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  photoWrap: { alignItems: 'center', marginTop: 12, marginBottom: 18 },
   photoBtn: {
     width: 108,
     height: 108,
@@ -396,7 +498,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   intro: { minHeight: 72, textAlignVertical: 'top' },
-  count: { alignSelf: 'flex-end', fontSize: 11, color: colors.muted, marginTop: -6, marginBottom: 8 },
+  count: {
+    alignSelf: 'flex-end',
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: -6,
+    marginBottom: 8,
+  },
   k: { marginTop: 8, marginBottom: 6, fontWeight: '800', color: colors.ink },
   subk: { fontSize: 12, color: colors.muted, marginBottom: 4 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 },
@@ -408,6 +516,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   addTxt: { color: '#fff', fontWeight: '800' },
+  removeDog: {
+    color: colors.danger,
+    fontWeight: '700',
+    marginBottom: 8,
+    marginTop: 4,
+  },
   save: {
     marginTop: 16,
     backgroundColor: colors.brand,

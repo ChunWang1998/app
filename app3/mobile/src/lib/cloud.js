@@ -63,6 +63,12 @@ export async function listCityProfiles(loginKey, city) {
   return Array.isArray(data) ? data : [];
 }
 
+/** All photo-ok profiles (optional city filter still available via listCityProfiles). */
+export async function listAllProfiles(loginKey) {
+  const data = await rpc('list_profiles', { p_key: loginKey || '' });
+  return Array.isArray(data) ? data : [];
+}
+
 export async function listMyConnects(loginKey) {
   const data = await rpc('list_my_connects', { p_key: loginKey });
   return Array.isArray(data) ? data : [];
@@ -122,6 +128,11 @@ export async function listCityGatherings(loginKey, city) {
     p_key: loginKey || '',
     p_city: city,
   });
+  return (Array.isArray(data) ? data : []).map(decorateGatheringRow);
+}
+
+export async function listAllGatherings(loginKey) {
+  const data = await rpc('list_gatherings', { p_key: loginKey || '' });
   return (Array.isArray(data) ? data : []).map(decorateGatheringRow);
 }
 

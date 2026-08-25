@@ -51,6 +51,7 @@ export default function GatheringDetailScreen({
       <Text style={styles.h}>{g.name}</Text>
       <Text style={styles.type}>{g.type}</Text>
       <View style={styles.card}>
+        <Row label="縣市" value={g.city || '—'} />
         <Row label="日期" value={g.dateLabel} />
         <Row label="地點" value={g.place} />
         <Row label="主辦" value={`${g.hostName} · 大隊長分數 ${g.hostCaptainScore || 0}`} />

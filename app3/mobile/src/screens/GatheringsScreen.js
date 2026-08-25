@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, radius } from '../theme';
+import { TRIAL_CITIES } from '../data/constants';
+import Chip from '../components/Chip';
 import ScreenHeader from '../components/ScreenHeader';
 
 export default function GatheringsScreen({
-  city,
   gatherings,
   profile,
   hostingActive,
@@ -13,14 +14,34 @@ export default function GatheringsScreen({
   onOpen,
   onCreateGathering,
 }) {
+  const [city, setCity] = useState('');
+  const rows = city ? gatherings.filter((g) => g.city === city) : gatherings;
+
   return (
     <View style={styles.fill}>
       <ScreenHeader
         title="汪汪聚會"
-        subtitle={`${city} · 大隊長分數高的排前面`}
+        subtitle="全台聚會 · 大隊長分數高的排前面"
         photoUri={profile?.photoUri}
         onProfile={onProfile}
       />
+      <View style={styles.cities}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.modes}
+        >
+          <Chip label="全台" selected={!city} onPress={() => setCity('')} />
+          {TRIAL_CITIES.map((c) => (
+            <Chip
+              key={c}
+              label={c.replace(/市$/, '')}
+              selected={city === c}
+              onPress={() => setCity(c)}
+            />
+          ))}
+        </ScrollView>
+      </View>
       <ScrollView
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -34,10 +55,10 @@ export default function GatheringsScreen({
             <Text style={styles.createTxt}>創辦汪汪聚會</Text>
           </TouchableOpacity>
         )}
-        {gatherings.length === 0 ? (
-          <Text style={styles.empty}>這一市目前沒有聚會。</Text>
+        {rows.length === 0 ? (
+          <Text style={styles.empty}>目前沒有聚會。</Text>
         ) : (
-          gatherings.map((g) => {
+          rows.map((g) => {
             const lockedOut = g.full && !g.iJoined && !g.iHost;
             const inner = (
               <>
@@ -46,7 +67,7 @@ export default function GatheringsScreen({
                   <Text style={styles.type}>{g.type}</Text>
                 </View>
                 <Text style={styles.meta}>
-                  {g.dateLabel} · {g.place}
+                  {g.city || ''} · {g.dateLabel} · {g.place}
                 </Text>
                 <Text style={styles.meta}>
                   主辦 {g.hostName} · 大隊長分數 {g.hostCaptainScore || 0}

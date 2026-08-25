@@ -11,8 +11,7 @@ import {
   Alert,
   Dimensions,
 } from 'react-native';
-import ClusteredMapView from 'react-native-map-clustering';
-import { Marker } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Clipboard from 'expo-clipboard';
@@ -163,7 +162,7 @@ async function openGoogleMaps(place) {
 export default function MapScreen() {
   const mapRef = useRef(null);
   const [status, setStatus] = useState('locating');
-  const [userPos, setUserPos] = useState(null);
+  const [userPos, setUserPos] = useState(DEFAULT_CENTER);
   const [places, setPlaces] = useState([]);
   const [placesStatus, setPlacesStatus] = useState('idle');
   const [viewportPlaces, setViewportPlaces] = useState([]);
@@ -395,15 +394,30 @@ export default function MapScreen() {
     let alive = true;
     (async () => {
       try {
-        const { status: perm } = await Location.requestForegroundPermissionsAsync();
+        let perm = 'denied';
+        try {
+          const result = await withTimeout(
+            Location.requestForegroundPermissionsAsync(),
+            LOCATE_TIMEOUT_MS,
+          );
+          perm = result?.status;
+        } catch {
+          if (!alive) return;
+          setStatus('error');
+          return;
+        }
         if (!alive) return;
         if (perm !== 'granted') {
-          setUserPos(DEFAULT_CENTER);
           setStatus('denied');
           return;
         }
 
-        const last = await Location.getLastKnownPositionAsync();
+        let last = null;
+        try {
+          last = await withTimeout(Location.getLastKnownPositionAsync(), 2500);
+        } catch {
+          last = null;
+        }
         if (!alive) return;
         if (last) {
           setUserPos(coordsFrom(last));
@@ -422,14 +436,10 @@ export default function MapScreen() {
           setStatus('ready');
         } catch {
           if (!alive) return;
-          if (!last) {
-            setUserPos(DEFAULT_CENTER);
-            setStatus('error');
-          }
+          if (!last) setStatus('error');
         }
       } catch {
         if (!alive) return;
-        setUserPos(DEFAULT_CENTER);
         setStatus('error');
       }
     })();
@@ -488,6 +498,7 @@ export default function MapScreen() {
 
   useEffect(() => {
     if (didInitialFit.current || !mapRef.current || !userPos) return;
+    if (status === 'locating') return;
     if (placesStatus === 'idle' || placesStatus === 'loading') return;
     didInitialFit.current = true;
     const coords = [
@@ -510,7 +521,7 @@ export default function MapScreen() {
       edgePadding: { top: 60, right: 40, bottom: 40, left: 40 },
       animated: true,
     });
-  }, [userPos, nearest, placesStatus]);
+  }, [userPos, nearest, placesStatus, status]);
 
   const selectPlace = useCallback((place) => {
     if (!place?.id) return;
@@ -678,49 +689,43 @@ export default function MapScreen() {
         )}
 
         <View style={styles.mapWrap}>
-          {userPos ? (
-            <ClusteredMapView
-              ref={mapRef}
-              style={StyleSheet.absoluteFill}
-              initialRegion={{
-                latitude: userPos.lat,
-                longitude: userPos.lng,
-                latitudeDelta: 0.04,
-                longitudeDelta: 0.04,
-              }}
-              showsUserLocation={status === 'ready'}
-              showsMyLocationButton={false}
-              onRegionChangeComplete={handleRegionChange}
-              clusterColor={colors.brand}
-              clusterTextColor="#fff"
-              clusterFontFamily={Platform.OS === 'ios' ? 'System' : 'sans-serif-medium'}
-              radius={40}
-              minZoom={1}
-              maxZoom={20}
-              extent={256}
-              animationEnabled={false}
-              tracksViewChanges={false}
-            >
-              {mapMarkers.map((place, index) => (
-                <Marker
-                  key={place.id}
-                  coordinate={{ latitude: place.lat, longitude: place.lng }}
-                  title={`${index + 1}. ${placeLabel(place)}`}
-                  description={place.地址}
-                  pinColor={colors.brand}
-                  tracksViewChanges={false}
-                  onPress={(e) => {
-                    e?.stopPropagation?.();
-                    selectPlace(place);
-                  }}
-                />
-              ))}
-            </ClusteredMapView>
-          ) : (
-            <View style={styles.loading}>
-              <ActivityIndicator size="large" color={colors.brand} />
+          <MapView
+            ref={mapRef}
+            style={StyleSheet.absoluteFill}
+            provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+            initialRegion={{
+              latitude: userPos.lat,
+              longitude: userPos.lng,
+              latitudeDelta: 0.04,
+              longitudeDelta: 0.04,
+            }}
+            showsUserLocation={status === 'ready'}
+            showsMyLocationButton={false}
+            toolbarEnabled={false}
+            moveOnMarkerPress={false}
+            onRegionChangeComplete={handleRegionChange}
+          >
+            {mapMarkers.map((place, index) => (
+              <Marker
+                key={place.id}
+                coordinate={{ latitude: place.lat, longitude: place.lng }}
+                title={`${index + 1}. ${placeLabel(place)}`}
+                description={place.地址}
+                pinColor={colors.brand}
+                tracksViewChanges={false}
+                onPress={(e) => {
+                  e?.stopPropagation?.();
+                  selectPlace(place);
+                }}
+              />
+            ))}
+          </MapView>
+          {status === 'locating' ? (
+            <View style={styles.locatingBanner} pointerEvents="none">
+              <ActivityIndicator size="small" color={colors.brand} />
+              <Text style={styles.locatingText}>定位中…</Text>
             </View>
-          )}
+          ) : null}
         </View>
 
         {selected && (
@@ -875,6 +880,24 @@ const styles = StyleSheet.create({
   mapWrap: {
     flex: 1,
     backgroundColor: colors.mapBg,
+  },
+  locatingBanner: {
+    position: 'absolute',
+    top: 12,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    zIndex: 4,
+  },
+  locatingText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.brandDeep,
   },
   locateBtn: {
     position: 'absolute',

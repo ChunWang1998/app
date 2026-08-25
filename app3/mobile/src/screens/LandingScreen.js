@@ -28,7 +28,7 @@ export default function LandingScreen({ onStart }) {
       <View style={styles.container}>
         <LogoMark size={148} />
         <Text style={styles.brand}>鄰汪</Text>
-        <Text style={styles.headline}>找到附近一起出門的狗鄰居</Text>
+        <Text style={styles.headline}>找到一起出門的狗夥伴</Text>
         <TouchableOpacity activeOpacity={0.85} style={styles.cta} onPress={onStart}>
           <Text style={styles.ctaText}>開始探索</Text>
         </TouchableOpacity>

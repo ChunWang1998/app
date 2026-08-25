@@ -247,3 +247,7 @@ export function seedOwnersForCity(city) {
     isSeed: true,
   }));
 }
+
+export function seedAllOwners() {
+  return Object.keys(SEED).flatMap((city) => seedOwnersForCity(city));
+}

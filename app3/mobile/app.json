@@ -15,7 +15,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.linwang.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "需要你的位置來判斷所在縣市，並載入該市行政區。",
         "NSPhotoLibraryUsageDescription": "需要相簿來上傳主人與狗的合照。",
         "NSCameraUsageDescription": "需要相機來拍攝主人與狗的合照。",
         "ITSAppUsesNonExemptEncryption": false
@@ -31,10 +30,6 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.RECORD_AUDIO",
         "android.permission.POST_NOTIFICATIONS"
       ]
@@ -43,12 +38,6 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-location",
-        {
-          "locationWhenInUsePermission": "需要你的位置來判斷所在縣市，並載入該市行政區。"
-        }
-      ],
       [
         "expo-image-picker",
         {

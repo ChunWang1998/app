@@ -19,6 +19,7 @@ import {
   DEFAULT_GATHERING_CAPACITY,
   MAX_GATHERING_NAME,
   MAX_GATHERING_INTRO,
+  TRIAL_CITIES,
   formatGatheringDate,
   startOfDay,
 } from '../data/constants';
@@ -31,12 +32,13 @@ function offsetDate(n) {
   return d;
 }
 
-export default function CreateGatheringScreen({ onBack, onSave }) {
+export default function CreateGatheringScreen({ onBack, onSave, defaultCity }) {
   const insets = useSafeAreaInsets();
   const { scrollRef, onScroll, onInputFocus, onInputBlur } =
     useKeyboardAwareScroll();
   const [name, setName] = useState('');
   const [place, setPlace] = useState('');
+  const [city, setCity] = useState(defaultCity || TRIAL_CITIES[0]);
   const [type, setType] = useState(GATHERING_TYPES[2]);
   const [fee, setFee] = useState(0);
   const [customFee, setCustomFee] = useState('');
@@ -66,6 +68,10 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
       Alert.alert('請填地點');
       return;
     }
+    if (!city) {
+      Alert.alert('請選縣市');
+      return;
+    }
     if (!lineGroupUrl.trim()) {
       Alert.alert('請附上 LINE 群組連結');
       return;
@@ -77,6 +83,7 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
     onSave({
       name: name.trim().slice(0, MAX_GATHERING_NAME),
       place: place.trim(),
+      city,
       type,
       fee: feeNum,
       intro: intro.trim().slice(0, MAX_GATHERING_INTRO),
@@ -137,6 +144,13 @@ export default function CreateGatheringScreen({ onBack, onSave }) {
         ))}
       </View>
       <Text style={styles.picked}>已選 {formatGatheringDate(date)}</Text>
+
+      <Text style={styles.k}>縣市</Text>
+      <View style={styles.wrap}>
+        {TRIAL_CITIES.map((c) => (
+          <Chip key={c} label={c} selected={city === c} onPress={() => setCity(c)} />
+        ))}
+      </View>
 
       <Text style={styles.k}>地點</Text>
       <AwareTextInput

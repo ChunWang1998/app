@@ -31,8 +31,14 @@ export default function OwnerRow({ owner, crown, onPress }) {
             {owner.ownerNick ? ` · ${owner.ownerNick}` : ''}
           </Text>
           {owner.isGuide ? <Text style={styles.guideTag}>範例</Text> : null}
+          {owner.ownerDogCount > 1 ? (
+            <Text style={styles.sameTag}>同一主人</Text>
+          ) : null}
           {newbie && !owner.isGuide ? <Text style={styles.newTag}>新</Text> : null}
         </View>
+        <Text style={styles.meta} numberOfLines={1}>
+          {[owner.city, owner.district].filter(Boolean).join(' · ') || '地區未填'}
+        </Text>
         <Text style={styles.meta} numberOfLines={1}>
           {slots.map((s) => s.label || `${s.day}${s.slot}`).join('、') || '時段未填'}
         </Text>
@@ -99,6 +105,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#fff',
     backgroundColor: colors.ok,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+  },
+  sameTag: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.brandDeep,
+    backgroundColor: '#FFE9D6',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: radius.pill,

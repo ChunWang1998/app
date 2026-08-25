@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
 import { FOUNDER_CAP, PLAY_OPTIONS } from '../data/constants';
 import { hasValidSub } from '../lib/store';
+import { displayNameForOwner, normalizeProfile } from '../lib/dogs';
 
 export default function MeScreen({
   session,
@@ -54,9 +55,8 @@ export default function MeScreen({
     return c.status === 'disconnected' && c.disconnectedBy !== session?.id;
   });
 
-  const nameOf = (id) => ownersById[id]?.dogName || id;
+  const nameOf = (id) => displayNameForOwner(ownersById[id]) || id;
   const subscribed = hasValidSub(session);
-  const playLabel = PLAY_OPTIONS.find((p) => p.id === profile?.playWith)?.label;
 
   return (
     <ScrollView
@@ -119,48 +119,66 @@ export default function MeScreen({
             </Text>
             {profile ? (
               <>
-                {profile.photoUri ? (
-                  <Image source={{ uri: profile.photoUri }} style={styles.photo} />
-                ) : null}
-                <Text style={styles.v}>{profile.dogName}</Text>
-                {profile.ownerNick ? (
-                  <Text style={styles.stats}>主人 {profile.ownerNick}</Text>
-                ) : null}
-                {profile.intro ? <Text style={styles.intro}>{profile.intro}</Text> : null}
-                <Info
-                  label="類型"
-                  value={`${profile.breed || '—'} · ${profile.size || '—'} · ${
-                    profile.ageRange || '—'
-                  }`}
-                />
-                <Info
-                  label="個性"
-                  value={(profile.personalities || []).join('、') || '—'}
-                />
-                <Info
-                  label="時段"
-                  value={
-                    (profile.slots || []).map((s) => s.label).join('、') || '—'
-                  }
-                />
-                <Info
-                  label="地點"
-                  value={(profile.places || []).join('、') || '—'}
-                />
-                <Info
-                  label="行政區"
-                  value={`${profile.city || ''} ${profile.district || ''}`.trim() || '—'}
-                />
-                <Info label="與其他狗" value={playLabel || '—'} />
-                <Info label="出去次數" value={String(profile.outingCount || 0)} />
-                <Info label="Connect 次數" value={String(profile.connectCount || 0)} />
-                <Info
-                  label="汪汪大隊長"
-                  value={`${profile.captainCount || 0} 次 · 分數 ${
-                    profile.captainScore || 0
-                  }`}
-                />
-                <Info label="汪汪隊員" value={`${profile.memberCount || 0} 次`} />
+                {(() => {
+                  const p = normalizeProfile(profile);
+                  const dogs = p?.dogs || [];
+                  return (
+                    <>
+                      {dogs.map((d) => (
+                        <View key={d.id} style={{ marginBottom: 10 }}>
+                          {d.photoUri ? (
+                            <Image source={{ uri: d.photoUri }} style={styles.photo} />
+                          ) : null}
+                          <Text style={styles.v}>{d.dogName}</Text>
+                          <Info
+                            label="類型"
+                            value={`${d.breed || '—'} · ${d.size || '—'} · ${
+                              d.ageRange || '—'
+                            }`}
+                          />
+                          <Info
+                            label="個性"
+                            value={(d.personalities || []).join('、') || '—'}
+                          />
+                          <Info
+                            label="與其他狗"
+                            value={
+                              PLAY_OPTIONS.find((x) => x.id === d.playWith)?.label ||
+                              '—'
+                            }
+                          />
+                          {d.intro ? <Text style={styles.intro}>{d.intro}</Text> : null}
+                        </View>
+                      ))}
+                      {p.ownerNick ? (
+                        <Text style={styles.stats}>主人 {p.ownerNick}</Text>
+                      ) : null}
+                      <Info
+                        label="時段"
+                        value={
+                          (p.slots || []).map((s) => s.label).join('、') || '—'
+                        }
+                      />
+                      <Info
+                        label="地點"
+                        value={(p.places || []).join('、') || '—'}
+                      />
+                      <Info
+                        label="行政區"
+                        value={`${p.city || ''} ${p.district || ''}`.trim() || '—'}
+                      />
+                      <Info label="出去次數" value={String(p.outingCount || 0)} />
+                      <Info label="Connect 次數" value={String(p.connectCount || 0)} />
+                      <Info
+                        label="汪汪大隊長"
+                        value={`${p.captainCount || 0} 次 · 分數 ${
+                          p.captainScore || 0
+                        }`}
+                      />
+                      <Info label="汪汪隊員" value={`${p.memberCount || 0} 次`} />
+                    </>
+                  );
+                })()}
                 <TouchableOpacity onPress={onCreateProfile}>
                   <Text style={styles.link}>編輯汪汪檔案</Text>
                 </TouchableOpacity>

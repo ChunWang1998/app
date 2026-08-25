@@ -2,6 +2,7 @@ export const FOUNDER_CAP = 100;
 export const MAX_CHAT = 20;
 export const MAX_SLOTS = 3;
 export const MAX_PLACES = 3;
+export const MAX_DOGS = 3;
 export const MAX_INTRO = 50;
 export const MAX_GATHERING_NAME = 10;
 export const MAX_GATHERING_INTRO = 50;

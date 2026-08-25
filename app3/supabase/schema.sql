@@ -124,9 +124,31 @@ alter table public.profiles add column if not exists captain_count int not null 
 alter table public.profiles add column if not exists member_count int not null default 0;
 alter table public.profiles add column if not exists captain_score int not null default 0;
 alter table public.profiles add column if not exists registered_at timestamptz;
+alter table public.profiles add column if not exists dogs jsonb not null default '[]'::jsonb;
 update public.profiles set registered_at = coalesce(registered_at, updated_at, now())
   where registered_at is null;
 alter table public.profiles alter column registered_at set default now();
+
+-- Backfill dogs[] from legacy flat dog columns when empty.
+update public.profiles
+set dogs = jsonb_build_array(
+  jsonb_build_object(
+    'id', account_id::text || '-dog-1',
+    'dogName', dog_name,
+    'breed', coalesce(breed, ''),
+    'size', coalesce(size, ''),
+    'ageRange', coalesce(age_range, ''),
+    'personalities', to_jsonb(personalities),
+    'playWith', play_with,
+    'intro', coalesce(intro, ''),
+    'photoUri', photo_url,
+    'photoOk', photo_ok,
+    'canPhoto', can_photo
+  )
+)
+where coalesce(jsonb_array_length(dogs), 0) = 0
+  and dog_name is not null
+  and dog_name <> '';
 
 create table if not exists public.connects (
   id uuid primary key default gen_random_uuid(),
@@ -304,6 +326,24 @@ as $$
     'photoUri', (p).photo_url,
     'photoOk', (p).photo_ok,
     'canPhoto', (p).can_photo,
+    'dogs', case
+      when coalesce(jsonb_array_length((p).dogs), 0) > 0 then (p).dogs
+      else jsonb_build_array(
+        jsonb_build_object(
+          'id', (p).account_id::text || '-dog-1',
+          'dogName', (p).dog_name,
+          'breed', coalesce((p).breed, ''),
+          'size', coalesce((p).size, ''),
+          'ageRange', coalesce((p).age_range, ''),
+          'personalities', to_jsonb((p).personalities),
+          'playWith', (p).play_with,
+          'intro', coalesce((p).intro, ''),
+          'photoUri', (p).photo_url,
+          'photoOk', (p).photo_ok,
+          'canPhoto', (p).can_photo
+        )
+      )
+    end,
     'outingCount', (p).outing_count,
     'connectCount', (p).connect_count,
     'captainCount', (p).captain_count,
@@ -326,30 +366,62 @@ declare
   a public.accounts;
   p public.profiles;
   photo text;
+  dogs jsonb;
+  primary_dog jsonb;
 begin
   a := public.require_account(p_key);
-  photo := nullif(p_profile->>'photoUri', '');
+  dogs := coalesce(p_profile->'dogs', '[]'::jsonb);
+  if jsonb_typeof(dogs) <> 'array' or jsonb_array_length(dogs) = 0 then
+    dogs := jsonb_build_array(
+      jsonb_build_object(
+        'id', a.id::text || '-dog-1',
+        'dogName', coalesce(p_profile->>'dogName', ''),
+        'breed', coalesce(p_profile->>'breed', ''),
+        'size', coalesce(p_profile->>'size', ''),
+        'ageRange', coalesce(p_profile->>'ageRange', ''),
+        'personalities', coalesce(p_profile->'personalities', '[]'::jsonb),
+        'playWith', coalesce(p_profile->>'playWith', 'parallel'),
+        'intro', coalesce(p_profile->>'intro', ''),
+        'photoUri', nullif(p_profile->>'photoUri', ''),
+        'photoOk', coalesce((p_profile->>'photoOk')::boolean, false),
+        'canPhoto', coalesce((p_profile->>'canPhoto')::boolean, true)
+      )
+    );
+  end if;
+  primary_dog := dogs->0;
+  photo := nullif(coalesce(primary_dog->>'photoUri', p_profile->>'photoUri'), '');
   insert into public.profiles (
     account_id, city, district, dog_name, owner_nick, breed, size, age_range,
     personalities, slots, places, play_with, intro, photo_url, photo_ok, can_photo,
-    registered_at, updated_at
+    dogs, registered_at, updated_at
   ) values (
     a.id,
     coalesce(p_profile->>'city', ''),
     coalesce(p_profile->>'district', ''),
-    coalesce(p_profile->>'dogName', ''),
+    coalesce(primary_dog->>'dogName', p_profile->>'dogName', ''),
     p_profile->>'ownerNick',
-    p_profile->>'breed',
-    p_profile->>'size',
-    p_profile->>'ageRange',
-    coalesce(array(select jsonb_array_elements_text(p_profile->'personalities')), '{}'),
+    coalesce(primary_dog->>'breed', p_profile->>'breed'),
+    coalesce(primary_dog->>'size', p_profile->>'size'),
+    coalesce(primary_dog->>'ageRange', p_profile->>'ageRange'),
+    coalesce(
+      array(select jsonb_array_elements_text(coalesce(primary_dog->'personalities', p_profile->'personalities'))),
+      '{}'
+    ),
     coalesce(p_profile->'slots', '[]'::jsonb),
     coalesce(array(select jsonb_array_elements_text(p_profile->'places')), '{}'),
-    coalesce(p_profile->>'playWith', 'parallel'),
-    p_profile->>'intro',
+    coalesce(primary_dog->>'playWith', p_profile->>'playWith', 'parallel'),
+    coalesce(primary_dog->>'intro', p_profile->>'intro'),
     photo,
-    coalesce((p_profile->>'photoOk')::boolean, photo is not null),
-    coalesce((p_profile->>'canPhoto')::boolean, true),
+    coalesce(
+      (
+        select bool_or(coalesce((d->>'photoOk')::boolean, nullif(d->>'photoUri', '') is not null))
+        from jsonb_array_elements(dogs) d
+      ),
+      (p_profile->>'photoOk')::boolean,
+      photo is not null
+    ),
+    coalesce((primary_dog->>'canPhoto')::boolean, (p_profile->>'canPhoto')::boolean, true),
+    dogs,
     coalesce((p_profile->>'registeredAt')::timestamptz, now()),
     now()
   )
@@ -369,6 +441,7 @@ begin
     photo_url = coalesce(excluded.photo_url, public.profiles.photo_url),
     photo_ok = excluded.photo_ok or public.profiles.photo_ok,
     can_photo = excluded.can_photo,
+    dogs = excluded.dogs,
     updated_at = now();
 
   select * into p from public.profiles where account_id = a.id;
@@ -437,7 +510,11 @@ begin
   if p_key is null or length(trim(p_key)) < 9 then
     return jsonb_build_object('ok', false, 'already', false, 'code', 'invalid');
   end if;
-  dog := trim(coalesce(p_profile->>'dogName', ''));
+  dog := trim(coalesce(
+    p_profile->'dogs'->0->>'dogName',
+    p_profile->>'dogName',
+    ''
+  ));
   city := trim(coalesce(p_profile->>'city', ''));
   district := trim(coalesce(p_profile->>'district', ''));
   if dog = '' or city = '' or district = '' then
@@ -545,6 +622,42 @@ begin
     join public.accounts acc on acc.id = p.account_id
     where p.city = p_city
       and p.photo_ok = true
+      and acc.deleted_at is null
+      and (a.id is null or p.account_id <> all (blocked))
+      and not exists (
+        select 1 from public.blocks b
+        where a.id is not null
+          and b.blocker_id = p.account_id
+          and b.blocked_id = a.id
+      )
+  ), '[]'::jsonb);
+end;
+$$;
+
+create or replace function public.list_profiles(p_key text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  a public.accounts;
+  blocked uuid[] := '{}';
+begin
+  begin
+    a := public.require_account(p_key);
+    select coalesce(array_agg(blocked_id), '{}') into blocked
+      from public.blocks where blocker_id = a.id;
+  exception when others then
+    a := null;
+  end;
+
+  return coalesce((
+    select jsonb_agg(public.profile_to_json(p) || jsonb_build_object('isMe', a.id is not null and p.account_id = a.id))
+    from public.profiles p
+    join public.accounts acc on acc.id = p.account_id
+    where p.photo_ok = true
       and acc.deleted_at is null
       and (a.id is null or p.account_id <> all (blocked))
       and not exists (
@@ -946,6 +1059,32 @@ begin
 end;
 $$;
 
+create or replace function public.list_gatherings(p_key text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  a public.accounts;
+  uid uuid;
+begin
+  perform public.apply_ended_gatherings();
+  begin
+    a := public.require_account(p_key);
+    uid := a.id;
+  exception when others then
+    uid := null;
+  end;
+  return coalesce((
+    select jsonb_agg(public.gathering_to_json(g, uid) order by (
+      select coalesce(pr.captain_score, 0) from public.profiles pr where pr.account_id = g.host_id
+    ) desc, g.created_at)
+    from public.gatherings g
+  ), '[]'::jsonb);
+end;
+$$;
+
 create or replace function public.create_gathering(p_key text, p_payload jsonb)
 returns jsonb
 language plpgsql
@@ -1179,6 +1318,7 @@ grant execute on function public.login_with_phone(text) to anon, authenticated;
 grant execute on function public.register_founder(text, text, jsonb) to anon, authenticated;
 grant execute on function public.load_my_account(text) to anon, authenticated;
 grant execute on function public.list_city_profiles(text, text) to anon, authenticated;
+grant execute on function public.list_profiles(text) to anon, authenticated;
 grant execute on function public.send_connect(text, uuid) to anon, authenticated;
 grant execute on function public.list_my_connects(text) to anon, authenticated;
 grant execute on function public.set_connect_status(text, uuid, text) to anon, authenticated;
@@ -1187,6 +1327,7 @@ grant execute on function public.list_messages(text, uuid) to anon, authenticate
 grant execute on function public.send_message(text, uuid, text) to anon, authenticated;
 grant execute on function public.confirm_meet(text, uuid) to anon, authenticated;
 grant execute on function public.list_city_gatherings(text, text) to anon, authenticated;
+grant execute on function public.list_gatherings(text) to anon, authenticated;
 grant execute on function public.create_gathering(text, jsonb) to anon, authenticated;
 grant execute on function public.join_gathering(text, uuid) to anon, authenticated;
 grant execute on function public.like_gathering_host(text, uuid) to anon, authenticated;
