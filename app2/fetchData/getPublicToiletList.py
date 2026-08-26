@@ -4,8 +4,9 @@
 Source: https://data.moenv.gov.tw/dataset/detail/FAC_P_07
 API:    https://data.moenv.gov.tw/api/v2/fac_p_07
 
-Dedupes to one pin per building (same rounded lat/lng), collapsing floor /
-gender variants (男廁、女廁、B1、10F, …).
+Dedupes in two passes:
+  1) same rounded lat/lng (floor / gender variants)
+  2) same cleaned street address → one pin per address
 """
 
 from __future__ import annotations
@@ -72,8 +73,21 @@ def building_id(lat: float, lng: float) -> str:
     return f"toilet-{digest}"
 
 
+def address_id(address: str) -> str:
+    digest = hashlib.sha1(f"{STORE_TYPE}|addr|{address}".encode("utf-8")).hexdigest()[:12]
+    return f"toilet-{digest}"
+
+
 def norm_tw(text: str) -> str:
     return (text or "").strip().replace("臺", "台")
+
+
+def address_key(place: dict) -> str:
+    """Normalized address for whole-address dedupe."""
+    addr = clean_address(norm_tw(place.get("地址") or ""))
+    addr = addr.translate(str.maketrans("０１２３４５６７８９", "0123456789"))
+    addr = re.sub(r"\s+", "", addr)
+    return addr or f"__coord__{building_key(place)}"
 
 
 def is_valid_latlng(lat: float, lng: float) -> bool:
@@ -102,6 +116,15 @@ def building_key(place: dict) -> tuple[float, float]:
     )
 
 
+def _pick_representative(group: list[dict]) -> tuple[dict, str]:
+    cleaned = [clean_building_name(p.get("name") or "") for p in group]
+    best_i = min(
+        range(len(group)),
+        key=lambda i: (len(cleaned[i]) or 10_000, cleaned[i], group[i].get("地址") or ""),
+    )
+    return dict(group[best_i]), cleaned[best_i] or group[best_i].get("name") or "公廁"
+
+
 def dedupe_by_building(places: list[dict]) -> list[dict]:
     """Keep one place per building (same rounded lat/lng)."""
     groups: dict[tuple[float, float], list[dict]] = {}
@@ -110,16 +133,32 @@ def dedupe_by_building(places: list[dict]) -> list[dict]:
 
     out: list[dict] = []
     for key, group in groups.items():
-        cleaned = [clean_building_name(p.get("name") or "") for p in group]
-        best_i = min(
-            range(len(group)),
-            key=lambda i: (len(cleaned[i]) or 10_000, cleaned[i], group[i].get("地址") or ""),
-        )
-        base = dict(group[best_i])
+        base, name = _pick_representative(group)
         lat, lng = key
         base["id"] = building_id(lat, lng)
-        base["name"] = cleaned[best_i] or base.get("name") or "公廁"
+        base["name"] = name
         base["地址"] = clean_address(base.get("地址") or "")
+        out.append(base)
+    return out
+
+
+def dedupe_by_address(places: list[dict]) -> list[dict]:
+    """Keep one place per cleaned street address (centroid lat/lng)."""
+    groups: dict[str, list[dict]] = {}
+    for place in places:
+        groups.setdefault(address_key(place), []).append(place)
+
+    out: list[dict] = []
+    for key, group in groups.items():
+        base, name = _pick_representative(group)
+        lat = sum(float(p["lat"]) for p in group) / len(group)
+        lng = sum(float(p["lng"]) for p in group) / len(group)
+        addr = clean_address(base.get("地址") or "")
+        base["id"] = address_id(key)
+        base["name"] = name
+        base["地址"] = addr
+        base["lat"] = round(lat, 6)
+        base["lng"] = round(lng, 6)
         out.append(base)
     return out
 
@@ -226,6 +265,13 @@ def main() -> None:
     before = len(all_places)
     all_places = dedupe_by_building(all_places)
     print(f"dedupe by building: {before} → {len(all_places)} (−{before - len(all_places)})")
+
+    before_addr = len(all_places)
+    all_places = dedupe_by_address(all_places)
+    print(
+        f"dedupe by address: {before_addr} → {len(all_places)} "
+        f"(−{before_addr - len(all_places)})"
+    )
 
     all_places.sort(key=lambda p: (p["地址"], p["name"]))
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
