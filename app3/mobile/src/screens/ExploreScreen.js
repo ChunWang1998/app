@@ -7,6 +7,7 @@ import { sortOwners, crownsForDistrict } from '../lib/sort';
 import OwnerRow from '../components/OwnerRow';
 import Chip from '../components/Chip';
 import ScreenHeader from '../components/ScreenHeader';
+import DropdownSelect from '../components/DropdownSelect';
 
 export default function ExploreScreen({
   districtsByCity = {},
@@ -45,6 +46,22 @@ export default function ExploreScreen({
     [byCity, district],
   );
 
+  const cityOptions = useMemo(
+    () => [
+      { value: '', label: '全台' },
+      ...TRIAL_CITIES.map((c) => ({ value: c, label: c })),
+    ],
+    [],
+  );
+
+  const districtOptions = useMemo(
+    () => [
+      { value: '', label: '全區' },
+      ...districts.map((d) => ({ value: d, label: d })),
+    ],
+    [districts],
+  );
+
   const toggleSlot = (key) => {
     setSlotKeys((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
@@ -59,42 +76,25 @@ export default function ExploreScreen({
         photoUri={profile?.photoUri}
         onProfile={onProfile}
       />
-      <View style={styles.districts}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.modes}
-        >
-          <Chip label="全台" selected={!city} onPress={() => setCity('')} />
-          {TRIAL_CITIES.map((c) => (
-            <Chip
-              key={c}
-              label={c.replace(/市$/, '')}
-              selected={city === c}
-              onPress={() => setCity(c)}
-            />
-          ))}
-        </ScrollView>
+      <View style={styles.filters}>
+        <DropdownSelect
+          label="縣市"
+          value={city}
+          options={cityOptions}
+          onChange={setCity}
+          placeholder="全台"
+          style={styles.filterHalf}
+        />
+        <DropdownSelect
+          label="行政區"
+          value={district}
+          options={districtOptions}
+          onChange={setDistrict}
+          placeholder={city ? '全區' : '先選縣市'}
+          disabled={!city}
+          style={styles.filterHalf}
+        />
       </View>
-      {city ? (
-        <View style={styles.districts}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.modes}
-          >
-            <Chip label="全區" selected={!district} onPress={() => setDistrict('')} />
-            {districts.map((d) => (
-              <Chip
-                key={d}
-                label={d}
-                selected={district === d}
-                onPress={() => setDistrict(d)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
 
       <ScrollView
         contentContainerStyle={styles.list}
@@ -151,8 +151,13 @@ export default function ExploreScreen({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  districts: { paddingHorizontal: 16, paddingBottom: 4 },
-  modes: { paddingBottom: 4 },
+  filters: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 10,
+  },
+  filterHalf: { flex: 1 },
   list: { paddingHorizontal: 16, paddingBottom: 24 },
   groupTitle: {
     fontSize: 15,

@@ -52,6 +52,7 @@ import ChatScreen from './src/screens/ChatScreen';
 import CreateGatheringScreen from './src/screens/CreateGatheringScreen';
 import GatheringDetailScreen from './src/screens/GatheringDetailScreen';
 import TabBar from './src/components/TabBar';
+import TabSwipe from './src/components/TabSwipe';
 import TourSheet from './src/components/TourSheet';
 import ConnectReminder from './src/components/ConnectReminder';
 
@@ -590,45 +591,47 @@ export default function App() {
   } else {
     body = (
       <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }}>
-        <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }}>
-          {tab === 'explore' ? (
-            <ExploreScreen
-              districtsByCity={districtsByCity}
-              onNeedDistricts={ensureDistricts}
-              owners={owners}
-              profile={profile}
-              onOpenOwner={openOwner}
-              onProfile={openProfile}
-            />
-          ) : (
-            <GatheringsScreen
-              gatherings={gatherings}
-              profile={profile}
-              hostingActive={myGatherings.some((g) => g.iHost && !g.ended)}
-              onProfile={openProfile}
-              onJoin={joinOne}
-              onOpen={(g) => openGathering(g, 'gatherings')}
-              onCreateGathering={() => {
-                if (!session || !profile) {
-                  needAccount('創辦聚會');
-                  return;
-                }
-                if (!subscribed) {
-                  setOverlay('subscribe');
-                  return;
-                }
-                if (myGatherings.some((g) => g.iHost && !g.ended)) {
-                  Alert.alert(
-                    '已有聚會',
-                    '同一時間只能創辦一場聚會，等目前這場結束後再辦。',
-                  );
-                  return;
-                }
-                setOverlay('createGathering');
-              }}
-            />
-          )}
-        </LinearGradient>
+        <TabSwipe tab={tab} onChange={setTab}>
+          <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }}>
+            {tab === 'explore' ? (
+              <ExploreScreen
+                districtsByCity={districtsByCity}
+                onNeedDistricts={ensureDistricts}
+                owners={owners}
+                profile={profile}
+                onOpenOwner={openOwner}
+                onProfile={openProfile}
+              />
+            ) : (
+              <GatheringsScreen
+                gatherings={gatherings}
+                profile={profile}
+                hostingActive={myGatherings.some((g) => g.iHost && !g.ended)}
+                onProfile={openProfile}
+                onJoin={joinOne}
+                onOpen={(g) => openGathering(g, 'gatherings')}
+                onCreateGathering={() => {
+                  if (!session || !profile) {
+                    needAccount('創辦聚會');
+                    return;
+                  }
+                  if (!subscribed) {
+                    setOverlay('subscribe');
+                    return;
+                  }
+                  if (myGatherings.some((g) => g.iHost && !g.ended)) {
+                    Alert.alert(
+                      '已有聚會',
+                      '同一時間只能創辦一場聚會，等目前這場結束後再辦。',
+                    );
+                    return;
+                  }
+                  setOverlay('createGathering');
+                }}
+              />
+            )}
+          </LinearGradient>
+        </TabSwipe>
         <TabBar tab={tab} onChange={setTab} />
       </LinearGradient>
     );

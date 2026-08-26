@@ -3,6 +3,9 @@
 
 Source: https://data.moenv.gov.tw/dataset/detail/FAC_P_07
 API:    https://data.moenv.gov.tw/api/v2/fac_p_07
+
+Dedupes to one pin per building (same rounded lat/lng), collapsing floor /
+gender variants (男廁、女廁、B1、10F, …).
 """
 
 from __future__ import annotations
@@ -10,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import time
 from pathlib import Path
 
@@ -27,6 +31,8 @@ DEFAULT_API_KEY = "846e44e1-8cc5-4893-ad87-c79d2d383706"
 
 PAGE_SIZE = 1000
 DELAY = 0.2
+# ~1.1 m; same building in FAC_P_07 usually shares identical coords.
+BUILDING_COORD_DECIMALS = 5
 
 HEADERS = {
     "User-Agent": (
@@ -35,6 +41,21 @@ HEADERS = {
     ),
     "Accept": "application/json",
 }
+
+FLOOR_RE = re.compile(
+    r"(地下\s*\d*\s*層?"
+    r"|[Bb]\s*\d+\s*[Ff]?"
+    r"|\d+\s*[Ff]"
+    r"|第?\s*\d+\s*樓"
+    r"|[0-9０-９]+\s*樓)",
+)
+GENDER_TAIL_RE = re.compile(
+    r"[-－/／(（]?\s*"
+    r"(女廁|男廁|無障礙(?:廁所)?"
+    r"|性別友善|親子(?:廁所)?"
+    r"|多功能(?:廁所)?)"
+    r".*$",
+)
 
 
 def make_id(number: str | None, name: str, address: str) -> str:
@@ -45,12 +66,62 @@ def make_id(number: str | None, name: str, address: str) -> str:
     return f"toilet-{digest}"
 
 
+def building_id(lat: float, lng: float) -> str:
+    key = f"{STORE_TYPE}|{round(lat, BUILDING_COORD_DECIMALS)}|{round(lng, BUILDING_COORD_DECIMALS)}"
+    digest = hashlib.sha1(key.encode("utf-8")).hexdigest()[:12]
+    return f"toilet-{digest}"
+
+
 def norm_tw(text: str) -> str:
     return (text or "").strip().replace("臺", "台")
 
 
 def is_valid_latlng(lat: float, lng: float) -> bool:
     return 21.5 <= lat <= 26.5 and 118.0 <= lng <= 122.5
+
+
+def clean_building_name(name: str) -> str:
+    s = (name or "").strip()
+    s = GENDER_TAIL_RE.sub("", s)
+    s = FLOOR_RE.sub("", s)
+    s = re.sub(r"[-－/／\s]+$", "", s)
+    s = re.sub(r"\s{2,}", " ", s).strip(" -－/／")
+    return s or (name or "").strip()
+
+
+def clean_address(addr: str) -> str:
+    s = FLOOR_RE.sub("", addr or "")
+    s = re.sub(r"[-－/／\s]+$", "", s).strip()
+    return s or (addr or "").strip()
+
+
+def building_key(place: dict) -> tuple[float, float]:
+    return (
+        round(float(place["lat"]), BUILDING_COORD_DECIMALS),
+        round(float(place["lng"]), BUILDING_COORD_DECIMALS),
+    )
+
+
+def dedupe_by_building(places: list[dict]) -> list[dict]:
+    """Keep one place per building (same rounded lat/lng)."""
+    groups: dict[tuple[float, float], list[dict]] = {}
+    for place in places:
+        groups.setdefault(building_key(place), []).append(place)
+
+    out: list[dict] = []
+    for key, group in groups.items():
+        cleaned = [clean_building_name(p.get("name") or "") for p in group]
+        best_i = min(
+            range(len(group)),
+            key=lambda i: (len(cleaned[i]) or 10_000, cleaned[i], group[i].get("地址") or ""),
+        )
+        base = dict(group[best_i])
+        lat, lng = key
+        base["id"] = building_id(lat, lng)
+        base["name"] = cleaned[best_i] or base.get("name") or "公廁"
+        base["地址"] = clean_address(base.get("地址") or "")
+        out.append(base)
+    return out
 
 
 def records_from_payload(payload) -> list[dict]:
@@ -151,6 +222,10 @@ def main() -> None:
             offset += PAGE_SIZE
             time.sleep(DELAY)
         print(f"  kept {city_added}")
+
+    before = len(all_places)
+    all_places = dedupe_by_building(all_places)
+    print(f"dedupe by building: {before} → {len(all_places)} (−{before - len(all_places)})")
 
     all_places.sort(key=lambda p: (p["地址"], p["name"]))
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
