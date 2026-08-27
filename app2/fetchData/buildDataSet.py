@@ -37,16 +37,14 @@ FREE_SOURCE_FILES = [
     "711_with_toilet.json",
 ]
 
-# Pro offline pack: all toilet-related sources.
+# Pro offline pack: toilet-related sources still present under data/.
+# (gas / department / MRT JSONs removed — overlapped with public toilets)
 PRO_SOURCE_FILES = [
     "711_with_toilet.json",
     "family_with_toilet.json",
-    "gas_with_toilet.json",
     "louisa_stores.json",
     "starbucks_stores.json",
     "poya_stores.json",
-    "department_stores.json",
-    "mrt_stations.json",
     "public_toilets.json",
 ]
 

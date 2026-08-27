@@ -4,9 +4,10 @@
 Source: https://data.moenv.gov.tw/dataset/detail/FAC_P_07
 API:    https://data.moenv.gov.tw/api/v2/fac_p_07
 
-Dedupes in two passes:
+Dedupes in three passes:
   1) same rounded lat/lng (floor / gender variants)
-  2) same cleaned street address → one pin per address
+  2) same cleaned full street address → one pin per address
+  3) same road name + house number (ignore 里/村 / 號旁) → one pin
 """
 
 from __future__ import annotations
@@ -57,6 +58,13 @@ GENDER_TAIL_RE = re.compile(
     r"|多功能(?:廁所)?)"
     r".*$",
 )
+# 縣市+鄉鎮市區 + 路名體 + 門牌號（允許 號旁 等後綴）
+STREET_NUM_RE = re.compile(
+    r"^(?P<pre>.+?[縣市].+?[鄉鎮市區])"
+    r"(?P<body>.+?)"
+    r"(?P<num>\d+(?:[-－]\d+)?(?:之\d+)?號)"
+)
+VILLAGE_PREFIX_RE = re.compile(r"^[^路街道巷弄段]+?[村里]")
 
 
 def make_id(number: str | None, name: str, address: str) -> str:
@@ -82,12 +90,30 @@ def norm_tw(text: str) -> str:
     return (text or "").strip().replace("臺", "台")
 
 
+def _normalize_addr_text(addr: str) -> str:
+    s = clean_address(norm_tw(addr or ""))
+    s = s.translate(str.maketrans("０１２３４５６７８９", "0123456789"))
+    s = re.sub(r"[\s　]+", "", s)
+    s = re.sub(r"[\(（].*$", "", s)
+    return s
+
+
 def address_key(place: dict) -> str:
     """Normalized address for whole-address dedupe."""
-    addr = clean_address(norm_tw(place.get("地址") or ""))
-    addr = addr.translate(str.maketrans("０１２３４５６７８９", "0123456789"))
-    addr = re.sub(r"\s+", "", addr)
+    addr = _normalize_addr_text(place.get("地址") or "")
     return addr or f"__coord__{building_key(place)}"
+
+
+def street_number_key(place: dict) -> str:
+    """縣市行政區 + 路名 + 門牌號；無門牌時退回完整地址 key。"""
+    addr = _normalize_addr_text(place.get("地址") or "")
+    m = STREET_NUM_RE.match(addr)
+    if not m:
+        return f"__full__{address_key(place)}"
+    pre = m.group("pre")
+    body = VILLAGE_PREFIX_RE.sub("", m.group("body"))
+    num = m.group("num").replace("－", "-")
+    return f"{pre}|{body}|{num}"
 
 
 def is_valid_latlng(lat: float, lng: float) -> bool:
@@ -147,6 +173,27 @@ def dedupe_by_address(places: list[dict]) -> list[dict]:
     groups: dict[str, list[dict]] = {}
     for place in places:
         groups.setdefault(address_key(place), []).append(place)
+
+    out: list[dict] = []
+    for key, group in groups.items():
+        base, name = _pick_representative(group)
+        lat = sum(float(p["lat"]) for p in group) / len(group)
+        lng = sum(float(p["lng"]) for p in group) / len(group)
+        addr = clean_address(base.get("地址") or "")
+        base["id"] = address_id(key)
+        base["name"] = name
+        base["地址"] = addr
+        base["lat"] = round(lat, 6)
+        base["lng"] = round(lng, 6)
+        out.append(base)
+    return out
+
+
+def dedupe_by_street_number(places: list[dict]) -> list[dict]:
+    """Keep one place when 路名 + 門牌號 match (village / 號旁 variants)."""
+    groups: dict[str, list[dict]] = {}
+    for place in places:
+        groups.setdefault(street_number_key(place), []).append(place)
 
     out: list[dict] = []
     for key, group in groups.items():
@@ -273,6 +320,13 @@ def main() -> None:
         f"(−{before_addr - len(all_places)})"
     )
 
+    before_street = len(all_places)
+    all_places = dedupe_by_street_number(all_places)
+    print(
+        f"dedupe by street+number: {before_street} → {len(all_places)} "
+        f"(−{before_street - len(all_places)})"
+    )
+
     all_places.sort(key=lambda p: (p["地址"], p["name"]))
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(OUT_PATH, "w", encoding="utf-8") as f:
@@ -282,5 +336,21 @@ def main() -> None:
     print(f"Export {len(all_places)} toilets → {OUT_PATH}")
 
 
+def refilter_existing() -> None:
+    """Re-apply street+number dedupe on an existing public_toilets.json (no API)."""
+    with open(OUT_PATH, encoding="utf-8") as f:
+        places = json.load(f)
+    before = len(places)
+    places = dedupe_by_street_number(places)
+    places.sort(key=lambda p: (p["地址"], p["name"]))
+    with open(OUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(places, f, ensure_ascii=False, indent=2)
+    print(f"refilter street+number: {before} → {len(places)} (−{before - len(places)})")
+    print(f"Export {len(places)} toilets → {OUT_PATH}")
+
+
 if __name__ == "__main__":
-    main()
+    if os.environ.get("REFILTER_ONLY") == "1":
+        refilter_existing()
+    else:
+        main()
