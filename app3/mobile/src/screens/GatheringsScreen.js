@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, radius } from '../theme';
-import { TRIAL_CITIES } from '../data/constants';
-import Chip from '../components/Chip';
+import { taiwanCityFilterOptions } from '../data/constants';
 import ScreenHeader from '../components/ScreenHeader';
+import DropdownSelect from '../components/DropdownSelect';
 
 export default function GatheringsScreen({
   gatherings,
@@ -26,21 +26,13 @@ export default function GatheringsScreen({
         onProfile={onProfile}
       />
       <View style={styles.cities}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.modes}
-        >
-          <Chip label="全台" selected={!city} onPress={() => setCity('')} />
-          {TRIAL_CITIES.map((c) => (
-            <Chip
-              key={c}
-              label={c.replace(/市$/, '')}
-              selected={city === c}
-              onPress={() => setCity(c)}
-            />
-          ))}
-        </ScrollView>
+        <DropdownSelect
+          label="縣市"
+          value={city}
+          options={taiwanCityFilterOptions()}
+          onChange={setCity}
+          placeholder="全台"
+        />
       </View>
       <ScrollView
         contentContainerStyle={styles.list}

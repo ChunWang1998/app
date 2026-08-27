@@ -19,11 +19,13 @@ import {
   DEFAULT_GATHERING_CAPACITY,
   MAX_GATHERING_NAME,
   MAX_GATHERING_INTRO,
-  TRIAL_CITIES,
+  TAIWAN_CITIES,
+  taiwanCityPickOptions,
   formatGatheringDate,
   startOfDay,
 } from '../data/constants';
 import Chip from '../components/Chip';
+import DropdownSelect from '../components/DropdownSelect';
 import { AwareTextInput, useKeyboardAwareScroll } from '../lib/keyboard';
 
 function offsetDate(n) {
@@ -38,7 +40,7 @@ export default function CreateGatheringScreen({ onBack, onSave, defaultCity }) {
     useKeyboardAwareScroll();
   const [name, setName] = useState('');
   const [place, setPlace] = useState('');
-  const [city, setCity] = useState(defaultCity || TRIAL_CITIES[0]);
+  const [city, setCity] = useState(defaultCity || TAIWAN_CITIES[0]);
   const [type, setType] = useState(GATHERING_TYPES[2]);
   const [fee, setFee] = useState(0);
   const [customFee, setCustomFee] = useState('');
@@ -146,11 +148,13 @@ export default function CreateGatheringScreen({ onBack, onSave, defaultCity }) {
       <Text style={styles.picked}>已選 {formatGatheringDate(date)}</Text>
 
       <Text style={styles.k}>縣市</Text>
-      <View style={styles.wrap}>
-        {TRIAL_CITIES.map((c) => (
-          <Chip key={c} label={c} selected={city === c} onPress={() => setCity(c)} />
-        ))}
-      </View>
+      <DropdownSelect
+        value={city}
+        options={taiwanCityPickOptions()}
+        onChange={setCity}
+        placeholder="請選縣市"
+      />
+      <View style={{ height: 8 }} />
 
       <Text style={styles.k}>地點</Text>
       <AwareTextInput

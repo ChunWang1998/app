@@ -9,17 +9,75 @@ export const MAX_GATHERING_INTRO = 50;
 export const GATHERING_MIN_DAYS_AHEAD = 1;
 export const GATHERING_MAX_DAYS_AHEAD = 7;
 
-export const TRIAL_CITIES = ['高雄市', '臺南市', '新北市', '臺北市'];
+/** All 22 counties / cities in Taiwan (手選，非 GPS). */
+export const TAIWAN_CITIES = [
+  '基隆市',
+  '臺北市',
+  '新北市',
+  '桃園市',
+  '新竹市',
+  '新竹縣',
+  '苗栗縣',
+  '臺中市',
+  '彰化縣',
+  '南投縣',
+  '雲林縣',
+  '嘉義市',
+  '嘉義縣',
+  '臺南市',
+  '高雄市',
+  '屏東縣',
+  '宜蘭縣',
+  '花蓮縣',
+  '臺東縣',
+  '澎湖縣',
+  '金門縣',
+  '連江縣',
+];
+
+/** @deprecated use TAIWAN_CITIES */
+export const TRIAL_CITIES = TAIWAN_CITIES;
 
 /** NLSC county codes — only used as API path, not as a district list. */
 export const COUNTY_CODE = {
+  基隆市: 'C',
   臺北市: 'A',
   新北市: 'F',
+  桃園市: 'H',
+  新竹市: 'O',
+  新竹縣: 'J',
+  苗栗縣: 'K',
+  臺中市: 'B',
+  彰化縣: 'N',
+  南投縣: 'M',
+  雲林縣: 'P',
+  嘉義市: 'I',
+  嘉義縣: 'Q',
   臺南市: 'D',
   高雄市: 'E',
+  屏東縣: 'T',
+  宜蘭縣: 'G',
+  花蓮縣: 'U',
+  臺東縣: 'V',
+  澎湖縣: 'X',
+  金門縣: 'W',
+  連江縣: 'Z',
 };
 
+export function taiwanCityFilterOptions() {
+  return [
+    { value: '', label: '全台' },
+    ...TAIWAN_CITIES.map((c) => ({ value: c, label: c })),
+  ];
+}
+
+export function taiwanCityPickOptions() {
+  return TAIWAN_CITIES.map((c) => ({ value: c, label: c }));
+}
+
 export const PERSONALITIES = ['友善', '怕生', '活力', '慢熱'];
+export const MAX_PERSONALITIES = 4;
+export const MAX_PERSONALITY_LEN = 8;
 
 export const SIZES = ['小型', '中型', '大型'];
 

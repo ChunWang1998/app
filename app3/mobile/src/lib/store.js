@@ -4,7 +4,7 @@ import {
   MAX_GATHERING_INTRO,
   MAX_GATHERING_NAME,
   DEFAULT_GATHERING_CAPACITY,
-  TRIAL_CITIES,
+  TAIWAN_CITIES,
   formatGatheringDate,
   isGatheringDateAllowed,
   isGatheringEnded,
@@ -581,7 +581,7 @@ async function ownerLookup() {
   const session = await loadSession();
   const map = {};
   for (const g of GLOBAL_GUIDES) map[g.id] = { ...g, ...(overrides[g.id] || {}) };
-  for (const city of TRIAL_CITIES) {
+  for (const city of TAIWAN_CITIES) {
     for (const o of seedOwnersForCity(city)) {
       map[o.id] = { ...o, ...(overrides[o.id] || {}) };
     }

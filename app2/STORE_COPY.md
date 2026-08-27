@@ -165,6 +165,12 @@ eas submit --platform ios --latest
 若審核裝置不在上述地區，定位失敗時會改用高雄市中心示範座標，仍可操作地圖與清單。
 
 投票與留言需網路（Supabase）；匿名 device id，無帳號。
+
+【內購測試】
+・右上角「解鎖」→「買斷解鎖」為非消耗型 IAP（完整資料包，商品 ID：com.toiletgo.app.pro）
+・免費版僅線上載入 7-11；買斷後可下載離線包並解鎖公廁等類型
+・可使用 Sandbox 帳號測試購買；「恢復購買」可還原已買斷用戶
+・購買成功後需網路下載約 7MB 資料包（首次）
 ```
 
 ### 附件
@@ -213,9 +219,11 @@ eas submit --platform ios --latest
 
 - [ ] GitHub Pages 已能開 `privacy.html` / `support.html`（推上 `chunwang1998.github.io/app` 的 `app2/store/`）
 - [ ] Google Play 見 `PLAY_STORE.md`（Android 文案、資料安全、建置指令）
+- [ ] **iOS 內購** 見 `APP_STORE_IAP.md`（付費協議、建立 `com.toiletgo.app.pro`、Sandbox、TestFlight 購買測試）
 - [ ] App Store Connect 已新建 App（名稱「急廁 Go」、Bundle `com.toiletgo.app`），並把 ASC ID 填回本檔標題
+- [ ] App Store Connect 已建立 IAP `com.toiletgo.app.pro`（非消耗型），版本頁已勾選一併送審
 - [ ] Supabase 已上線，投票／留言可同步（審核會點得到）
-- [ ] TestFlight 實機測：定位、地圖、導航、左右滑投票、留言
+- [ ] TestFlight 實機測：定位、地圖、導航、左右滑投票、留言、**購買／恢復／下載資料包**
 - [x] iPad 截圖兩張（2048×2732）
 
 ---

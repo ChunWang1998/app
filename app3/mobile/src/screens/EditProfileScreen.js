@@ -25,13 +25,17 @@ import {
   MAX_PLACES,
   MAX_DOGS,
   MAX_INTRO,
-  TRIAL_CITIES,
+  MAX_PERSONALITIES,
+  MAX_PERSONALITY_LEN,
+  TAIWAN_CITIES,
+  taiwanCityPickOptions,
   slotLabel,
 } from '../data/constants';
 import { fetchDistrictsForCity } from '../lib/districts';
 import { emptyDog, normalizeProfile } from '../lib/dogs';
 import { AwareTextInput, useKeyboardAwareScroll } from '../lib/keyboard';
 import Chip from '../components/Chip';
+import DropdownSelect from '../components/DropdownSelect';
 
 export default function EditProfileScreen({
   initial,
@@ -48,10 +52,11 @@ export default function EditProfileScreen({
   const [slots, setSlots] = useState(base.slots || []);
   const [places, setPlaces] = useState(base.places || []);
   const [placeDraft, setPlaceDraft] = useState('');
-  const [city, setCity] = useState(base.city || TRIAL_CITIES[0]);
+  const [city, setCity] = useState(base.city || TAIWAN_CITIES[0]);
   const [districtList, setDistrictList] = useState([]);
   const [district, setDistrict] = useState(base.district || '');
   const [loadingTowns, setLoadingTowns] = useState(false);
+  const [personalityDraft, setPersonalityDraft] = useState('');
   const [dogs, setDogs] = useState(
     (base.dogs || [emptyDog()]).map((d) => emptyDog(d)),
   );
@@ -93,12 +98,36 @@ export default function EditProfileScreen({
 
   const togglePersonality = (p) => {
     const list = dog.personalities || [];
-    updateDog({
-      personalities: list.includes(p)
-        ? list.filter((x) => x !== p)
-        : [...list, p],
-    });
+    if (list.includes(p)) {
+      updateDog({ personalities: list.filter((x) => x !== p) });
+      return;
+    }
+    if (list.length >= MAX_PERSONALITIES) {
+      Alert.alert('個性最多 4 個');
+      return;
+    }
+    updateDog({ personalities: [...list, p] });
   };
+
+  const addCustomPersonality = () => {
+    const p = personalityDraft.trim().slice(0, MAX_PERSONALITY_LEN);
+    if (!p) return;
+    const list = dog.personalities || [];
+    if (list.includes(p)) {
+      Alert.alert('已有這個標籤');
+      return;
+    }
+    if (list.length >= MAX_PERSONALITIES) {
+      Alert.alert('個性最多 4 個');
+      return;
+    }
+    updateDog({ personalities: [...list, p] });
+    setPersonalityDraft('');
+  };
+
+  const customPersonalities = (dog?.personalities || []).filter(
+    (p) => !PERSONALITIES.includes(p),
+  );
 
   const toggleSlot = (day, slot) => {
     const i = slots.findIndex((s) => s.day === day && s.slot === slot);
@@ -245,16 +274,13 @@ export default function EditProfileScreen({
         />
 
         <Text style={styles.k}>縣市（手選）</Text>
-        <View style={styles.wrap}>
-          {TRIAL_CITIES.map((c) => (
-            <Chip
-              key={c}
-              label={c}
-              selected={city === c}
-              onPress={() => setCity(c)}
-            />
-          ))}
-        </View>
+        <DropdownSelect
+          value={city}
+          options={taiwanCityPickOptions()}
+          onChange={setCity}
+          placeholder="請選縣市"
+        />
+        <View style={{ height: 8 }} />
 
         <Text style={styles.k}>行政區</Text>
         {loadingTowns ? (
@@ -400,7 +426,7 @@ export default function EditProfileScreen({
           onPick={(v) => updateDog({ ageRange: v })}
         />
 
-        <Text style={styles.k}>個性</Text>
+        <Text style={styles.k}>個性（最多 {MAX_PERSONALITIES}，可自訂）</Text>
         <View style={styles.wrap}>
           {PERSONALITIES.map((p) => (
             <Chip
@@ -410,6 +436,28 @@ export default function EditProfileScreen({
               onPress={() => togglePersonality(p)}
             />
           ))}
+          {customPersonalities.map((p) => (
+            <Chip
+              key={p}
+              label={`${p} ×`}
+              selected
+              onPress={() => togglePersonality(p)}
+            />
+          ))}
+        </View>
+        <View style={styles.addRow}>
+          <AwareTextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            placeholder="自訂個性（8 字內）"
+            value={personalityDraft}
+            maxLength={MAX_PERSONALITY_LEN}
+            onChangeText={setPersonalityDraft}
+            scrollOnFocus={onInputFocus}
+            scrollOnBlur={onInputBlur}
+          />
+          <TouchableOpacity style={styles.addBtn} onPress={addCustomPersonality}>
+            <Text style={styles.addTxt}>加入</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.k}>與其他狗</Text>

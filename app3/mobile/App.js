@@ -5,7 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from './src/theme';
-import { sizesTwoLevelsApart, TRIAL_CITIES } from './src/data/constants';
+import { sizesTwoLevelsApart, TAIWAN_CITIES } from './src/data/constants';
 import {
   GUIDE_REPLY_ID,
   GUIDE_TRY_ID,
@@ -103,7 +103,7 @@ export default function App() {
   }, []);
 
   const ensureDistricts = useCallback(async (city) => {
-    if (!city || !TRIAL_CITIES.includes(city)) return [];
+    if (!city || !TAIWAN_CITIES.includes(city)) return [];
     if (districtsByCity[city]?.length) return districtsByCity[city];
     try {
       const towns = await fetchDistrictsForCity(city);
@@ -332,7 +332,7 @@ export default function App() {
                 return;
               }
               if (e.code === 'city') {
-                Alert.alert('縣市不在試用範圍');
+                Alert.alert('請選有效的台灣縣市');
                 return;
               }
               Alert.alert('無法註冊', e.message || String(e));
@@ -438,7 +438,7 @@ export default function App() {
     body = (
       <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }}>
         <CreateGatheringScreen
-          defaultCity={profile?.city || TRIAL_CITIES[0]}
+          defaultCity={profile?.city || TAIWAN_CITIES[0]}
           onBack={() => {
             setOverlay(null);
             setTab('gatherings');

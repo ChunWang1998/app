@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors } from '../theme';
-import { allSlotCombos, slotKey, TRIAL_CITIES } from '../data/constants';
+import { allSlotCombos, slotKey, taiwanCityFilterOptions } from '../data/constants';
 import { flattenOwnersToDogCards } from '../lib/dogs';
 import { sortOwners, crownsForDistrict } from '../lib/sort';
 import OwnerRow from '../components/OwnerRow';
@@ -46,13 +46,7 @@ export default function ExploreScreen({
     [byCity, district],
   );
 
-  const cityOptions = useMemo(
-    () => [
-      { value: '', label: '全台' },
-      ...TRIAL_CITIES.map((c) => ({ value: c, label: c })),
-    ],
-    [],
-  );
+  const cityOptions = useMemo(() => taiwanCityFilterOptions(), []);
 
   const districtOptions = useMemo(
     () => [
