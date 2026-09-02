@@ -20,12 +20,13 @@
         "simulator": true
       }
     },
-    "production": {
-      "autoIncrement": true
-    }
+    "production": {}
   },
   "submit": {
     "production": {
+      "ios": {
+        "ascAppId": "11165497037"
+      },
       "android": {
         "track": "internal",
         "releaseStatus": "draft"

@@ -26,7 +26,6 @@
       }
     },
     "production": {
-      "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_PLACES_URL": "https://chunwang1998.github.io/app/places",
         "EXPO_PUBLIC_IAP_PRODUCT_ID": "com.toiletgo.app.pro"
@@ -35,6 +34,9 @@
   },
   "submit": {
     "production": {
+      "ios": {
+        "ascAppId": "6798266716"
+      },
       "android": {
         "track": "internal",
         "releaseStatus": "draft"
