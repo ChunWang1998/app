@@ -21,6 +21,7 @@ export default function HelpModal({ visible, onClose }) {
 
           <Text style={[styles.label, { marginTop: 14 }]}>完整資料包（買斷）</Text>
           <Text style={styles.body}>公廁、全家、加油站、路易莎、星巴克、寶雅、百貨、捷運等</Text>
+          <Text style={styles.price}>一次性買斷 NT$100</Text>
           <Text style={styles.note}>下載後可離線使用；支援恢復購買</Text>
 
           <TouchableOpacity style={styles.btn} onPress={onClose} activeOpacity={0.85}>
@@ -61,6 +62,12 @@ const styles = StyleSheet.create({
     color: colors.ink,
     lineHeight: 24,
     fontWeight: '700',
+  },
+  price: {
+    marginTop: 6,
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.brandDeep,
   },
   note: {
     marginTop: 4,
