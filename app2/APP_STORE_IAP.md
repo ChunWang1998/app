@@ -1,7 +1,7 @@
 # 急廁 Go — App Store Connect 內購（IAP）設定
 
 > Bundle ID：`com.toiletgo.app`  
-> 內購商品 ID：`com.toiletgo.app.pro`（**非消耗型** / 一次性買斷）  
+> 內購商品 ID：`com.toiletgo.app.fullpack`（**非消耗型** / 一次性買斷）  
 > 程式對照：`mobile/src/lib/iap.js`、`mobile/eas.json`（production profile）  
 > 商店文案：`STORE_COPY.md` · Android 對照：`PLAY_STORE.md`
 
@@ -41,7 +41,7 @@
 | 1 | 點 **＋** 或 **建立** |
 | 2 | 類型選 **非消耗型**（Non-Consumable） |
 | 3 | **參考名稱**（僅後台可見）：`完整資料包 Pro` |
-| 4 | **產品 ID**：`com.toiletgo.app.pro` |
+| 4 | **產品 ID**：`com.toiletgo.app.fullpack` |
 
 > **產品 ID 建立後不可修改**，必須與 App 內 `EXPO_PUBLIC_IAP_PRODUCT_ID` 完全一致。
 
@@ -130,7 +130,7 @@ CDN 確認（購買後下載用）：
 
 ### 6.1 版本頁 → App 內購項目
 
-- [ ] 勾選 `com.toiletgo.app.pro`（與此版本一併送審）
+- [ ] 勾選 `com.toiletgo.app.fullpack`（與此版本一併送審）
 
 ### 6.2 App 審查資訊 → 備註（建議追加）
 
@@ -156,7 +156,7 @@ CDN 確認（購買後下載用）：
 ### App Store Connect
 
 - [ ] 付費 App 協議 + 銀行 + 稅務 完成
-- [ ] IAP `com.toiletgo.app.pro` 已建立（非消耗型）
+- [ ] IAP `com.toiletgo.app.fullpack` 已建立（非消耗型）
 - [ ] IAP 定價、繁中名稱／描述 已填
 - [ ] IAP 狀態 **準備提交**
 - [ ] 版本頁已勾選此 IAP
@@ -171,7 +171,7 @@ CDN 確認（購買後下載用）：
 
 ### 程式（無需再改即可上架）
 
-- [x] `EXPO_PUBLIC_IAP_PRODUCT_ID=com.toiletgo.app.pro`（`eas.json` production）
+- [x] `EXPO_PUBLIC_IAP_PRODUCT_ID=com.toiletgo.app.fullpack`（`eas.json` production）
 - [x] production **未** 設定 `EXPO_PUBLIC_IAP_SIMULATE`
 - [x] `expo-iap` plugin（`app.json`）
 - [x] 恢復購買 UI（`UnlockProModal`）
@@ -182,7 +182,7 @@ CDN 確認（購買後下載用）：
 
 | 現象 | 可能原因 | 處理 |
 |------|----------|------|
-| 購買按鈕報錯 / 找不到商品 | ASC 未建 IAP 或 ID 不一致 | 核對 `com.toiletgo.app.pro` |
+| 購買按鈕報錯 / 找不到商品 | ASC 未建 IAP 或 ID 不一致 | 核對 `com.toiletgo.app.fullpack` |
 | 一直跳出「模擬購買」 | 用了 preview build 或 Expo Go | 改 TestFlight production build |
 | 購買成功但下載失敗 | CDN 無 pack 或網路問題 | 檢查 manifest / full.json URL |
 | Sandbox 無法購買 | 未登入 Sandbox 帳號 | 設定 → App Store → Sandbox |
@@ -195,7 +195,7 @@ CDN 確認（購買後下載用）：
 
 | 項目 | iOS | Android |
 |------|-----|---------|
-| 商品 ID | `com.toiletgo.app.pro` | 同左 |
+| 商品 ID | `com.toiletgo.app.fullpack` | 同左 |
 | 類型 | 非消耗型 | 非消耗型（一次性） |
 | 後台 | App Store Connect | Play Console |
 | 測試 | Sandbox Apple ID + TestFlight | 授權測試 Gmail + Internal testing |

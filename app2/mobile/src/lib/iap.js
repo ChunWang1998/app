@@ -2,7 +2,7 @@ import { Platform, Alert } from 'react-native';
 import { setProUnlocked, isProUnlocked } from './entitlements';
 
 const PRO_PRODUCT_ID =
-  process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.toiletgo.app.pro';
+  process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.toiletgo.app.fullpack';
 
 function runningInExpoGo() {
   try {

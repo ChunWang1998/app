@@ -179,7 +179,7 @@ npm run deploy:testflight
 留言需網路（Supabase）；匿名 device id，無帳號。
 
 【內購測試】
-・右上角「解鎖」→「買斷並下載」為非消耗型 IAP（完整資料包，商品 ID：com.toiletgo.app.pro）
+・右上角「解鎖」→「買斷並下載」為非消耗型 IAP（完整資料包，商品 ID：com.toiletgo.app.fullpack）
 ・免費版僅線上載入 7-11；買斷後可下載離線包並解鎖公廁等類型
 ・可使用 Sandbox 帳號測試購買；「恢復購買」可還原已買斷用戶
 ・購買成功後需網路下載完整資料包（首次，約 8MB）

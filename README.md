@@ -2,6 +2,8 @@ app3 流程:
 -> 一邊蒐集用戶反饋, 一邊測試, 一邊修改成付費版本
 -> deploy 新版本 with 付費版本
 
+> **付費版第一次 build 提醒**：若是**第一次**打付費版（含 App 內購買），在 EAS build / 送審前，先到 App Store Connect（與 Google Play Console）**建好 In-App Purchase / 訂閱項目**，並確認 product ID 與程式碼一致。漏設常導致審核或測試失敗，又要再 build 一次。
+
 ---
 
 ## iOS App Store：隱私權限用途說明（Purpose Strings）注意事項
@@ -50,6 +52,7 @@ app3 流程:
 
 ### 新 App 上架前檢查清單
 
+- [ ] 若為**付費版第一次 build**：先在商店後台建好 IAP / 訂閱項目，product ID 與程式碼一致（避免漏設再重 build）
 - [ ] 列出 App 實際使用的敏感權限（相簿、相機、麥克風、定位等）
 - [ ] `app.json` / plugin 設定與程式碼一致（無多餘 permission）
 - [ ] 所有 `*UsageDescription` 為繁中具體說明，非英文占位符
