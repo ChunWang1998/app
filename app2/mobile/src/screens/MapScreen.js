@@ -120,15 +120,22 @@ function runningInExpoGo() {
   }
 }
 
+function navigationQuery(place) {
+  const parts = [place?.type, place?.name, place?.地址]
+    .map((s) => String(s || '').trim())
+    .filter(Boolean);
+  // Prefer "7-11 三多門市 高雄市…" so Maps searches by name, not wrong coords.
+  return [...new Set(parts)].join(' ');
+}
+
 async function openGoogleMaps(place) {
-  const lat = Number(place?.lat);
-  const lng = Number(place?.lng);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    Alert.alert('無法導航', '此地點沒有有效座標');
+  const query = navigationQuery(place);
+  if (!query) {
+    Alert.alert('無法導航', '此地點沒有可用的名稱或地址');
     return;
   }
 
-  const dest = `${lat},${lng}`;
+  const dest = encodeURIComponent(query);
   const googleWebUrl = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=walking`;
   const googleAppUrl = `comgooglemaps://?daddr=${dest}&directionsmode=walking`;
 

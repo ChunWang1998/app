@@ -9,14 +9,22 @@ const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 } // Kaohsiung
 const PLACES_BASE = '/places'
 
 function mapsUrl(place) {
-  const q = encodeURIComponent(`${place.name || place.type} ${place.地址}`)
-  return `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}&destination_place_id=&travelmode=walking&query=${q}`
+  const parts = [place.type, place.name, place.地址]
+    .map((s) => String(s || '').trim())
+    .filter(Boolean)
+  const q = encodeURIComponent([...new Set(parts)].join(' '))
+  return `https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=walking`
+}
+
+function nearestIdsKey(list) {
+  return list.map((p) => p.id).join('|')
 }
 
 export default function MapPage() {
   const mapRef = useRef(null)
   const mapInstance = useRef(null)
   const markersLayer = useRef(null)
+  const fittedNearestKey = useRef('')
 
   const [status, setStatus] = useState('locating') // locating | ready | denied | error
   const [userPos, setUserPos] = useState(null)
@@ -92,6 +100,7 @@ export default function MapPage() {
       map.remove()
       mapInstance.current = null
       markersLayer.current = null
+      fittedNearestKey.current = ''
     }
   }, [userPos])
 
@@ -110,7 +119,7 @@ export default function MapPage() {
     })
 
     L.marker([userPos.lat, userPos.lng], { icon: userIcon })
-      .bindPopup('你在這裡')
+      .bindPopup('你在這裡', { autoPan: false })
       .addTo(layer)
 
     const bounds = L.latLngBounds([[userPos.lat, userPos.lng]])
@@ -125,15 +134,22 @@ export default function MapPage() {
       L.marker([place.lat, place.lng], { icon })
         .bindPopup(
           `<strong>${place.type}${place.name ? ` ${place.name}` : ''}</strong><br/>${place.地址}<br/>${formatHours(place.營業時間)}`,
+          { autoPan: false },
         )
         .addTo(layer)
       bounds.extend([place.lat, place.lng])
     })
 
-    if (nearest.length > 0) {
-      map.fitBounds(bounds.pad(0.25))
-    } else {
-      map.setView([userPos.lat, userPos.lng], 15)
+    // Only re-frame the map when the nearest set actually changes —
+    // not on every popup open / marker redraw.
+    const key = nearestIdsKey(nearest)
+    if (key !== fittedNearestKey.current) {
+      fittedNearestKey.current = key
+      if (nearest.length > 0) {
+        map.fitBounds(bounds.pad(0.25))
+      } else {
+        map.setView([userPos.lat, userPos.lng], 15)
+      }
     }
   }, [userPos, nearest])
 
