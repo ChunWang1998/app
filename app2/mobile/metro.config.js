@@ -8,8 +8,9 @@ const sharedRoot = path.resolve(app2Root, 'shared');
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(projectRoot);
 
-// Shared places loader + optional assets under app2/
-config.watchFolders = [app2Root];
+// Only watch shared/ outside the Expo project — watching all of app2/
+// (data/*.json, dist cells) exhausts macOS file watchers (EMFILE).
+config.watchFolders = [sharedRoot];
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   ...((config.resolver.nodeModulesPaths) || []),
