@@ -1,4 +1,3 @@
-export const FOUNDER_CAP = 100;
 export const MAX_CHAT = 20;
 export const MAX_SLOTS = 3;
 export const MAX_PLACES = 3;

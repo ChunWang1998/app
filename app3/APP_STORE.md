@@ -49,14 +49,14 @@
 ・安全 Connect：雙方互相確認後解鎖專屬對話（最多 20 句），出門見面更有默契。
 ・汪汪聚會：瀏覽全台狗狗聚會、即時報名或自行發起聚會（附 LINE 交流群組連結）。
 ・安全與隱私：內建檢舉與封鎖機制，嚴格保護社群秩序；無廣告干擾。
-・創始 100 人：完成手機號碼登入與毛孩檔案即可享有創始免費名額。
+・訂閱解鎖：探索清單免費瀏覽；Connect、聊天與汪汪聚會需訂閱鄰汪 Premium（NT$60／月，可透過 App Store 優惠碼兌換免費期）。
 
 【使用方式】
 1. 開啟 App 即可直接探索附近的狗狗夥伴（無需開啟 GPS 定位）。
 2. 在個人頁輸入手機號碼並完成毛孩檔案（合照需主人與狗同框）。
-3. 發送 Connect 邀請給喜歡的毛孩夥伴，雙方同意後即可開啟聊天並相約公園見面！
+3. 訂閱或兌換優惠碼後，發送 Connect 邀請給喜歡的毛孩夥伴，雙方同意後即可開啟聊天並相約公園見面！
 
-註：本 App 需要網際網路連線以同步最新檔案與聚會資訊。
+註：本 App 需要網際網路連線以同步最新檔案與聚會資訊。訂閱為自動續訂，可於 Apple ID 設定取消。
 ```
 
 ### 關鍵字 (Keywords, ≤ 100 字元，半形逗號分隔)
@@ -133,14 +133,30 @@
 * **備註 (Notes for Reviewer)**：
 ```text
 This app connects dog owners for outdoor walk meetups in Taiwan.
-1. Sign-in Method: Users log in simply by entering their phone number (e.g., 0900000000). No SMS OTP is required for this version.
-2. Safety & Moderation: In compliance with UGC Guideline 1.2, users can block and report any inappropriate profiles or messages via the "檢舉 (Report)" and "封鎖 (Block)" buttons on any profile detail page.
-3. Account Deletion: Users can delete their account and associated data instantly from the Me screen (個人頁) -> 刪除帳號.
+1. Sign-in Method: Users log in by entering their phone number (e.g., 0900000000). No SMS OTP is required for this version.
+2. Business model: Browsing the explore list is free. Owner detail Connect, chat, and create/join gatherings require an auto-renewable Apple IAP subscription (product ID: com.linwang.app.premium, NT$60/month). Early users may redeem App Store subscription offer codes (e.g. one free month) via the in-app「兌換優惠碼」button. Restore Purchases is supported. No third-party payment for digital features.
+3. Safety & Moderation: Users can block and report via「檢舉」and「封鎖」on profile detail.
+4. Account Deletion: Me screen (個人頁) -> 刪除帳號.
 ```
 
 ---
 
-## 5. EAS 建置與上傳指令
+## 5. 內購（IAP）摘要
+
+| 項目 | 值 |
+|---|---|
+| 類型 | 自動續訂訂閱（月繳） |
+| 產品 ID | `com.linwang.app.premium` |
+| 建議價格 | NT$60／月 |
+| 優惠碼 | App Store Offer Codes（例如一個月免費） |
+| 程式 | `mobile/src/lib/iap.js`、`SubscribeScreen.js` |
+| 環境變數 | `EXPO_PUBLIC_IAP_PRODUCT_ID`（production 勿開 SIMULATE） |
+
+詳細步驟見 `APP_STORE_IAP.md`。
+
+---
+
+## 6. EAS 建置與上傳指令
 
 ### 1. 推送雲端環境變數 (Supabase Key)
 ```bash

@@ -15,14 +15,13 @@ import {
 } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius } from '../theme';
-import { FOUNDER_CAP, PLAY_OPTIONS } from '../data/constants';
+import { PLAY_OPTIONS } from '../data/constants';
 import { hasValidSub } from '../lib/store';
 import { displayNameForOwner, normalizeProfile } from '../lib/dogs';
 
 export default function MeScreen({
   session,
   profile,
-  founderCount,
   connects,
   ownersById,
   myGatherings = [],
@@ -70,7 +69,7 @@ export default function MeScreen({
       {!session ? (
         <View style={styles.card}>
           <Text style={styles.p}>
-            填手機號當帳號（不驗證碼）。前 {FOUNDER_CAP} 人寫入白名單，永久不必付費。必須同時建立汪汪檔案才算完成免費註冊。已註冊過請填同一支號碼，會從雲端還原。
+            填手機號當帳號（不驗證碼）。必須同時建立汪汪檔案才算完成註冊。註冊免費；Connect、聊天與聚會需訂閱。已註冊過請填同一支號碼，會從雲端還原。
           </Text>
           <TextInput
             style={styles.input}
@@ -91,32 +90,23 @@ export default function MeScreen({
           >
             <Text style={styles.btnText}>填檔案並註冊</Text>
           </TouchableOpacity>
-          <Text style={styles.hint}>
-            白名單 {founderCount}/{FOUNDER_CAP}
-            {founderCount >= FOUNDER_CAP
-              ? ' 已滿。v1 只服務這 100 人；名單內到 v2 仍永久免費。'
-              : ' · 同一支號碼換機仍免費用'}
-          </Text>
-        </View>
-      ) : !subscribed ? (
-        <View style={styles.card}>
-          <Text style={styles.v}>未訂閱</Text>
-          <Text style={styles.p}>
-            未訂閱只能看清單。看詳情、Connect、創辦／報名聚會都要先訂閱。
-          </Text>
-          <TouchableOpacity style={styles.btn} onPress={onSubscribe}>
-            <Text style={styles.btnText}>去訂閱</Text>
-          </TouchableOpacity>
+          <Text style={styles.hint}>同一支號碼換機可還原檔案</Text>
         </View>
       ) : (
         <>
           <View style={styles.card}>
             <Text style={styles.k}>帳號 {session.phone || session.loginKey}</Text>
-            <Text style={styles.v}>
-              {session.subscription === 'founder'
-                ? '白名單：已事先訂閱（永久免費）'
-                : '已訂閱'}
-            </Text>
+            <Text style={styles.v}>{subscribed ? '已訂閱 Premium' : '未訂閱'}</Text>
+            {!subscribed ? (
+              <>
+                <Text style={styles.p}>
+                  可免費編輯檔案與瀏覽清單。看詳情、Connect、創辦／報名聚會需訂閱（NT$60／月），也可用優惠碼兌換。
+                </Text>
+                <TouchableOpacity style={styles.btn} onPress={onSubscribe}>
+                  <Text style={styles.btnText}>去訂閱／兌換優惠碼</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
             {profile ? (
               <>
                 {(() => {
@@ -190,6 +180,8 @@ export default function MeScreen({
             )}
           </View>
 
+          {subscribed ? (
+            <>
           <Text style={styles.section}>參加的聚會</Text>
           {myGatherings.length === 0 ? (
             <Text style={styles.empty}>還沒有報名或創辦的聚會</Text>
@@ -312,26 +304,27 @@ export default function MeScreen({
               );
             })
           )}
+            </>
+          ) : null}
+
+          <TouchableOpacity
+            style={styles.dangerBtn}
+            onPress={() => {
+              if (!onDeleteAccount) return;
+              Alert.alert(
+                '刪除帳號',
+                '會刪除此裝置上的登入狀態。若已接雲端，也會刪除檔案、Connect、聊天與聚會。此動作無法復原。訂閱需至 Apple ID 設定另行取消。',
+                [
+                  { text: '取消', style: 'cancel' },
+                  { text: '刪除帳號', style: 'destructive', onPress: onDeleteAccount },
+                ],
+              );
+            }}
+          >
+            <Text style={styles.dangerTxt}>刪除帳號</Text>
+          </TouchableOpacity>
         </>
       )}
-
-      {session && onDeleteAccount ? (
-        <TouchableOpacity
-          style={styles.dangerBtn}
-          onPress={() => {
-            Alert.alert(
-              '刪除帳號',
-              '會刪除此裝置上的登入狀態。若已接雲端，也會刪除檔案、Connect、聊天與聚會。創始白名單名額不退回。此動作無法復原。',
-              [
-                { text: '取消', style: 'cancel' },
-                { text: '刪除帳號', style: 'destructive', onPress: onDeleteAccount },
-              ],
-            );
-          }}
-        >
-          <Text style={styles.dangerTxt}>刪除帳號</Text>
-        </TouchableOpacity>
-      ) : null}
     </ScrollView>
   );
 }

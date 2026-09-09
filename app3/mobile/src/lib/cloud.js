@@ -37,7 +37,7 @@ export async function loadMyAccount(loginKey) {
   return rpc('load_my_account', { p_key: loginKey });
 }
 
-/** Existing founder with a dog profile. Returns null if the number is new or incomplete. */
+/** Existing account with a dog profile. Returns null if the number is new or incomplete. */
 export async function loginWithPhone(loginKey) {
   if (!isCloudReady()) fail('offline', 'Supabase is not configured');
   const { data, error } = await supabase.rpc('login_with_phone', { p_key: loginKey });
@@ -46,6 +46,7 @@ export async function loginWithPhone(loginKey) {
   return data;
 }
 
+/** Register phone + profile (RPC name historically register_founder; no whitelist cap). */
 export async function registerFounder(loginKey, provider, profile) {
   return rpc('register_founder', {
     p_key: loginKey,

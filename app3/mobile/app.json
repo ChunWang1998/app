@@ -36,7 +36,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
+      "plugins": [
       [
         "expo-image-picker",
         {
@@ -51,7 +51,8 @@
           "color": "#E07A3D",
           "sounds": []
         }
-      ]
+      ],
+      "expo-iap"
     ],
     "extra": {
       "eas": {

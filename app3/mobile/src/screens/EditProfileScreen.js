@@ -254,7 +254,7 @@ export default function EditProfileScreen({
             <Text style={styles.back}>← 返回</Text>
           </TouchableOpacity>
         )}
-        <Text style={styles.h}>{registerMode ? '免費註冊' : '汪汪檔案'}</Text>
+        <Text style={styles.h}>{registerMode ? '註冊檔案' : '汪汪檔案'}</Text>
         {registerMode ? (
           <Text style={styles.hint}>
             填手機號的同時必須建立汪汪檔案，才算完成註冊。可新增最多 {MAX_DOGS}{' '}

@@ -1,7 +1,7 @@
 -- 鄰汪 — Supabase schema
 -- Dashboard → SQL Editor 執行（可重複執行）。
--- 白名單是下次升級「已事先訂閱」的依據。
--- 新創始名額必須走 register_founder（手機號＋狗檔案同一筆交易）。
+-- 訂閱權益由 App Store IAP 在客戶端判定（不寫入 subscription=paid）。
+-- register_founder RPC 名稱保留；不再限制創始白名單名額。
 -- App 用 anon key + security definer RPC（試用期不驗證碼，以 login_key 當身份）。
 -- 表格 RLS 預設拒絕直寫；公開讀取僅限已完成合照的檔案與聚會。
 
@@ -301,7 +301,8 @@ returns boolean
 language sql
 immutable
 as $$
-  select (a).subscription in ('founder', 'paid');
+  -- Entitlement is enforced client-side via App Store IAP; server no longer gates on founder/paid.
+  select true;
 $$;
 
 create or replace function public.profile_to_json(p public.profiles)
@@ -487,7 +488,7 @@ begin
 end;
 $$;
 
--- First 100: phone + dog profile in one transaction. Empty accounts do not take a slot.
+-- Register phone + dog profile (no founder whitelist cap).
 create or replace function public.register_founder(
   p_key text,
   p_provider text default 'phone',
@@ -499,13 +500,13 @@ security definer
 set search_path = public
 as $$
 declare
-  n int;
   acc public.accounts;
   prof public.profiles;
   dog text;
   city text;
   district text;
   result jsonb;
+  already boolean := false;
 begin
   if p_key is null or length(trim(p_key)) < 9 then
     return jsonb_build_object('ok', false, 'already', false, 'code', 'invalid');
@@ -530,48 +531,34 @@ begin
 
   perform pg_advisory_xact_lock(881001);
 
-  if exists(select 1 from public.founder_whitelist where login_key = trim(p_key)) then
-    insert into public.accounts (login_key, provider, subscription, deleted_at)
-    values (trim(p_key), coalesce(p_provider, 'phone'), 'founder', null)
-    on conflict (login_key) do update
-      set subscription = 'founder',
-          deleted_at = null,
-          provider = coalesce(p_provider, public.accounts.provider);
-    select * into acc from public.accounts where login_key = trim(p_key);
-    select * into prof from public.profiles where account_id = acc.id;
-    if prof.account_id is not null then
-      return jsonb_build_object(
-        'ok', true,
-        'already', true,
-        'founder', true,
-        'account_id', acc.id,
-        'accountId', acc.id,
-        'subscription', acc.subscription,
-        'profile', public.profile_to_json(prof)
-      );
-    end if;
-    result := public.upsert_profile(trim(p_key), p_profile);
-    return result || jsonb_build_object('already', true, 'founder', true);
+  if exists(select 1 from public.accounts where login_key = trim(p_key) and deleted_at is null) then
+    already := true;
   end if;
-
-  select count(*) into n from public.founder_whitelist;
-  if n >= 100 then
-    return jsonb_build_object('ok', false, 'already', false, 'code', 'full');
-  end if;
-
-  insert into public.founder_whitelist (login_key, provider, slot_no)
-  values (trim(p_key), coalesce(p_provider, 'phone'), n + 1);
 
   insert into public.accounts (login_key, provider, subscription, deleted_at)
-  values (trim(p_key), coalesce(p_provider, 'phone'), 'founder', null)
+  values (trim(p_key), coalesce(p_provider, 'phone'), 'none', null)
   on conflict (login_key) do update
-    set subscription = 'founder', deleted_at = null;
+    set deleted_at = null,
+        provider = coalesce(p_provider, public.accounts.provider);
+
+  select * into acc from public.accounts where login_key = trim(p_key);
+  select * into prof from public.profiles where account_id = acc.id;
+  if already and prof.account_id is not null then
+    return jsonb_build_object(
+      'ok', true,
+      'already', true,
+      'founder', false,
+      'account_id', acc.id,
+      'accountId', acc.id,
+      'subscription', acc.subscription,
+      'profile', public.profile_to_json(prof)
+    );
+  end if;
 
   result := public.upsert_profile(trim(p_key), p_profile);
   return result || jsonb_build_object(
-    'already', false,
-    'founder', true,
-    'slot_no', n + 1
+    'already', already,
+    'founder', false
   );
 end;
 $$;

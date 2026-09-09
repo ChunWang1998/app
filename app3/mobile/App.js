@@ -17,7 +17,6 @@ import { displayNameForOwner, primaryDog } from './src/lib/dogs';
 import {
   loadSession,
   loadProfile,
-  loadFounderCount,
   registerWithProfile,
   restoreAccount,
   saveProfile,
@@ -26,6 +25,7 @@ import {
   sendConnect,
   setConnectStatus,
   hasValidSub,
+  markSubscribedLocally,
   completeGuideConnect,
   loadTour,
   saveTour,
@@ -72,7 +72,6 @@ export default function App() {
 
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [founderCount, setFounderCount] = useState(0);
   const [owners, setOwners] = useState([]);
   const [connects, setConnects] = useState([]);
   const [gatherings, setGatherings] = useState([]);
@@ -86,16 +85,14 @@ export default function App() {
   const subscribed = hasValidSub(session);
 
   const reload = useCallback(async () => {
-    const [s, p, fc, o, cs] = await Promise.all([
+    const [s, p, o, cs] = await Promise.all([
       loadSession(),
       loadProfile(),
-      loadFounderCount(),
       listOwners(),
       listConnects(),
     ]);
     setSession(s);
     setProfile(p);
-    setFounderCount(fc);
     setOwners(o);
     setConnects(cs);
     setGatherings(await listGatherings(null, s?.id));
@@ -276,8 +273,12 @@ export default function App() {
   } else if (overlay === 'subscribe') {
     body = (
       <SubscribeScreen
-        founderCount={founderCount}
         onBack={() => setOverlay(null)}
+        onUnlocked={async () => {
+          const s = await markSubscribedLocally();
+          if (s) setSession(s);
+          await reload();
+        }}
       />
     );
   } else if (overlay === 'edit') {
@@ -300,19 +301,15 @@ export default function App() {
                 setPendingPhone('');
                 setSession(result.session);
                 setProfile(result.profile);
-                setFounderCount(result.founderCount);
                 await ensureDistricts(result.profile?.city || next.city);
                 await reload();
                 setOverlay(null);
                 setTab('explore');
                 if (result.already) {
-                  Alert.alert('已還原', '這支號碼已在白名單，已載入原檔案。');
-                } else if (result.session.subscription === 'founder') {
+                  Alert.alert('已還原', '這支號碼已註冊，已載入原檔案。');
+                } else {
                   await saveTour({ done: false, step: 'welcome' });
                   setTourStep('welcome');
-                } else {
-                  Alert.alert('白名單已滿', '這一版只開放創始 100 人。');
-                  setOverlay('subscribe');
                 }
                 return;
               }
@@ -328,7 +325,7 @@ export default function App() {
                 return;
               }
               if (e.code === 'full') {
-                Alert.alert('白名單已滿', '這一版只開放創始 100 人。');
+                Alert.alert('暫時無法註冊', '請稍後再試或聯絡支援。');
                 return;
               }
               if (e.code === 'city') {
@@ -491,7 +488,6 @@ export default function App() {
         <MeScreen
           session={session}
           profile={profile}
-          founderCount={founderCount}
           connects={connects}
           ownersById={ownersById}
           myGatherings={myGatherings}
@@ -502,7 +498,6 @@ export default function App() {
               if (restored) {
                 setSession(restored.session);
                 setProfile(restored.profile);
-                setFounderCount(restored.founderCount);
                 await ensureDistricts(restored.profile?.city);
                 await reload();
                 setOverlay(null);
@@ -517,10 +512,6 @@ export default function App() {
             }
           }}
           onCreateProfile={() => {
-            if (!subscribed) {
-              setOverlay('subscribe');
-              return;
-            }
             setOverlay('edit');
           }}
           onSubscribe={() => setOverlay('subscribe')}

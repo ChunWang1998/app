@@ -14,13 +14,8 @@ import { findSeedGathering, seedGatheringRows, seedGatheringsForCity } from '../
 import { GLOBAL_GUIDES, getGuide } from '../data/globalGuides';
 import { seedAllOwners, seedOwnersForCity } from '../data/seedOwners';
 import { normalizeProfile, emptyDog } from './dogs';
-import {
-  accountIdFromKey,
-  claimFounder,
-  isWhitelisted,
-  normalizeLoginKey,
-  whitelistCount,
-} from './whitelist';
+import { accountIdFromKey, normalizeLoginKey } from './auth';
+import { isIapPaid, setIapPaid } from './entitlements';
 import {
   isCloudReady,
   isUuid,
@@ -81,11 +76,28 @@ async function writeJson(key, value) {
 }
 
 export function hasValidSub(session) {
-  return session?.subscription === 'founder' || session?.subscription === 'paid';
+  return session?.subscription === 'paid';
 }
 
-export async function loadFounderCount() {
-  return whitelistCount();
+/** Refresh local session.subscription from App Store entitlement (not Supabase). */
+export async function syncSubscriptionFromIap(session) {
+  if (!session) return null;
+  const paid = await isIapPaid();
+  const next = {
+    ...session,
+    subscription: paid ? 'paid' : 'none',
+  };
+  if (session.subscription !== next.subscription) {
+    await saveSession(next);
+  }
+  return next;
+}
+
+export async function markSubscribedLocally() {
+  await setIapPaid(true);
+  const session = await loadSession();
+  if (!session) return null;
+  return syncSubscriptionFromIap(session);
 }
 
 export async function loadSession() {
@@ -95,20 +107,13 @@ export async function loadSession() {
     try {
       const row = await loadMyAccount(session.loginKey);
       if (row?.accountId) session.id = row.accountId;
-      if (row?.subscription) session.subscription = row.subscription;
       await saveSession(session);
       if (row?.profile) await writeJson(KEYS.profile, normalizeProfile(row.profile));
     } catch {
       // Keep the cached session if the network is down.
     }
   }
-  if (session.subscription !== 'paid' && (await isWhitelisted(session.loginKey))) {
-    if (session.subscription !== 'founder') {
-      session.subscription = 'founder';
-      await saveSession(session);
-    }
-  }
-  return session;
+  return syncSubscriptionFromIap(session);
 }
 
 export async function loadProfile() {
@@ -173,7 +178,7 @@ export async function saveProfile(profile) {
 }
 
 /**
- * Phone + dog profile must be saved together. Founder slot is claimed only then.
+ * Phone + dog profile must be saved together.
  */
 export async function restoreAccount(phoneRaw) {
   const loginKey = normalizeLoginKey(phoneRaw);
@@ -185,28 +190,20 @@ export async function restoreAccount(phoneRaw) {
   if (!isCloudReady()) return null;
   const row = await loginWithPhone(loginKey);
   if (!row?.profile) return null;
-  const session = {
+  let session = {
     id: row.accountId,
     loginKey,
     phone: loginKey,
     provider: 'phone',
     registeredAt: row.profile.registeredAt || new Date().toISOString(),
-    subscription:
-      row.subscription === 'paid'
-        ? 'paid'
-        : row.subscription === 'founder'
-          ? 'founder'
-          : 'none',
+    subscription: 'none',
   };
-  if (session.subscription !== 'paid' && (await isWhitelisted(loginKey))) {
-    session.subscription = 'founder';
-  }
   await saveSession(session);
   await writeJson(KEYS.profile, normalizeProfile(row.profile));
+  session = await syncSubscriptionFromIap(session);
   return {
     session,
     profile: normalizeProfile(row.profile),
-    founderCount: await whitelistCount(),
   };
 }
 
@@ -220,22 +217,22 @@ export async function registerAccount(phoneRaw) {
   const existing = await readJson(KEYS.session, null);
   if (existing?.loginKey === loginKey) {
     const session = await loadSession();
-    return { session, founderCount: await whitelistCount() };
+    return { session };
   }
   if (existing?.loginKey && existing.loginKey !== loginKey) {
     await AsyncStorage.removeItem(KEYS.profile);
   }
-  const claimed = await claimFounder(loginKey, 'phone');
-  const session = {
-    id: claimed.accountId || accountIdFromKey(loginKey),
+  let session = {
+    id: accountIdFromKey(loginKey),
     loginKey,
     phone: loginKey,
     provider: 'phone',
     registeredAt: new Date().toISOString(),
-    subscription: claimed.founder ? 'founder' : 'none',
+    subscription: 'none',
   };
   await saveSession(session);
-  return { session, founderCount: claimed.count };
+  session = await syncSubscriptionFromIap(session);
+  return { session };
 }
 
 export async function registerWithProfile(phoneRaw, profile) {
@@ -255,25 +252,25 @@ export async function registerWithProfile(phoneRaw, profile) {
       slots: (base.slots || []).map((s) => normalizeSlot(s)),
     });
     const row = await registerFounder(loginKey, 'phone', payload);
-    const session = {
+    let session = {
       id: row.accountId || row.account_id,
       loginKey,
       phone: loginKey,
       provider: 'phone',
       registeredAt: row.profile?.registeredAt || new Date().toISOString(),
-      subscription: row.founder || row.subscription === 'founder' ? 'founder' : 'none',
+      subscription: 'none',
     };
     await saveSession(session);
     if (row.profile) await writeJson(KEYS.profile, normalizeProfile(row.profile));
+    session = await syncSubscriptionFromIap(session);
     return {
       session,
       profile: normalizeProfile(row.profile) || payload,
-      founderCount: await whitelistCount(),
       already: Boolean(row.already),
     };
   }
 
-  const { session, founderCount } = await registerAccount(phoneRaw);
+  const { session: baseSession } = await registerAccount(phoneRaw);
   const saved = await saveProfile({
     ...profile,
     outingCount: profile.outingCount || 0,
@@ -283,7 +280,8 @@ export async function registerWithProfile(phoneRaw, profile) {
     captainScore: profile.captainScore || 0,
     registeredAt: profile.registeredAt || new Date().toISOString(),
   });
-  return { session, profile: saved, founderCount };
+  const session = await syncSubscriptionFromIap(baseSession);
+  return { session, profile: saved };
 }
 
 export async function deleteAccount() {
@@ -292,6 +290,7 @@ export async function deleteAccount() {
     await deleteMyAccount(session.loginKey);
   }
   await AsyncStorage.multiRemove(Object.values(KEYS));
+  await setIapPaid(false);
 }
 
 export async function reportOwner(targetId, reason) {
