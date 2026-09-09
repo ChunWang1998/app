@@ -14,7 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.linwang.app",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "需要相簿來上傳主人與狗的合照。",
         "ITSAppUsesNonExemptEncryption": false
@@ -36,7 +36,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-      "plugins": [
+    "plugins": [
       [
         "expo-image-picker",
         {
