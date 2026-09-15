@@ -1,17 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { ActivityIndicator, Alert, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from './src/theme';
+import { screenGradient } from './src/theme';
 import { sizesTwoLevelsApart, TAIWAN_CITIES } from './src/data/constants';
-import {
-  GUIDE_REPLY_ID,
-  GUIDE_TRY_ID,
-  getGuide,
-  isGuideId,
-} from './src/data/globalGuides';
 import { fetchDistrictsForCity } from './src/lib/districts';
 import { displayNameForOwner, primaryDog } from './src/lib/dogs';
 import {
@@ -26,21 +20,18 @@ import {
   setConnectStatus,
   hasValidSub,
   markSubscribedLocally,
-  completeGuideConnect,
-  loadTour,
-  saveTour,
   listGatherings,
-  listMyGatherings,
   joinGathering,
   createGathering,
   likeGatheringHost,
   disconnectConnect,
-  maybeSendDemoInvite,
   deleteAccount,
   reportOwner,
   blockOwner,
 } from './src/lib/store';
-import { ensureNotifyPermission, notifyUser } from './src/lib/notify';
+import { ensureNotifyPermission } from './src/lib/notify';
+import { registerPushToken } from './src/lib/push';
+import { AppPrefsProvider, usePrefs } from './src/context/AppPrefs';
 import LandingScreen from './src/screens/LandingScreen';
 import ExploreScreen from './src/screens/ExploreScreen';
 import GatheringsScreen from './src/screens/GatheringsScreen';
@@ -51,12 +42,15 @@ import SubscribeScreen from './src/screens/SubscribeScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import CreateGatheringScreen from './src/screens/CreateGatheringScreen';
 import GatheringDetailScreen from './src/screens/GatheringDetailScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 import TabBar from './src/components/TabBar';
 import TabSwipe from './src/components/TabSwipe';
-import TourSheet from './src/components/TourSheet';
 import ConnectReminder from './src/components/ConnectReminder';
 
-export default function App() {
+function AppInner() {
+  const { theme, colors, t } = usePrefs();
+  const grad = screenGradient(theme);
+
   const [started, setStarted] = useState(false);
   const [districtsByCity, setDistrictsByCity] = useState({});
   const [ready, setReady] = useState(false);
@@ -78,68 +72,59 @@ export default function App() {
   const [myGatherings, setMyGatherings] = useState([]);
 
   const [pendingPhone, setPendingPhone] = useState('');
-  const [tourStep, setTourStep] = useState(null);
   const [reminder, setReminder] = useState({ visible: false, name: '' });
-  const [afterReminder, setAfterReminder] = useState(null);
 
   const subscribed = hasValidSub(session);
 
   const reload = useCallback(async () => {
-    const [s, p, o, cs] = await Promise.all([
-      loadSession(),
-      loadProfile(),
-      listOwners(),
-      listConnects(),
+    const [s, p] = await Promise.all([loadSession(), loadProfile()]);
+    const [o, cs, gs] = await Promise.all([
+      listOwners(undefined, s),
+      listConnects(s),
+      listGatherings(null, s?.id, s),
     ]);
     setSession(s);
     setProfile(p);
     setOwners(o);
     setConnects(cs);
-    setGatherings(await listGatherings(null, s?.id));
-    setMyGatherings(await listMyGatherings(null, s?.id));
+    setGatherings(gs);
+    setMyGatherings(gs.filter((g) => g.iJoined || g.iHost));
   }, []);
 
-  const ensureDistricts = useCallback(async (city) => {
-    if (!city || !TAIWAN_CITIES.includes(city)) return [];
-    if (districtsByCity[city]?.length) return districtsByCity[city];
-    try {
-      const towns = await fetchDistrictsForCity(city);
-      setDistrictsByCity((prev) => ({ ...prev, [city]: towns }));
-      return towns;
-    } catch {
-      return [];
-    }
-  }, [districtsByCity]);
+  const ensureDistricts = useCallback(
+    async (city) => {
+      if (!city || !TAIWAN_CITIES.includes(city)) return [];
+      if (districtsByCity[city]?.length) return districtsByCity[city];
+      try {
+        const towns = await fetchDistrictsForCity(city);
+        setDistrictsByCity((prev) => ({ ...prev, [city]: towns }));
+        return towns;
+      } catch {
+        return [];
+      }
+    },
+    [districtsByCity],
+  );
 
   useEffect(() => {
     if (!started) return;
     ensureNotifyPermission();
     (async () => {
       await reload();
-      const tour = await loadTour();
-      if (tour?.step && !tour.done) setTourStep(tour.step);
       setReady(true);
       const s = await loadSession();
-      if (s?.id) {
-        setTimeout(async () => {
-          const demo = await maybeSendDemoInvite(s.id);
-          if (!demo?.peer) return;
-          await reload();
-          await notifyUser({
-            title: '新的 Connect 邀請',
-            body: `${demo.peer.dogName || displayNameForOwner(demo.peer)} 想跟你 Connect`,
-          });
-        }, 3500);
+      if (s?.loginKey) {
+        registerPushToken(s.loginKey);
       }
     })();
   }, [started, reload]);
 
   useEffect(() => {
     if (!started || !ready) return undefined;
-    const t = setInterval(() => {
+    const timer = setInterval(() => {
       reload();
     }, 12000);
-    return () => clearInterval(t);
+    return () => clearInterval(timer);
   }, [started, ready, reload]);
 
   const ownersById = useMemo(() => {
@@ -166,39 +151,70 @@ export default function App() {
     setOverlay('detail');
   };
 
-  const showReminder = (name, nextTour) => {
+  const showReminder = (name) => {
     setReminder({ visible: true, name: name || '' });
-    setAfterReminder(nextTour || null);
   };
 
-  const finishGuideConnect = async (connectRow, guideId) => {
-    const guide = getGuide(guideId);
-    const run = async () => {
-      await completeGuideConnect(connectRow.id, guideId);
-      await reload();
-      await notifyUser({
-        title: 'Connect 已接受',
-        body: `${guide?.dogName || '對方'} 接受了你的 Connect`,
-      });
-      for (const text of guide?.messages || []) {
-        await notifyUser({
-          title: `${guide.dogName} 傳了訊息`,
-          body: text,
-        });
-      }
-      const next =
-        tourStep === 'connecting1' && guideId === GUIDE_REPLY_ID
-          ? 'guide2'
-          : tourStep === 'connecting2' && guideId === GUIDE_TRY_ID
-            ? 'gathering'
-            : null;
-      showReminder(guide?.dogName, next);
-    };
-    if (guide?.delayReplyMs) {
-      setTimeout(run, guide.delayReplyMs);
-    } else {
-      await run();
+  const acceptConnect = async (id) => {
+    if (!subscribed) {
+      setOverlay('subscribe');
+      return;
     }
+    try {
+      await setConnectStatus(id, 'accepted');
+      await reload();
+      const row = connects.find((c) => c.id === id);
+      const peerId = row?.fromId === session?.id ? row?.toId : row?.fromId;
+      showReminder(displayNameForOwner(ownersById[peerId]));
+    } catch (e) {
+      if (e.code === 'subscribe') setOverlay('subscribe');
+      else Alert.alert('無法接受', e.message || String(e));
+    }
+  };
+
+  const declineConnect = async (id) => {
+    await setConnectStatus(id, 'declined');
+    await reload();
+  };
+
+  const doSendConnect = async (owner) => {
+    const send = async () => {
+      try {
+        await sendConnect(session.id, ownerId);
+        await reload();
+        Alert.alert(t('connectSent'), t('connectSentBody'));
+      } catch (e) {
+        if (e.code === 'subscribe') setOverlay('subscribe');
+        else Alert.alert('無法 Connect', e.message || String(e));
+      }
+    };
+
+    const afterSizeCheck = async () => {
+      if (owner && owner.subscribed === false) {
+        Alert.alert(t('connectUnpaidWarnTitle'), t('connectUnpaidWarnBody'), [
+          { text: t('cancel'), style: 'cancel' },
+          { text: t('stillConnect'), onPress: send },
+        ]);
+        return;
+      }
+      await send();
+    };
+
+    const myDog = primaryDog(profile);
+    const theirSize =
+      (owner?.dogs || []).find((d) => d.id === focusDogId)?.size || owner?.size;
+    if (sizesTwoLevelsApart(myDog?.size || profile.size, theirSize)) {
+      Alert.alert(
+        '體型差較大',
+        '大型與小型狗第一次請平行走、保持距離，不要互相撲。仍要 Connect 嗎？',
+        [
+          { text: t('cancel'), style: 'cancel' },
+          { text: t('stillConnect'), onPress: afterSizeCheck },
+        ],
+      );
+      return;
+    }
+    await afterSizeCheck();
   };
 
   const joinOne = (g) => {
@@ -256,19 +272,19 @@ export default function App() {
     gatherings.find((g) => g.id === gatheringId) ||
     myGatherings.find((g) => g.id === gatheringId);
 
-  const tourHint =
-    overlay === 'detail' && tourStep === 'connecting1' && ownerId === GUIDE_REPLY_ID
-      ? '教學：按 Connect。團團一定會回，並傳訊息給你。'
-      : overlay === 'detail' && tourStep === 'connecting2' && ownerId === GUIDE_TRY_ID
-        ? '教學：再試著 Connect 可可。可可會回覆並主動傳訊息。'
-        : null;
-
   let body = null;
   if (!started) {
     body = <LandingScreen onStart={() => setStarted(true)} />;
   } else if (!ready) {
     body = (
-      <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }} />
+      <LinearGradient colors={grad} style={{ flex: 1 }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={colors.brand} />
+          <Text style={{ marginTop: 12, color: colors.muted, fontSize: 14 }}>
+            {t('loading')}
+          </Text>
+        </View>
+      </LinearGradient>
     );
   } else if (overlay === 'subscribe') {
     body = (
@@ -276,7 +292,10 @@ export default function App() {
         onBack={() => setOverlay(null)}
         onUnlocked={async () => {
           const s = await markSubscribedLocally();
-          if (s) setSession(s);
+          if (s) {
+            setSession(s);
+            if (s.loginKey) registerPushToken(s.loginKey);
+          }
           await reload();
         }}
       />
@@ -303,13 +322,13 @@ export default function App() {
                 setProfile(result.profile);
                 await ensureDistricts(result.profile?.city || next.city);
                 await reload();
+                if (result.session?.loginKey) {
+                  registerPushToken(result.session.loginKey);
+                }
                 setOverlay(null);
                 setTab('explore');
                 if (result.already) {
                   Alert.alert('已還原', '這支號碼已註冊，已載入原檔案。');
-                } else {
-                  await saveTour({ done: false, step: 'welcome' });
-                  setTourStep('welcome');
                 }
                 return;
               }
@@ -347,7 +366,7 @@ export default function App() {
         subscribed={subscribed}
         isMe={session?.id === ownerId}
         connect={activeConnect}
-        tourHint={tourHint}
+        tourHint={null}
         onBack={() => setOverlay(null)}
         onSubscribe={() => setOverlay('subscribe')}
         onConnect={async () => {
@@ -360,36 +379,7 @@ export default function App() {
             setOverlay('edit');
             return;
           }
-          const send = async () => {
-            try {
-              const row = await sendConnect(session.id, ownerId);
-              await reload();
-              if (isGuideId(ownerId) && row.status === 'pending') {
-                await finishGuideConnect(row, ownerId);
-              } else if (!isGuideId(ownerId)) {
-                Alert.alert('已送出', '對方需在個人頁接受後才能聊天');
-              }
-            } catch (e) {
-              if (e.code === 'subscribe') setOverlay('subscribe');
-              else Alert.alert('無法 Connect', e.message || String(e));
-            }
-          };
-          const myDog = primaryDog(profile);
-          const theirSize =
-            (owner?.dogs || []).find((d) => d.id === focusDogId)?.size ||
-            owner?.size;
-          if (sizesTwoLevelsApart(myDog?.size || profile.size, theirSize)) {
-            Alert.alert(
-              '體型差較大',
-              '大型與小型狗第一次請平行走、保持距離，不要互相撲。仍要 Connect 嗎？',
-              [
-                { text: '取消', style: 'cancel' },
-                { text: '仍要 Connect', onPress: send },
-              ],
-            );
-            return;
-          }
-          await send();
+          await doSendConnect(owner);
         }}
         onOpenChat={() => {
           if (activeConnect) {
@@ -433,7 +423,7 @@ export default function App() {
     );
   } else if (overlay === 'createGathering') {
     body = (
-      <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }}>
+      <LinearGradient colors={grad} style={{ flex: 1 }}>
         <CreateGatheringScreen
           defaultCity={profile?.city || TAIWAN_CITIES[0]}
           onBack={() => {
@@ -464,7 +454,7 @@ export default function App() {
     );
   } else if (overlay === 'gatheringDetail') {
     body = (
-      <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }}>
+      <LinearGradient colors={grad} style={{ flex: 1 }}>
         <GatheringDetailScreen
           gathering={activeGathering}
           onBack={() => setOverlay(gatheringFrom === 'gatherings' ? null : 'profile')}
@@ -484,7 +474,7 @@ export default function App() {
     );
   } else if (overlay === 'profile') {
     body = (
-      <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }}>
+      <LinearGradient colors={grad} style={{ flex: 1 }}>
         <MeScreen
           session={session}
           profile={profile}
@@ -500,6 +490,9 @@ export default function App() {
                 setProfile(restored.profile);
                 await ensureDistricts(restored.profile?.city);
                 await reload();
+                if (restored.session?.loginKey) {
+                  registerPushToken(restored.session.loginKey);
+                }
                 setOverlay(null);
                 Alert.alert('已還原', '同一支號碼的汪汪檔案已從雲端載入。');
                 return;
@@ -520,26 +513,8 @@ export default function App() {
             setChatId(id);
             setOverlay('chat');
           }}
-          onAccept={async (id) => {
-            if (!subscribed) {
-              setOverlay('subscribe');
-              return;
-            }
-            try {
-              await setConnectStatus(id, 'accepted');
-              await reload();
-              const row = connects.find((c) => c.id === id);
-              const peerId = row?.fromId === session?.id ? row?.toId : row?.fromId;
-              showReminder(displayNameForOwner(ownersById[peerId]));
-            } catch (e) {
-              if (e.code === 'subscribe') setOverlay('subscribe');
-              else Alert.alert('無法接受', e.message || String(e));
-            }
-          }}
-          onDecline={async (id) => {
-            await setConnectStatus(id, 'declined');
-            await reload();
-          }}
+          onAccept={acceptConnect}
+          onDecline={declineConnect}
           onOpenGathering={openGathering}
           onDisconnect={async (id) => {
             await disconnectConnect(id, session.id);
@@ -581,19 +556,27 @@ export default function App() {
     );
   } else {
     body = (
-      <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }}>
+      <LinearGradient colors={grad} style={{ flex: 1 }}>
         <TabSwipe tab={tab} onChange={setTab}>
-          <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ flex: 1 }}>
+          <LinearGradient colors={grad} style={{ flex: 1 }}>
             {tab === 'explore' ? (
               <ExploreScreen
                 districtsByCity={districtsByCity}
                 onNeedDistricts={ensureDistricts}
                 owners={owners}
                 profile={profile}
+                session={session}
+                subscribed={subscribed}
+                connects={connects}
+                ownersById={ownersById}
                 onOpenOwner={openOwner}
                 onProfile={openProfile}
+                onAccept={acceptConnect}
+                onDecline={declineConnect}
+                onNeedRegister={() => setOverlay('profile')}
+                onNeedSubscribe={() => setOverlay('subscribe')}
               />
-            ) : (
+            ) : tab === 'gatherings' ? (
               <GatheringsScreen
                 gatherings={gatherings}
                 profile={profile}
@@ -620,6 +603,8 @@ export default function App() {
                   setOverlay('createGathering');
                 }}
               />
+            ) : (
+              <SettingsScreen profile={profile} onProfile={openProfile} />
             )}
           </LinearGradient>
         </TabSwipe>
@@ -628,61 +613,29 @@ export default function App() {
     );
   }
 
-  const onTourNext = async () => {
-    if (tourStep === 'welcome') {
-      await saveTour({ done: false, step: 'connecting1' });
-      setTourStep('connecting1');
-      openOwner(GUIDE_REPLY_ID);
-      return;
-    }
-    if (tourStep === 'guide2') {
-      await saveTour({ done: false, step: 'connecting2' });
-      setTourStep('connecting2');
-      openOwner(GUIDE_TRY_ID);
-      return;
-    }
-    if (tourStep === 'gathering') {
-      await saveTour({ done: true, step: null });
-      setTourStep(null);
-      setOverlay(null);
-      setTab('gatherings');
-    }
-  };
+  return (
+    <>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+      {body}
+      <ConnectReminder
+        visible={reminder.visible}
+        peerName={reminder.name}
+        onClose={() => {
+          setReminder({ visible: false, name: '' });
+        }}
+      />
+    </>
+  );
+}
 
-  const onTourSkip = async () => {
-    await saveTour({ done: true, step: null });
-    setTourStep(null);
-  };
-
-  const sheetStep =
-    tourStep === 'welcome' || tourStep === 'guide2' || tourStep === 'gathering'
-      ? tourStep
-      : null;
-
+export default function App() {
   return (
     <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar style="dark" />
-        {body}
-        {sheetStep && overlay !== 'edit' ? (
-          <TourSheet step={sheetStep} onNext={onTourNext} onSkip={onTourSkip} />
-        ) : null}
-        <ConnectReminder
-          visible={reminder.visible}
-          peerName={reminder.name}
-          onClose={async () => {
-            setReminder({ visible: false, name: '' });
-            const next = afterReminder;
-            setAfterReminder(null);
-            if (next) {
-              await saveTour({ done: false, step: next });
-              setTourStep(next);
-              setOverlay(null);
-              setTab('explore');
-            }
-          }}
-        />
-      </GestureHandlerRootView>
+      <AppPrefsProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <AppInner />
+        </GestureHandlerRootView>
+      </AppPrefsProvider>
     </SafeAreaProvider>
   );
 }

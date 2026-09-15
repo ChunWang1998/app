@@ -1,13 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, radius } from '../theme';
+import { usePrefs } from '../context/AppPrefs';
+import { landingGradient, radius } from '../theme';
 import LogoMark from '../components/LogoMark';
 
 export default function LandingScreen({ onStart }) {
+  const { theme, colors, t } = usePrefs();
   return (
     <LinearGradient
-      colors={['#FFE7C4', colors.bgTop, '#E7F7EE', '#D8F0E4']}
+      colors={landingGradient(theme)}
       locations={[0, 0.28, 0.72, 1]}
       style={styles.fill}
     >
@@ -27,10 +29,16 @@ export default function LandingScreen({ onStart }) {
 
       <View style={styles.container}>
         <LogoMark size={148} />
-        <Text style={styles.brand}>鄰汪</Text>
-        <Text style={styles.headline}>找到一起出門的狗夥伴</Text>
-        <TouchableOpacity activeOpacity={0.85} style={styles.cta} onPress={onStart}>
-          <Text style={styles.ctaText}>開始探索</Text>
+        <Text style={[styles.brand, { color: colors.brandDeep }]}>{t('brand')}</Text>
+        <Text style={[styles.headline, { color: colors.ink }]}>
+          {t('landingHeadline')}
+        </Text>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={[styles.cta, { backgroundColor: colors.brand, shadowColor: colors.brand }]}
+          onPress={onStart}
+        >
+          <Text style={styles.ctaText}>{t('startExplore')}</Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -103,23 +111,19 @@ const styles = StyleSheet.create({
     marginTop: 22,
     fontSize: 52,
     fontWeight: '800',
-    color: colors.brandDeep,
     letterSpacing: 2,
     marginBottom: 12,
   },
   headline: {
     fontSize: 22,
     fontWeight: '700',
-    color: colors.ink,
     textAlign: 'center',
   },
   cta: {
     marginTop: 40,
-    backgroundColor: colors.brand,
     paddingVertical: 16,
     paddingHorizontal: 36,
     borderRadius: radius.pill,
-    shadowColor: colors.brand,
     shadowOpacity: 0.35,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 10 },

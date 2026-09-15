@@ -1,22 +1,44 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, radius } from '../theme';
+import { usePrefs } from '../context/AppPrefs';
+import { radius } from '../theme';
+
+const TAB_IDS = ['explore', 'gatherings', 'settings'];
 
 export default function TabBar({ tab, onChange }) {
+  const { colors, t } = usePrefs();
+  const labels = {
+    explore: t('explore'),
+    gatherings: t('gatherings'),
+    settings: t('settings'),
+  };
+
   return (
-    <View style={styles.bar}>
-      {[
-        { id: 'explore', label: '探索' },
-        { id: 'gatherings', label: '聚會' },
-      ].map((t) => {
-        const on = tab === t.id;
+    <View
+      style={[
+        styles.bar,
+        { backgroundColor: colors.card, borderTopColor: colors.line },
+      ]}
+    >
+      {TAB_IDS.map((id) => {
+        const on = tab === id;
         return (
           <TouchableOpacity
-            key={t.id}
-            style={[styles.item, on && styles.itemOn]}
-            onPress={() => onChange(t.id)}
+            key={id}
+            style={[
+              styles.item,
+              on && { backgroundColor: colors.chipOn },
+            ]}
+            onPress={() => onChange(id)}
           >
-            <Text style={[styles.label, on && styles.labelOn]}>{t.label}</Text>
+            <Text
+              style={[
+                styles.label,
+                { color: on ? colors.brandDeep : colors.muted },
+              ]}
+            >
+              {labels[id]}
+            </Text>
           </TouchableOpacity>
         );
       })}
@@ -27,13 +49,11 @@ export default function TabBar({ tab, onChange }) {
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: colors.card,
     borderTopWidth: 1,
-    borderTopColor: colors.line,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingTop: 8,
     paddingBottom: 10,
-    gap: 10,
+    gap: 8,
   },
   item: {
     flex: 1,
@@ -41,7 +61,5 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: radius.pill,
   },
-  itemOn: { backgroundColor: '#FBE6D4' },
-  label: { fontSize: 15, fontWeight: '700', color: colors.muted },
-  labelOn: { color: colors.brandDeep },
+  label: { fontSize: 14, fontWeight: '700' },
 });

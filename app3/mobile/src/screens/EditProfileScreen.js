@@ -198,7 +198,7 @@ export default function EditProfileScreen({
       }
     }
     if (!city) {
-      Alert.alert('請選手選縣市');
+      Alert.alert('請選縣市');
       return;
     }
     if (!district) {
@@ -273,7 +273,7 @@ export default function EditProfileScreen({
           scrollOnBlur={onInputBlur}
         />
 
-        <Text style={styles.k}>縣市（手選）</Text>
+        <Text style={styles.k}>縣市</Text>
         <DropdownSelect
           value={city}
           options={taiwanCityPickOptions()}
@@ -353,6 +353,9 @@ export default function EditProfileScreen({
         </View>
 
         <Text style={styles.k}>我的汪汪（{dogs.length}/{MAX_DOGS}）</Text>
+        <Text style={styles.photoMatchHint}>
+          請確實上傳和狗狗的合照以增加配對率！
+        </Text>
         <View style={styles.wrap}>
           {dogs.map((d, i) => (
             <Chip
@@ -472,20 +475,6 @@ export default function EditProfileScreen({
           ))}
         </View>
 
-        <Text style={styles.k}>可否合照</Text>
-        <View style={styles.wrap}>
-          <Chip
-            label="可以"
-            selected={dog?.canPhoto !== false}
-            onPress={() => updateDog({ canPhoto: true })}
-          />
-          <Chip
-            label="先不要"
-            selected={dog?.canPhoto === false}
-            onPress={() => updateDog({ canPhoto: false })}
-          />
-        </View>
-
         <TouchableOpacity style={styles.save} onPress={save}>
           <Text style={styles.saveTxt}>
             {registerMode ? '完成註冊' : '儲存檔案'}
@@ -516,6 +505,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: colors.muted,
     fontSize: 12,
+    lineHeight: 18,
+  },
+  photoMatchHint: {
+    marginBottom: 8,
+    color: colors.brandDeep,
+    fontSize: 13,
+    fontWeight: '700',
     lineHeight: 18,
   },
   photoWrap: { alignItems: 'center', marginTop: 12, marginBottom: 18 },

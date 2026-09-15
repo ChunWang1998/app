@@ -70,6 +70,22 @@ export async function listAllProfiles(loginKey) {
   return Array.isArray(data) ? data : [];
 }
 
+/** Sync App Store IAP paid flag to accounts.subscription (paid/none; founder kept). */
+export async function syncIapEntitlementCloud(loginKey, paid) {
+  return rpc('sync_iap_entitlement', {
+    p_key: loginKey,
+    p_paid: Boolean(paid),
+  });
+}
+
+export async function upsertDeviceTokenCloud(loginKey, token, platform) {
+  return rpc('upsert_device_token', {
+    p_key: loginKey,
+    p_token: token,
+    p_platform: platform || 'unknown',
+  });
+}
+
 export async function listMyConnects(loginKey) {
   const data = await rpc('list_my_connects', { p_key: loginKey });
   return Array.isArray(data) ? data : [];

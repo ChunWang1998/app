@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors } from '../theme';
+import { usePrefs } from '../context/AppPrefs';
 import { allSlotCombos, slotKey, taiwanCityFilterOptions } from '../data/constants';
 import { flattenOwnersToDogCards } from '../lib/dogs';
 import { sortOwners, crownsForDistrict } from '../lib/sort';
@@ -8,15 +8,25 @@ import OwnerRow from '../components/OwnerRow';
 import Chip from '../components/Chip';
 import ScreenHeader from '../components/ScreenHeader';
 import DropdownSelect from '../components/DropdownSelect';
+import { radius } from '../theme';
 
 export default function ExploreScreen({
   districtsByCity = {},
   onNeedDistricts,
   owners,
   profile,
+  session,
+  subscribed,
+  connects = [],
+  ownersById = {},
   onOpenOwner,
   onProfile,
+  onAccept,
+  onDecline,
+  onNeedRegister,
+  onNeedSubscribe,
 }) {
+  const { colors, t } = usePrefs();
   const [city, setCity] = useState('');
   const [district, setDistrict] = useState('');
   const [slotKeys, setSlotKeys] = useState([]);
@@ -28,7 +38,6 @@ export default function ExploreScreen({
 
   const districts = city ? districtsByCity[city] || [] : [];
   const cards = useMemo(() => flattenOwnersToDogCards(owners), [owners]);
-  const guides = cards.filter((o) => o.isGuide);
   const people = cards.filter((o) => !o.isGuide);
   const byCity = city ? people.filter((o) => o.city === city) : people;
   const byDistrict = district
@@ -50,11 +59,20 @@ export default function ExploreScreen({
 
   const districtOptions = useMemo(
     () => [
-      { value: '', label: '全區' },
+      { value: '', label: t('allDistricts') },
       ...districts.map((d) => ({ value: d, label: d })),
     ],
-    [districts],
+    [districts, t],
   );
+
+  const incoming = (connects || []).filter(
+    (c) => c.toId === session?.id && c.status === 'pending',
+  );
+
+  const nameOf = (id) => {
+    const o = ownersById[id];
+    return o?.dogName || o?.ownerNick || id;
+  };
 
   const toggleSlot = (key) => {
     setSlotKeys((prev) =>
@@ -65,26 +83,26 @@ export default function ExploreScreen({
   return (
     <View style={styles.fill}>
       <ScreenHeader
-        title="鄰汪夥伴"
-        subtitle="全台配對 · 可用縣市與時段篩選"
+        title={t('partnersTitle')}
+        subtitle={t('partnersSub')}
         photoUri={profile?.photoUri}
         onProfile={onProfile}
       />
       <View style={styles.filters}>
         <DropdownSelect
-          label="縣市"
+          label={t('city')}
           value={city}
           options={cityOptions}
           onChange={setCity}
-          placeholder="全台"
+          placeholder={t('allTaiwan')}
           style={styles.filterHalf}
         />
         <DropdownSelect
-          label="行政區"
+          label={t('district')}
           value={district}
           options={districtOptions}
           onChange={setDistrict}
-          placeholder={city ? '全區' : '先選縣市'}
+          placeholder={city ? t('allDistricts') : t('pickCityFirst')}
           disabled={!city}
           style={styles.filterHalf}
         />
@@ -94,17 +112,70 @@ export default function ExploreScreen({
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.groupTitle}>範例汪汪</Text>
-        <Text style={styles.sub}>團團／可可 · 每位登入的人都看得到</Text>
-        {guides.map((o) => (
-          <OwnerRow
-            key={o.cardKey}
-            owner={o}
-            onPress={() => onOpenOwner(o.ownerId || o.id, o.dogId)}
-          />
-        ))}
+        <Text style={[styles.groupTitle, { color: colors.brandDeep }]}>
+          {t('pendingSection')}
+        </Text>
+        {!session ? (
+          <View style={[styles.pendingCard, { backgroundColor: colors.card, borderColor: colors.line }]}>
+            <Text style={[styles.pendingHint, { color: colors.muted }]}>
+              {t('pendingNeedRegister')}
+            </Text>
+            <TouchableOpacity
+              style={[styles.pendingBtn, { backgroundColor: colors.brand }]}
+              onPress={onNeedRegister}
+            >
+              <Text style={styles.pendingBtnTxt}>{t('goRegister')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : !subscribed ? (
+          <View style={[styles.pendingCard, { backgroundColor: colors.card, borderColor: colors.line }]}>
+            <Text style={[styles.pendingHint, { color: colors.muted }]}>
+              {t('pendingNeedSubscribe')}
+            </Text>
+            <TouchableOpacity
+              style={[styles.pendingBtn, { backgroundColor: colors.brand }]}
+              onPress={onNeedSubscribe}
+            >
+              <Text style={styles.pendingBtnTxt}>{t('goSubscribe')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : incoming.length === 0 ? (
+          <Text style={[styles.empty, { color: colors.muted }]}>{t('pendingEmpty')}</Text>
+        ) : (
+          incoming.map((c) => (
+            <View
+              key={c.id}
+              style={[styles.pendingCard, { backgroundColor: colors.card, borderColor: colors.line }]}
+            >
+              <Text style={[styles.pendingName, { color: colors.ink }]}>
+                {nameOf(c.fromId)} {t('wantsConnect')}
+              </Text>
+              <View style={styles.pendingRow}>
+                <TouchableOpacity
+                  style={[styles.pendingBtn, { backgroundColor: colors.brand }]}
+                  onPress={() => onAccept?.(c.id)}
+                >
+                  <Text style={styles.pendingBtnTxt}>{t('accept')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.pendingBtn,
+                    { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
+                  ]}
+                  onPress={() => onDecline?.(c.id)}
+                >
+                  <Text style={[styles.pendingBtnTxt, { color: colors.ink }]}>
+                    {t('decline')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        )}
 
-        <Text style={[styles.groupTitle, { marginTop: 10 }]}>時段篩選</Text>
+        <Text style={[styles.groupTitle, { marginTop: 10, color: colors.brandDeep }]}>
+          {t('slotFilter')}
+        </Text>
         <View style={styles.wrap}>
           {allSlotCombos().map((c) => {
             const key = `${c.day}:${c.slot}`;
@@ -121,13 +192,15 @@ export default function ExploreScreen({
         </View>
         {slotKeys.length ? (
           <TouchableOpacity onPress={() => setSlotKeys([])}>
-            <Text style={styles.clear}>清除時段篩選</Text>
+            <Text style={[styles.clear, { color: colors.brandDeep }]}>{t('clearSlots')}</Text>
           </TouchableOpacity>
         ) : null}
 
-        <Text style={[styles.groupTitle, { marginTop: 10 }]}>鄰汪夥伴</Text>
+        <Text style={[styles.groupTitle, { marginTop: 10, color: colors.brandDeep }]}>
+          {t('partnersTitle')}
+        </Text>
         {sorted.length === 0 ? (
-          <Text style={styles.empty}>這個篩選還沒有主人</Text>
+          <Text style={[styles.empty, { color: colors.muted }]}>{t('noOwners')}</Text>
         ) : (
           sorted.map((o) => (
             <OwnerRow
@@ -156,12 +229,26 @@ const styles = StyleSheet.create({
   groupTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.brandDeep,
     marginBottom: 4,
     marginTop: 8,
   },
-  sub: { fontSize: 12, color: colors.muted, marginBottom: 8 },
-  empty: { marginTop: 8, marginBottom: 8, color: colors.muted },
+  empty: { marginTop: 8, marginBottom: 8 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 4 },
-  clear: { color: colors.brandDeep, fontWeight: '800', marginBottom: 8 },
+  clear: { fontWeight: '800', marginBottom: 8 },
+  pendingCard: {
+    borderRadius: radius.row,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 10,
+  },
+  pendingHint: { fontSize: 13, lineHeight: 18, marginBottom: 10 },
+  pendingName: { fontSize: 15, fontWeight: '800', marginBottom: 10 },
+  pendingRow: { flexDirection: 'row', gap: 10 },
+  pendingBtn: {
+    flex: 1,
+    borderRadius: radius.pill,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  pendingBtnTxt: { color: '#fff', fontWeight: '800' },
 });

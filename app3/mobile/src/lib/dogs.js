@@ -120,6 +120,7 @@ export function flattenOwnersToDogCards(owners) {
         isSeed: owner.isSeed,
         isMe: owner.isMe,
         isGlobal: owner.isGlobal,
+        subscribed: Boolean(owner.subscribed ?? normalized.subscribed),
       });
     }
   }

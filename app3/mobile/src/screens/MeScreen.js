@@ -41,9 +41,6 @@ export default function MeScreen({
   const swipeRefs = useRef({});
   const lastAskAt = useRef(0);
 
-  const incoming = connects.filter(
-    (c) => c.toId === session?.id && c.status === 'pending',
-  );
   const sent = connects.filter(
     (c) => c.fromId === session?.id && c.status === 'pending',
   );
@@ -68,9 +65,6 @@ export default function MeScreen({
 
       {!session ? (
         <View style={styles.card}>
-          <Text style={styles.p}>
-            填手機號當帳號（不驗證碼）。必須同時建立汪汪檔案才算完成註冊。註冊免費；Connect、聊天與聚會需訂閱。已註冊過請填同一支號碼，會從雲端還原。
-          </Text>
           <TextInput
             style={styles.input}
             placeholder="手機號碼"
@@ -90,7 +84,6 @@ export default function MeScreen({
           >
             <Text style={styles.btnText}>填檔案並註冊</Text>
           </TouchableOpacity>
-          <Text style={styles.hint}>同一支號碼換機可還原檔案</Text>
         </View>
       ) : (
         <>
@@ -98,14 +91,9 @@ export default function MeScreen({
             <Text style={styles.k}>帳號 {session.phone || session.loginKey}</Text>
             <Text style={styles.v}>{subscribed ? '已訂閱 Premium' : '未訂閱'}</Text>
             {!subscribed ? (
-              <>
-                <Text style={styles.p}>
-                  可免費編輯檔案與瀏覽清單。看詳情、Connect、創辦／報名聚會需訂閱（NT$60／月），也可用優惠碼兌換。
-                </Text>
-                <TouchableOpacity style={styles.btn} onPress={onSubscribe}>
-                  <Text style={styles.btnText}>去訂閱／兌換優惠碼</Text>
-                </TouchableOpacity>
-              </>
+              <TouchableOpacity style={styles.btn} onPress={onSubscribe}>
+                <Text style={styles.btnText}>去訂閱／兌換優惠碼</Text>
+              </TouchableOpacity>
             ) : null}
             {profile ? (
               <>
@@ -202,28 +190,6 @@ export default function MeScreen({
                 </Text>
                 <Text style={styles.link}>看 LINE 群組邀請</Text>
               </TouchableOpacity>
-            ))
-          )}
-
-          <Text style={styles.section}>待回覆</Text>
-          {incoming.length === 0 ? (
-            <Text style={styles.empty}>沒有新的 Connect</Text>
-          ) : (
-            incoming.map((c) => (
-              <View key={c.id} style={styles.card}>
-                <Text style={styles.v}>{nameOf(c.fromId)} 想 Connect</Text>
-                <View style={styles.row}>
-                  <TouchableOpacity style={styles.small} onPress={() => onAccept(c.id)}>
-                    <Text style={styles.smallText}>接受</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.small, styles.ghost]}
-                    onPress={() => onDecline(c.id)}
-                  >
-                    <Text style={[styles.smallText, { color: colors.ink }]}>拒絕</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
             ))
           )}
 

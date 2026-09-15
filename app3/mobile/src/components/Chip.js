@@ -1,15 +1,27 @@
 import React from 'react';
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, radius } from '../theme';
+import { usePrefs } from '../context/AppPrefs';
+import { radius } from '../theme';
 
 export default function Chip({ label, selected, onPress }) {
+  const { colors } = usePrefs();
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={[styles.chip, selected && styles.on]}
+      style={[
+        styles.chip,
+        { backgroundColor: selected ? colors.brand : colors.chipOn },
+      ]}
       activeOpacity={0.8}
     >
-      <Text style={[styles.text, selected && styles.textOn]}>{label}</Text>
+      <Text
+        style={[
+          styles.text,
+          { color: selected ? '#fff' : colors.ink },
+        ]}
+      >
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -19,11 +31,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radius.pill,
-    backgroundColor: '#F4EDE3',
     marginRight: 8,
     marginBottom: 8,
   },
-  on: { backgroundColor: colors.brand },
-  text: { fontSize: 13, fontWeight: '700', color: colors.ink },
-  textOn: { color: '#fff' },
+  text: { fontSize: 13, fontWeight: '700' },
 });

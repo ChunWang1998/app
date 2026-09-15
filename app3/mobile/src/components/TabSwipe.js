@@ -1,12 +1,12 @@
 import React, { useMemo, useRef } from 'react';
 import { View, StyleSheet, PanResponder } from 'react-native';
 
-const TABS = ['explore', 'gatherings'];
+const TABS = ['explore', 'gatherings', 'settings'];
 const SWIPE_MIN = 56;
 const SWIPE_VELOCITY = 0.35;
 
 /**
- * Horizontal swipe to switch explore ↔ gatherings.
+ * Horizontal swipe to switch explore ↔ gatherings ↔ settings.
  * Ignores mostly-vertical moves so lists can still scroll.
  */
 export default function TabSwipe({ tab, onChange, children }) {

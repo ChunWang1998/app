@@ -41,7 +41,9 @@ import {
   reportAccount,
   deleteMyAccount,
   uploadAvatar,
+  syncIapEntitlementCloud,
 } from './cloud';
+import { requestConnectPush } from './push';
 
 const KEYS = {
   session: 'linwang:session',
@@ -62,6 +64,15 @@ function uid(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+let _sessionCache = null;
+let _sessionCacheAt = 0;
+const SESSION_CACHE_TTL_MS = 8_000;
+
+function bustSessionCache() {
+  _sessionCache = null;
+  _sessionCacheAt = 0;
+}
+
 async function readJson(key, fallback) {
   try {
     const raw = await AsyncStorage.getItem(key);
@@ -79,7 +90,7 @@ export function hasValidSub(session) {
   return session?.subscription === 'paid';
 }
 
-/** Refresh local session.subscription from App Store entitlement (not Supabase). */
+/** Refresh local session.subscription from App Store entitlement; mirror to cloud. */
 export async function syncSubscriptionFromIap(session) {
   if (!session) return null;
   const paid = await isIapPaid();
@@ -90,30 +101,56 @@ export async function syncSubscriptionFromIap(session) {
   if (session.subscription !== next.subscription) {
     await saveSession(next);
   }
+  if (isCloudReady() && next.loginKey) {
+    try {
+      await syncIapEntitlementCloud(next.loginKey, paid);
+    } catch {
+      // Offline — Explore badges may lag until next sync.
+    }
+  }
   return next;
 }
 
 export async function markSubscribedLocally() {
   await setIapPaid(true);
-  const session = await loadSession();
+  bustSessionCache();
+  const session = await loadSession({ force: true });
   if (!session) return null;
   return syncSubscriptionFromIap(session);
 }
 
-export async function loadSession() {
+/**
+ * @param {{ force?: boolean }} [opts]
+ */
+export async function loadSession(opts = {}) {
+  const force = Boolean(opts.force);
+  const now = Date.now();
+  if (
+    !force &&
+    _sessionCache &&
+    now - _sessionCacheAt < SESSION_CACHE_TTL_MS
+  ) {
+    return _sessionCache;
+  }
   const session = await readJson(KEYS.session, null);
-  if (!session?.loginKey) return session;
+  if (!session?.loginKey) {
+    bustSessionCache();
+    return session;
+  }
   if (isCloudReady()) {
     try {
       const row = await loadMyAccount(session.loginKey);
       if (row?.accountId) session.id = row.accountId;
-      await saveSession(session);
+      await writeJson(KEYS.session, session);
       if (row?.profile) await writeJson(KEYS.profile, normalizeProfile(row.profile));
     } catch {
       // Keep the cached session if the network is down.
     }
   }
-  return syncSubscriptionFromIap(session);
+  const result = await syncSubscriptionFromIap(session);
+  _sessionCache = result;
+  _sessionCacheAt = Date.now();
+  return result;
 }
 
 export async function loadProfile() {
@@ -122,7 +159,10 @@ export async function loadProfile() {
 }
 
 export async function saveSession(session) {
+  bustSessionCache();
   await writeJson(KEYS.session, session);
+  _sessionCache = session;
+  _sessionCacheAt = Date.now();
   return session;
 }
 
@@ -291,6 +331,7 @@ export async function deleteAccount() {
   }
   await AsyncStorage.multiRemove(Object.values(KEYS));
   await setIapPaid(false);
+  bustSessionCache();
 }
 
 export async function reportOwner(targetId, reason) {
@@ -313,16 +354,13 @@ export async function blockOwner(targetId) {
   return blockAccount(session.loginKey, targetId);
 }
 
-export async function listOwners(cityFilter) {
+export async function listOwners(cityFilter, sessionArg) {
   const seed = cityFilter ? seedOwnersForCity(cityFilter) : seedAllOwners();
   const overrides = await readJson(KEYS.overrides, {});
   const profile = await loadProfile();
-  const session = await loadSession();
-  const guides = GLOBAL_GUIDES.map((o) =>
-    normalizeProfile({ ...o, ...(overrides[o.id] || {}) }),
-  );
+  const session = sessionArg || (await loadSession());
   const merged = seed.map((o) =>
-    normalizeProfile({ ...o, ...(overrides[o.id] || {}) }),
+    normalizeProfile({ ...o, ...(overrides[o.id] || {}), subscribed: true }),
   );
   let cloud = [];
   if (isCloudReady()) {
@@ -348,6 +386,7 @@ export async function listOwners(cityFilter) {
         id: session.id,
         isMe: true,
         isSeed: false,
+        subscribed: session.subscription === 'paid',
       }),
     );
   }
@@ -356,15 +395,16 @@ export async function listOwners(cityFilter) {
     normalizeProfile({
       ...o,
       isMe: session?.id === o.id,
+      subscribed: Boolean(o.subscribed),
     }),
   );
-  return [...guides, ...local, ...remote];
+  return [...local, ...remote];
 }
 
-export async function listConnects() {
+export async function listConnects(sessionArg) {
   const local = await readJson(KEYS.connects, []);
   if (!isCloudReady()) return local;
-  const session = await loadSession();
+  const session = sessionArg || (await loadSession());
   if (!session?.loginKey) return local;
   try {
     const remote = await listMyConnects(session.loginKey);
@@ -378,7 +418,12 @@ export async function listConnects() {
 export async function sendConnect(fromId, toId) {
   const session = await loadSession();
   if (isCloudReady() && session?.loginKey && isUuid(toId)) {
-    return sendConnectCloud(session.loginKey, toId);
+    const connect = await sendConnectCloud(session.loginKey, toId);
+    const profile = await loadProfile();
+    const fromName =
+      profile?.dogs?.[0]?.dogName || profile?.dogName || profile?.ownerNick || '';
+    requestConnectPush(session.loginKey, toId, fromName);
+    return connect;
   }
   const connects = await readJson(KEYS.connects, []);
   const existing = connects.find(
@@ -667,7 +712,7 @@ async function applyEndedCounts(rows) {
   if (dirty) await writeJson(KEYS.gatheringEnded, counted);
 }
 
-export async function listGatherings(cityFilter, userId) {
+export async function listGatherings(cityFilter, userId, sessionArg) {
   const seeds = isCloudReady()
     ? []
     : cityFilter
@@ -677,7 +722,7 @@ export async function listGatherings(cityFilter, userId) {
   if (cityFilter) created = created.filter((g) => g.city === cityFilter);
   if (isCloudReady()) {
     try {
-      const session = await loadSession();
+      const session = sessionArg || (await loadSession());
       created = cityFilter
         ? await listCityGatherings(session?.loginKey, cityFilter)
         : await listAllGatherings(session?.loginKey);
@@ -704,9 +749,9 @@ export async function listGatherings(cityFilter, userId) {
   return decorated;
 }
 
-export async function listMyGatherings(cityFilter, userId) {
+export async function listMyGatherings(cityFilter, userId, sessionArg) {
   if (!userId) return [];
-  const rows = await listGatherings(cityFilter, userId);
+  const rows = await listGatherings(cityFilter, userId, sessionArg);
   return rows.filter((g) => g.iJoined || g.iHost);
 }
 
