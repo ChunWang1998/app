@@ -15,8 +15,16 @@ npm start
 
 ### 雲端（真人互配必做）
 
-1. 新建 Supabase 專案，SQL Editor 執行 [`supabase/schema.sql`](./supabase/schema.sql)。
-2. `mobile/.env` 填 `EXPO_PUBLIC_SUPABASE_URL`、`EXPO_PUBLIC_SUPABASE_ANON_KEY`。
+Supabase 免費額度僅 **2 個 active 專案**（已給 app2、app3），**不要再建新專案**。  
+維護成本最低的做法：把 app4 掛進 **app2（急廁 Go）** 的既有專案。
+
+- 選 app2 而非 app3：app2 後端很瘦（`votes`／`comments`），與 app4 的 `profiles`／`matches`／`reports` 幾乎不撞名；app3 已有 `profiles`／`reports`，直接執行 schema 會衝突。
+- 免費、同一個 Dashboard，不必自架或另開 Neon。
+
+步驟：
+
+1. 開啟 **app2** 的 Supabase 專案 → SQL Editor 執行 [`supabase/schema.sql`](./supabase/schema.sql)。
+2. `mobile/.env` 填入 **與 app2 相同** 的 `EXPO_PUBLIC_SUPABASE_URL`、`EXPO_PUBLIC_SUPABASE_ANON_KEY`（可從 `app2/mobile/.env` 複製）。
 3. EAS 建置前 push 同名變數：
 
 ```bash
