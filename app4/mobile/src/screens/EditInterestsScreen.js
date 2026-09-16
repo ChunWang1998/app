@@ -35,7 +35,7 @@ export default function EditInterestsScreen({
           <Text style={styles.brand}>修改興趣需 Premium</Text>
           <Text style={styles.p}>免費用戶開通後不可修改有興趣的身份。</Text>
           <TouchableOpacity style={styles.primary} onPress={onSubscribe}>
-            <Text style={styles.primaryText}>前往訂閱</Text>
+            <Text style={styles.primaryText}>前往買斷</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.secondary} onPress={onBack}>
             <Text style={styles.secondaryText}>返回</Text>

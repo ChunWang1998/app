@@ -45,12 +45,12 @@ npm run eas:env:push:production
 npm run deploy:testflight
 ```
 
-商品 ID 預設 `com.identitymatch.app.premium`。  
-**第一次**付費功能實測前請先在 App Store Connect 建好訂閱與優惠碼（見根目錄 `README.md`）。
+商品 ID 預設 `com.identitymatch.app.premium`（**非消耗型買斷**，對齊 app2）。  
+**第一次**付費功能實測前請先在 App Store Connect 建好同名非消耗型 IAP（見 `APP_STORE_IAP.md`）。
 
 ## 技術
 
 - Expo SDK 57、React 19.2、RN 0.86.3
 - 免登入 `device_id`（對齊 app2）
-- 訂閱 IAP + 優惠碼、本機權益 flag（對齊 app3）
+- 非消耗型買斷 IAP + 恢復購買、本機權益 flag（對齊 app2 金流）
 - iOS only；無權限 Purpose String（V1 無相簿／相機／定位）

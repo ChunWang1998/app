@@ -81,7 +81,7 @@ function waitForPurchaseEvent(iap, timeoutMs = 120000) {
 
 async function tryNativePurchase() {
   if (Platform.OS !== 'ios') {
-    return { ok: false, error: '目前僅支援 iOS App Store 訂閱' };
+    return { ok: false, error: '目前僅支援 iOS App Store 內購' };
   }
   const iap = require('expo-iap');
   if (!iap?.initConnection || !iap?.requestPurchase) {
@@ -91,7 +91,7 @@ async function tryNativePurchase() {
   await iap.initConnection();
   try {
     if (typeof iap.fetchProducts === 'function') {
-      await iap.fetchProducts({ skus: [PRODUCT_ID], type: 'subs' });
+      await iap.fetchProducts({ skus: [PRODUCT_ID], type: 'in-app' });
     }
 
     const pending = waitForPurchaseEvent(iap);
@@ -99,7 +99,7 @@ async function tryNativePurchase() {
       request: {
         apple: { sku: PRODUCT_ID },
       },
-      type: 'subs',
+      type: 'in-app',
     });
 
     const result = await pending;
@@ -178,7 +178,8 @@ async function tryNativeRestore() {
   }
 }
 
-export async function purchaseSubscription() {
+/** Non-consumable buyout (same product ID; StoreKit type is in-app). */
+export async function purchasePremium() {
   if (await isIapPaid()) return { ok: true };
 
   try {
@@ -202,11 +203,11 @@ export async function purchaseSubscription() {
 
   const simulated = await new Promise((resolve) => {
     Alert.alert(
-      '開發模式模擬訂閱',
-      `模擬訂閱「${APP_PREMIUM}」？\n（正式版商品：${PRODUCT_ID}）`,
+      '開發模式模擬買斷',
+      `模擬買斷「${APP_PREMIUM}」？\n（正式版商品：${PRODUCT_ID}）`,
       [
         { text: '取消', style: 'cancel', onPress: () => resolve(false) },
-        { text: '模擬訂閱', onPress: () => resolve(true) },
+        { text: '模擬買斷', onPress: () => resolve(true) },
       ],
     );
   });
@@ -216,7 +217,7 @@ export async function purchaseSubscription() {
   return { ok: true, simulated: true };
 }
 
-export async function restoreSubscription() {
+export async function restorePremium() {
   try {
     return await tryNativeRestore();
   } catch (e) {
@@ -239,43 +240,10 @@ export async function restoreSubscription() {
     return { ok: true, restored: false, simulated: true };
   }
 
-  return { ok: false, restored: false, error: '找不到可恢復的訂閱' };
+  return { ok: false, restored: false, error: '找不到可恢復的購買' };
 }
 
-export async function redeemOfferCode() {
-  if (Platform.OS !== 'ios') {
-    return { ok: false, error: '優惠碼兌換僅支援 iOS' };
-  }
-
-  if (allowSimulate() && runningInExpoGo()) {
-    const simulated = await new Promise((resolve) => {
-      Alert.alert('開發模式', '模擬兌換優惠碼並解鎖？', [
-        { text: '取消', style: 'cancel', onPress: () => resolve(false) },
-        { text: '模擬兌換', onPress: () => resolve(true) },
-      ]);
-    });
-    if (!simulated) return { ok: false, cancelled: true };
-    await setIapPaid(true);
-    return { ok: true, restored: true };
-  }
-
-  try {
-    const iap = require('expo-iap');
-    if (!iap?.initConnection || !iap?.presentCodeRedemptionSheetIOS) {
-      throw new Error('IAP unavailable');
-    }
-    await iap.initConnection();
-    try {
-      await iap.presentCodeRedemptionSheetIOS();
-    } finally {
-      try {
-        await iap.endConnection?.();
-      } catch {
-        // ignore
-      }
-    }
-    return restoreSubscription();
-  } catch (e) {
-    return { ok: false, error: String(e?.message || e || '無法開啟兌換') };
-  }
-}
+/** @deprecated Use purchasePremium — kept for any leftover imports */
+export const purchaseSubscription = purchasePremium;
+/** @deprecated Use restorePremium */
+export const restoreSubscription = restorePremium;

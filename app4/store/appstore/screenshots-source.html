@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>業問 — App Store 截圖稿</title>
+  <style>
+    :root {
+      --bg-top: #F3F0E8;
+      --bg-bottom: #DDE8E3;
+      --ink: #1F2A24;
+      --muted: #5F6F66;
+      --brand: #2F6F5E;
+      --card: #FFFFFF;
+      --line: #D9E2DC;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Helvetica Neue", sans-serif;
+      background: #111;
+      color: var(--ink);
+    }
+    .phone {
+      width: 1290px;
+      height: 2796px;
+      margin: 0 auto 40px;
+      background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+      padding: 120px 72px 96px;
+      position: relative;
+      overflow: hidden;
+    }
+    .brand { font-size: 92px; font-weight: 700; letter-spacing: -1px; margin: 0 0 12px; }
+    .sub { font-size: 36px; color: var(--muted); margin: 0 0 48px; }
+    .card {
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: 36px;
+      padding: 44px 48px;
+      margin-bottom: 36px;
+    }
+    .label { font-size: 28px; color: var(--muted); margin: 0 0 12px; }
+    .value { font-size: 40px; font-weight: 600; margin: 0 0 28px; line-height: 1.35; }
+    .note { font-size: 32px; color: var(--muted); margin: -12px 0 28px; line-height: 1.4; }
+    .h { font-size: 44px; font-weight: 700; margin: 0 0 28px; }
+    .btn {
+      display: block;
+      text-align: center;
+      background: var(--brand);
+      color: #fff;
+      font-size: 40px;
+      font-weight: 700;
+      padding: 36px 24px;
+      border-radius: 28px;
+      margin-top: 12px;
+    }
+    .btn-ghost {
+      display: block;
+      text-align: center;
+      background: var(--card);
+      border: 2px solid var(--line);
+      color: var(--ink);
+      font-size: 38px;
+      font-weight: 600;
+      padding: 34px 24px;
+      border-radius: 28px;
+      margin-top: 28px;
+    }
+    .link { text-align: center; color: var(--brand); font-size: 34px; font-weight: 600; margin-top: 28px; }
+    .chip {
+      display: inline-block;
+      background: #E7F1EC;
+      color: var(--brand);
+      font-size: 30px;
+      font-weight: 600;
+      padding: 14px 28px;
+      border-radius: 999px;
+      margin: 0 12px 12px 0;
+    }
+    .bubble {
+      max-width: 78%;
+      padding: 28px 36px;
+      border-radius: 28px;
+      font-size: 36px;
+      line-height: 1.45;
+      margin-bottom: 24px;
+    }
+    .me { background: var(--brand); color: #fff; margin-left: auto; border-bottom-right-radius: 8px; }
+    .them { background: var(--card); border: 2px solid var(--line); border-bottom-left-radius: 8px; }
+    .status-bar {
+      position: absolute; top: 48px; left: 72px; right: 72px;
+      display: flex; justify-content: space-between;
+      font-size: 30px; font-weight: 600; color: var(--ink);
+    }
+    .caption {
+      position: absolute; bottom: 72px; left: 72px; right: 72px;
+      text-align: center; font-size: 28px; color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <!-- 1 Home -->
+  <section class="phone" id="shot-home" data-name="01-home">
+    <div class="status-bar"><span>9:41</span><span>業問</span></div>
+    <p class="brand">業問</p>
+    <p class="sub">免費・每日 1 次配對</p>
+    <div class="card">
+      <p class="label">我的身份（已鎖定）</p>
+      <p class="value">護理師</p>
+      <p class="note">急診兩年，想分享輪班與證照準備</p>
+      <p class="label">有興趣的身份</p>
+      <p class="value">住院醫師、藥師</p>
+      <p class="label">我的 LINE</p>
+      <p class="value">nurse_demo</p>
+    </div>
+    <div class="card">
+      <p class="h">今日剩餘 1 / 1</p>
+      <div class="btn">今日配對</div>
+    </div>
+    <div class="btn-ghost">配對紀錄</div>
+    <div class="btn-ghost">解鎖 Premium</div>
+    <p class="caption">主頁・今日配對</p>
+  </section>
+
+  <!-- 2 Onboarding identities -->
+  <section class="phone" id="shot-onboard" data-name="02-onboarding">
+    <div class="status-bar"><span>9:41</span><span>開通</span></div>
+    <p class="brand">我是誰</p>
+    <p class="sub">選擇 1～5 個身份，再選有興趣的對象</p>
+    <div class="card">
+      <span class="chip">護理師 ✓</span>
+      <span class="chip">藥師</span>
+      <span class="chip">住院醫師</span>
+      <span class="chip">軟體工程師</span>
+      <span class="chip">設計師</span>
+      <span class="chip">會計師</span>
+      <span class="chip">律師</span>
+      <span class="chip">教師</span>
+      <span class="chip">行銷企劃</span>
+      <span class="chip">創業者</span>
+    </div>
+    <div class="card">
+      <p class="label">有興趣的身份（1～2）</p>
+      <span class="chip">住院醫師 ✓</span>
+      <span class="chip">藥師 ✓</span>
+    </div>
+    <div class="btn">下一步：填寫 LINE</div>
+    <p class="caption">開通・身份雙向選擇</p>
+  </section>
+
+  <!-- 3 Chat -->
+  <section class="phone" id="shot-chat" data-name="03-chat">
+    <div class="status-bar"><span>9:41</span><span>聊天</span></div>
+    <p class="brand" style="font-size:64px">對方・住院醫師</p>
+    <p class="sub">站內簡聊（合計最多 20 句）・目前 4 / 20</p>
+    <div class="bubble them">你好，我也在準備專科考試，想問輪班怎麼排？</div>
+    <div class="bubble me">急診常上大夜，我會先顧睡眠再讀核心科。</div>
+    <div class="bubble them">有推薦的考古資源嗎？</div>
+    <div class="bubble me">可以先從近三年重點整理，再對臨床案例。</div>
+    <div class="card" style="margin-top:48px">
+      <p class="label">滿 20 句後</p>
+      <p class="value" style="margin:0">雙方同意才顯示 LINE</p>
+    </div>
+    <p class="caption">配對後短聊・同意後才交換 LINE</p>
+  </section>
+
+  <!-- 4 Premium buyout -->
+  <section class="phone" id="shot-premium" data-name="04-premium">
+    <div class="status-bar"><span>9:41</span><span>Premium</span></div>
+    <p class="brand" style="font-size:72px">業問 Premium</p>
+    <p class="sub">一次性買斷・支援恢復購買</p>
+    <div class="card">
+      <p class="value" style="margin-bottom:18px">• 每日最多 5 次配對</p>
+      <p class="value" style="margin-bottom:18px">• 每週可修改有興趣的身份</p>
+      <p class="value" style="margin:0">• 一次性買斷，永久解鎖</p>
+    </div>
+    <div class="btn">買斷解鎖</div>
+    <div class="btn-ghost">恢復購買</div>
+    <p class="caption">Premium 非消耗型買斷</p>
+  </section>
+</body>
+</html>

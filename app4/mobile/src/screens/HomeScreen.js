@@ -123,7 +123,7 @@ export default function HomeScreen({
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondary} onPress={onSubscribe}>
           <Text style={styles.secondaryText}>
-            {paid ? '訂閱／恢復購買' : '解鎖 Premium'}
+            {paid ? '買斷／恢復購買' : '解鎖 Premium'}
           </Text>
         </TouchableOpacity>
       </ScrollView>

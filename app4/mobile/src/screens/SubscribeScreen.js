@@ -6,16 +6,14 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
 import { APP_PREMIUM } from '../data/branding';
 import {
-  purchaseSubscription,
-  restoreSubscription,
-  redeemOfferCode,
+  purchasePremium,
+  restorePremium,
   iapProductId,
 } from '../lib/iap';
 
@@ -40,8 +38,8 @@ export default function SubscribeScreen({ onBack, onUnlocked }) {
         setError(result.error || '操作失敗');
         return;
       }
-      if (result.restored === false && fn === restoreSubscription) {
-        Alert.alert('找不到訂閱', '此 Apple ID 尚無有效訂閱。');
+      if (result.restored === false && fn === restorePremium) {
+        Alert.alert('找不到購買紀錄', '此 Apple ID 尚無「業問 Premium」買斷。');
         return;
       }
       await finishOk();
@@ -61,12 +59,12 @@ export default function SubscribeScreen({ onBack, onUnlocked }) {
         ]}
       >
         <Text style={styles.brand}>{APP_PREMIUM}</Text>
-        <Text style={styles.sub}>商品 ID：{iapProductId()}</Text>
+        <Text style={styles.sub}>一次性買斷・商品 ID：{iapProductId()}</Text>
 
         <View style={styles.card}>
           <Text style={styles.bullet}>• 每日最多 5 次配對</Text>
           <Text style={styles.bullet}>• 每週可修改有興趣的身份</Text>
-          <Text style={styles.bullet}>• 支援恢復購買與優惠碼</Text>
+          <Text style={styles.bullet}>• 一次性買斷，支援恢復購買</Text>
         </View>
 
         {!!error && <Text style={styles.error}>{error}</Text>}
@@ -74,33 +72,20 @@ export default function SubscribeScreen({ onBack, onUnlocked }) {
         <TouchableOpacity
           style={styles.primary}
           disabled={busy}
-          onPress={() => run(purchaseSubscription)}
+          onPress={() => run(purchasePremium)}
         >
           {busy ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.primaryText}>立即訂閱</Text>
+            <Text style={styles.primaryText}>買斷解鎖</Text>
           )}
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.secondary}
           disabled={busy}
-          onPress={() => run(restoreSubscription)}
+          onPress={() => run(restorePremium)}
         >
           <Text style={styles.secondaryText}>恢復購買</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.secondary}
-          disabled={busy}
-          onPress={() => {
-            if (Platform.OS !== 'ios') {
-              Alert.alert('僅限 iOS', '優惠碼兌換需使用 iPhone／iPad。');
-              return;
-            }
-            run(redeemOfferCode);
-          }}
-        >
-          <Text style={styles.secondaryText}>兌換優惠碼</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.link} onPress={onBack} disabled={busy}>
           <Text style={styles.linkText}>返回</Text>

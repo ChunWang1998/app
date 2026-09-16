@@ -58,4 +58,4 @@ npx eas-cli credentials -p ios
 ## After build appears in App Store Connect
 1. TestFlight → 內部測試／加入測試員
 2. 正式上架：App Store → 新增版本 **1.0.0** → 選取 build → 填 listing（見 `APP_STORE.md`）→ Submit for Review
-3. 付費功能實測前：ASC 建好訂閱 `com.identitymatch.app.premium`（見 `APP_STORE_IAP.md`）
+3. 付費功能實測前：ASC 建好**非消耗型** IAP `com.identitymatch.app.premium`（見 `APP_STORE_IAP.md`）
