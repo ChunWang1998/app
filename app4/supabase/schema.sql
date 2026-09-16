@@ -31,6 +31,9 @@ create table if not exists public.profiles (
   )
 );
 
+alter table public.profiles
+  add column if not exists own_identity_notes jsonb not null default '{}'::jsonb;
+
 create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),
   user_low_id uuid not null references public.profiles (id) on delete cascade,
@@ -133,6 +136,65 @@ begin
 end;
 $$;
 
+create or replace function public.app4_identity_notes_valid(
+  p_own text[],
+  p_notes jsonb
+)
+returns boolean
+language plpgsql
+immutable
+as $$
+declare
+  id text;
+  note text;
+begin
+  if p_own is null or cardinality(p_own) < 1 then
+    return false;
+  end if;
+  if p_notes is null or jsonb_typeof(p_notes) <> 'object' then
+    return false;
+  end if;
+  foreach id in array p_own loop
+    note := trim(coalesce(p_notes ->> id, ''));
+    if char_length(note) < 1 or char_length(note) > 50 then
+      return false;
+    end if;
+  end loop;
+  if exists (
+    select 1
+    from jsonb_object_keys(p_notes) k
+    where not (k = any (p_own))
+  ) then
+    return false;
+  end if;
+  return true;
+end;
+$$;
+
+create or replace function public.app4_sanitize_identity_notes(
+  p_own text[],
+  p_notes jsonb
+)
+returns jsonb
+language plpgsql
+immutable
+as $$
+declare
+  out jsonb := '{}'::jsonb;
+  id text;
+  note text;
+begin
+  if p_own is null then
+    return out;
+  end if;
+  foreach id in array p_own loop
+    note := trim(coalesce(p_notes ->> id, ''));
+    out := out || jsonb_build_object(id, note);
+  end loop;
+  return out;
+end;
+$$;
+
 create or replace function public.app4_profile_public(
   p public.profiles,
   p_include_line boolean default false
@@ -144,6 +206,7 @@ as $$
   select jsonb_build_object(
     'id', p.id,
     'own_identities', to_jsonb(p.own_identities),
+    'own_identity_notes', coalesce(p.own_identity_notes, '{}'::jsonb),
     'interest_identities', to_jsonb(p.interest_identities),
     'line_id', case when p_include_line then p.line_id else null end,
     'interests_changed_at', p.interests_changed_at,
@@ -209,7 +272,8 @@ create or replace function public.register_or_load_profile(
   p_device_id text,
   p_own text[] default null,
   p_interest text[] default null,
-  p_line_id text default null
+  p_line_id text default null,
+  p_own_notes jsonb default null
 )
 returns jsonb
 language plpgsql
@@ -221,6 +285,7 @@ declare
   own text[];
   interest text[];
   line text;
+  notes jsonb;
 begin
   if p_device_id is null or length(trim(p_device_id)) < 8 then
     return jsonb_build_object('ok', false, 'code', 'invalid_device');
@@ -267,10 +332,20 @@ begin
     return jsonb_build_object('ok', false, 'code', 'invalid_line');
   end if;
 
+  notes := public.app4_sanitize_identity_notes(own, coalesce(p_own_notes, '{}'::jsonb));
+  if not public.app4_identity_notes_valid(own, notes) then
+    return jsonb_build_object('ok', false, 'code', 'invalid_identity_notes');
+  end if;
+
   insert into public.profiles (
-    device_id, own_identities, interest_identities, line_id, last_active_at
+    device_id,
+    own_identities,
+    interest_identities,
+    line_id,
+    own_identity_notes,
+    last_active_at
   ) values (
-    trim(p_device_id), own, interest, line, now()
+    trim(p_device_id), own, interest, line, notes, now()
   )
   returning * into p;
 
@@ -299,6 +374,34 @@ begin
   end if;
   update public.profiles
     set line_id = line, updated_at = now(), last_active_at = now()
+    where id = p.id
+    returning * into p;
+  return jsonb_build_object('ok', true, 'profile', public.app4_profile_self(p));
+end;
+$$;
+
+create or replace function public.update_identity_notes(
+  p_device_id text,
+  p_own_notes jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  p public.profiles;
+  notes jsonb;
+begin
+  p := public.app4_require_profile(p_device_id);
+  notes := public.app4_sanitize_identity_notes(p.own_identities, coalesce(p_own_notes, '{}'::jsonb));
+  if not public.app4_identity_notes_valid(p.own_identities, notes) then
+    return jsonb_build_object('ok', false, 'code', 'invalid_identity_notes');
+  end if;
+  update public.profiles
+    set own_identity_notes = notes,
+        updated_at = now(),
+        last_active_at = now()
     where id = p.id
     returning * into p;
   return jsonb_build_object('ok', true, 'profile', public.app4_profile_self(p));
@@ -425,6 +528,9 @@ declare
   attempt int := 0;
 begin
   me := public.app4_require_profile(p_device_id);
+  if not public.app4_identity_notes_valid(me.own_identities, me.own_identity_notes) then
+    return jsonb_build_object('ok', false, 'code', 'need_identity_notes');
+  end if;
   lim := case when coalesce(p_claimed_paid, false) then 5 else 1 end;
 
   select coalesce(u.count, 0) into used
@@ -840,8 +946,9 @@ begin
 end;
 $$;
 
-grant execute on function public.register_or_load_profile(text, text[], text[], text) to anon, authenticated;
+grant execute on function public.register_or_load_profile(text, text[], text[], text, jsonb) to anon, authenticated;
 grant execute on function public.update_line_id(text, text) to anon, authenticated;
+grant execute on function public.update_identity_notes(text, jsonb) to anon, authenticated;
 grant execute on function public.update_interests(text, text[], boolean) to anon, authenticated;
 grant execute on function public.touch_active(text) to anon, authenticated;
 grant execute on function public.get_daily_usage(text, boolean) to anon, authenticated;

@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, DISCLAIMER } from '../theme';
 import { labelsForIdentities, REPORT_REASONS, CHAT_CAP } from '../data/identities';
+import { CHAT_PROMPT_GROUPS } from '../data/chatPrompts';
 
 const STATUS_LABEL = {
   chatting: '簡聊中',
@@ -102,6 +103,7 @@ export default function ChatScreen({
   const revealed = status === 'line_revealed';
   const myConsent = payload?.my_consent;
   const canSend = status === 'chatting' && count < cap && !sending;
+  const showPrompts = messages.length === 0 && !ended && !revealed;
 
   const send = async () => {
     const body = text.trim();
@@ -225,8 +227,28 @@ export default function ChatScreen({
             contentContainerStyle={styles.msgs}
             keyboardShouldPersistTaps="handled"
           >
-            {messages.length === 0 && !ended && (
-              <Text style={styles.empty}>開始簡聊吧。滿 {cap} 句後再決定是否交換 LINE。</Text>
+            {showPrompts && (
+              <View style={styles.prompts}>
+                <Text style={styles.empty}>
+                  開始簡聊吧。滿 {cap} 句後再決定是否交換 LINE。
+                </Text>
+                <Text style={styles.promptTitle}>參考問題（點一下帶入輸入框）</Text>
+                {CHAT_PROMPT_GROUPS.map((group) => (
+                  <View key={group.title} style={styles.promptGroup}>
+                    <Text style={styles.promptGroupTitle}>{group.title}</Text>
+                    {group.items.map((prompt) => (
+                      <TouchableOpacity
+                        key={prompt}
+                        style={styles.promptChip}
+                        onPress={() => setText(prompt)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.promptChipText}>{prompt}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ))}
+              </View>
             )}
             {messages.map((m) => {
               const mine = m.sender_id === meId;
@@ -328,6 +350,29 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   msgs: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   empty: { color: colors.muted, lineHeight: 20 },
+  prompts: { gap: 10, marginBottom: 8 },
+  promptTitle: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  promptGroup: { gap: 6 },
+  promptGroupTitle: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  promptChip: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.row,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  promptChipText: { color: colors.brandDeep, fontSize: 14, lineHeight: 20 },
   bubble: {
     maxWidth: '82%',
     paddingHorizontal: 12,

@@ -16,6 +16,7 @@ import {
   submitContinueConsent,
   leaveChat,
   updateLine,
+  updateIdentityNotes,
   updateInterests,
   reportUser,
   refreshPaidFlag,
@@ -25,6 +26,8 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import MatchResultScreen from './src/screens/MatchResultScreen';
+import MatchSuccessScreen from './src/screens/MatchSuccessScreen';
+import EditIdentityNotesScreen from './src/screens/EditIdentityNotesScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import SubscribeScreen from './src/screens/SubscribeScreen';
 import EditInterestsScreen from './src/screens/EditInterestsScreen';
@@ -104,6 +107,15 @@ export default function App() {
           );
         } else if (result?.code === 'no_candidates') {
           Alert.alert('目前沒有可配對的對象', '請稍後再試');
+        } else if (result?.code === 'need_identity_notes') {
+          Alert.alert(
+            '請先填寫身份介紹',
+            '配對前需為每個身份寫 1～50 字的經歷說明。',
+            [
+              { text: '稍後' },
+              { text: '去填寫', onPress: () => setScreen('notes') },
+            ],
+          );
         } else {
           Alert.alert('配對失敗', result?.code || '未知錯誤');
         }
@@ -116,7 +128,8 @@ export default function App() {
         limit: result.limit,
         remaining: result.remaining,
       });
-      openChat(result);
+      setMatchPayload(result);
+      setScreen('matchSuccess');
     } catch (e) {
       Alert.alert('配對失敗', String(e?.message || e));
     } finally {
@@ -137,6 +150,17 @@ export default function App() {
   let body = null;
   if (!profile) {
     body = <OnboardingScreen onComplete={onOnboard} />;
+  } else if (screen === 'matchSuccess' && matchPayload) {
+    body = (
+      <MatchSuccessScreen
+        other={matchPayload.other}
+        onStartChat={() => setScreen('chat')}
+        onBack={() => {
+          setMatchPayload(null);
+          setScreen('home');
+        }}
+      />
+    );
   } else if (screen === 'chat' && matchPayload) {
     body = (
       <ChatScreen
@@ -230,6 +254,18 @@ export default function App() {
         onSubscribe={() => setScreen('subscribe')}
       />
     );
+  } else if (screen === 'notes') {
+    body = (
+      <EditIdentityNotesScreen
+        profile={profile}
+        onSave={async (notes) => {
+          const result = await updateIdentityNotes(notes);
+          if (result?.ok && result.profile) setProfile(result.profile);
+          return result;
+        }}
+        onBack={() => setScreen('home')}
+      />
+    );
   } else if (screen === 'line') {
     body = (
       <EditLineScreen
@@ -254,6 +290,7 @@ export default function App() {
         onSubscribe={() => setScreen('subscribe')}
         onEditInterests={() => setScreen('interests')}
         onEditLine={() => setScreen('line')}
+        onEditNotes={() => setScreen('notes')}
       />
     );
   }

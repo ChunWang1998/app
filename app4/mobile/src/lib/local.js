@@ -4,6 +4,8 @@ import {
   INTEREST_COOLDOWN_MS,
   PAID_DAILY_MATCHES,
   CHAT_CAP,
+  identityNotesComplete,
+  sanitizeIdentityNotes,
 } from '../data/identities';
 
 const PROFILE_KEY = 'app4:local_profile';
@@ -11,7 +13,7 @@ const MATCHES_KEY = 'app4:local_matches';
 const MESSAGES_KEY = 'app4:local_messages';
 const USAGE_KEY = 'app4:local_usage';
 const REPORTS_KEY = 'app4:local_reports';
-const SEEDS_KEY = 'app4:local_seeds_v1';
+const SEEDS_KEY = 'app4:local_seeds_v2';
 
 const SEED_REPLIES = [
   '你好！想多了解你的日常工作～',
@@ -74,30 +76,35 @@ const SEED_PROFILES = [
   {
     id: 'seed-engineer',
     own_identities: ['engineer'],
+    own_identity_notes: { engineer: '後端工程師，主要用 Node.js，入行約 4 年' },
     interest_identities: ['teacher', 'mother'],
     line_id: 'demo_engineer',
   },
   {
     id: 'seed-teacher',
     own_identities: ['teacher'],
+    own_identity_notes: { teacher: '國中部班導，教學已 3 年，也帶過輔導活動' },
     interest_identities: ['engineer', 'designer'],
     line_id: 'demo_teacher',
   },
   {
     id: 'seed-mother',
     own_identities: ['mother'],
+    own_identity_notes: { mother: '兩個孩子的全職媽媽，正在考慮重返職場' },
     interest_identities: ['teacher', 'engineer'],
     line_id: 'demo_mother',
   },
   {
     id: 'seed-designer',
     own_identities: ['designer'],
+    own_identity_notes: { designer: 'UI/UX 設計師，在新創做 App 介面約 2 年' },
     interest_identities: ['engineer', 'writer'],
     line_id: 'demo_designer',
   },
   {
     id: 'seed-writer',
     own_identities: ['writer'],
+    own_identity_notes: { writer: '自由接案文案，做品牌內容與社群貼文' },
     interest_identities: ['designer', 'teacher'],
     line_id: 'demo_writer',
   },
@@ -150,10 +157,18 @@ export async function localRegisterOrLoad(deviceId, payload) {
   if (!payload?.own_identities || !payload?.interest_identities || !payload?.line_id) {
     return { ok: false, code: 'need_onboarding' };
   }
+  const notes = sanitizeIdentityNotes(
+    payload.own_identities,
+    payload.own_identity_notes || {},
+  );
+  if (!identityNotesComplete(payload.own_identities, notes)) {
+    return { ok: false, code: 'invalid_identity_notes' };
+  }
   const profile = {
     id: uuid(),
     device_id: deviceId,
     own_identities: payload.own_identities,
+    own_identity_notes: notes,
     interest_identities: payload.interest_identities,
     line_id: String(payload.line_id).trim(),
     interests_changed_at: null,
@@ -163,6 +178,19 @@ export async function localRegisterOrLoad(deviceId, payload) {
   await writeJson(PROFILE_KEY, profile);
   await ensureSeeds();
   return { ok: true, already: false, profile };
+}
+
+export async function localUpdateIdentityNotes(notes) {
+  const p = await localLoadProfile();
+  if (!p) return { ok: false, code: 'not_registered' };
+  const cleaned = sanitizeIdentityNotes(p.own_identities, notes || {});
+  if (!identityNotesComplete(p.own_identities, cleaned)) {
+    return { ok: false, code: 'invalid_identity_notes' };
+  }
+  p.own_identity_notes = cleaned;
+  p.last_active_at = new Date().toISOString();
+  await writeJson(PROFILE_KEY, p);
+  return { ok: true, profile: p };
 }
 
 export async function localUpdateLine(lineId) {
@@ -222,6 +250,9 @@ export async function localGetUsage(claimedPaid) {
 export async function localDailyMatch(claimedPaid) {
   const me = await localLoadProfile();
   if (!me) return { ok: false, code: 'not_registered' };
+  if (!identityNotesComplete(me.own_identities, me.own_identity_notes || {})) {
+    return { ok: false, code: 'need_identity_notes' };
+  }
 
   const usageInfo = await localGetUsage(claimedPaid);
   if (usageInfo.remaining <= 0) {

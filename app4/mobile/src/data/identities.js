@@ -573,6 +573,39 @@ export function labelsForIdentities(ids) {
   return (ids || []).map(labelForIdentity);
 }
 
+/** Max characters per own-identity self-description. */
+export const MAX_IDENTITY_NOTE = 50;
+export const MIN_IDENTITY_NOTE = 1;
+
+export function noteForIdentity(notes, id) {
+  if (!notes || typeof notes !== 'object') return '';
+  return String(notes[id] || '').trim();
+}
+
+export function identityNotesComplete(ownIds, notes) {
+  return (ownIds || []).every((id) => {
+    const n = noteForIdentity(notes, id);
+    return n.length >= MIN_IDENTITY_NOTE && n.length <= MAX_IDENTITY_NOTE;
+  });
+}
+
+export function sanitizeIdentityNotes(ownIds, notes) {
+  const out = {};
+  for (const id of ownIds || []) {
+    out[id] = noteForIdentity(notes, id);
+  }
+  return out;
+}
+
+/** @returns {{ id: string, label: string, note: string }[]} */
+export function ownIdentitiesWithNotes(ownIds, notes) {
+  return (ownIds || []).map((id) => ({
+    id,
+    label: labelForIdentity(id),
+    note: noteForIdentity(notes, id),
+  }));
+}
+
 export const REPORT_REASONS = [
   '騷擾或不當訊息',
   '疑似假身份',

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,36 +15,49 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, DISCLAIMER } from '../theme';
 import { APP_NAME_ZH, APP_TAGLINE } from '../data/branding';
 import IdentityPicker from '../components/IdentityPicker';
+import IdentityNotesForm from '../components/IdentityNotesForm';
 import {
   MAX_OWN,
   MIN_OWN,
   MAX_INTEREST,
   MIN_INTEREST,
   labelsForIdentities,
+  identityNotesComplete,
+  ownIdentitiesWithNotes,
+  sanitizeIdentityNotes,
 } from '../data/identities';
+
+const FINAL_STEP = 5;
 
 export default function OnboardingScreen({ onComplete }) {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
   const [own, setOwn] = useState([]);
+  const [ownNotes, setOwnNotes] = useState({});
   const [interest, setInterest] = useState([]);
   const [lineId, setLineId] = useState('');
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    setOwnNotes((prev) => sanitizeIdentityNotes(own, prev));
+  }, [own]);
+
   const canNext = useMemo(() => {
     if (step === 0) return true;
     if (step === 1) return own.length >= MIN_OWN && own.length <= MAX_OWN;
-    if (step === 2)
+    if (step === 2) return identityNotesComplete(own, ownNotes);
+    if (step === 3)
       return interest.length >= MIN_INTEREST && interest.length <= MAX_INTEREST;
-    if (step === 3) return String(lineId).trim().length >= 1;
+    if (step === 4) return String(lineId).trim().length >= 1;
     return true;
-  }, [step, own, interest, lineId]);
+  }, [step, own, ownNotes, interest, lineId]);
 
   const submit = async () => {
     setBusy(true);
     try {
       await onComplete({
         own_identities: own,
+        own_identity_notes: sanitizeIdentityNotes(own, ownNotes),
         interest_identities: interest,
         line_id: String(lineId).trim(),
       });
@@ -94,6 +107,16 @@ export default function OnboardingScreen({ onComplete }) {
 
           {step === 2 && (
             <View style={styles.card}>
+              <Text style={styles.h}>身份介紹</Text>
+              <Text style={styles.p}>
+                為每個已選身份寫一句經歷說明（各 50 字內）。配對成功時對方會看到。
+              </Text>
+              <IdentityNotesForm ownIds={own} notes={ownNotes} onChange={setOwnNotes} />
+            </View>
+          )}
+
+          {step === 3 && (
+            <View style={styles.card}>
               <Text style={styles.h}>
                 有興趣的身份（{interest.length}/{MAX_INTEREST}）
               </Text>
@@ -108,10 +131,10 @@ export default function OnboardingScreen({ onComplete }) {
             </View>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <View style={styles.card}>
               <Text style={styles.h}>你的 LINE ID</Text>
-              <Text style={styles.p}>進配對池前必填。配對成功後雙方會同時看到。</Text>
+              <Text style={styles.p}>進配對池前必填。雙方同意後才會顯示。</Text>
               <TextInput
                 style={styles.input}
                 value={lineId}
@@ -125,11 +148,16 @@ export default function OnboardingScreen({ onComplete }) {
             </View>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <View style={styles.card}>
               <Text style={styles.h}>確認資料</Text>
               <Text style={styles.label}>我的身份</Text>
-              <Text style={styles.p}>{labelsForIdentities(own).join('、')}</Text>
+              {ownIdentitiesWithNotes(own, ownNotes).map((item) => (
+                <View key={item.id} style={styles.confirmItem}>
+                  <Text style={styles.confirmLabel}>{item.label}</Text>
+                  <Text style={styles.p}>{item.note}</Text>
+                </View>
+              ))}
               <Text style={styles.label}>有興趣</Text>
               <Text style={styles.p}>{labelsForIdentities(interest).join('、')}</Text>
               <Text style={styles.label}>LINE ID</Text>
@@ -152,12 +180,12 @@ export default function OnboardingScreen({ onComplete }) {
               style={[styles.primary, !canNext && styles.disabled]}
               disabled={!canNext || busy}
               onPress={() => {
-                if (step < 4) setStep((s) => s + 1);
+                if (step < FINAL_STEP) setStep((s) => s + 1);
                 else submit();
               }}
             >
               <Text style={styles.primaryText}>
-                {busy ? '處理中…' : step < 4 ? '下一步' : '完成開通'}
+                {busy ? '處理中…' : step < FINAL_STEP ? '下一步' : '完成開通'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -188,6 +216,8 @@ const styles = StyleSheet.create({
   h: { fontSize: 18, fontWeight: '700', color: colors.ink },
   p: { color: colors.muted, lineHeight: 22, fontSize: 14 },
   label: { marginTop: 8, fontWeight: '600', color: colors.ink },
+  confirmItem: { gap: 2, marginBottom: 4 },
+  confirmLabel: { fontWeight: '600', color: colors.ink, fontSize: 14 },
   disclaimer: {
     marginTop: 8,
     fontSize: 12,

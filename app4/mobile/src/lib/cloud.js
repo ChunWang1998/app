@@ -15,6 +15,14 @@ export async function registerOrLoadProfile(deviceId, payload) {
     p_own: payload?.own_identities ?? null,
     p_interest: payload?.interest_identities ?? null,
     p_line_id: payload?.line_id ?? null,
+    p_own_notes: payload?.own_identity_notes ?? null,
+  });
+}
+
+export async function updateIdentityNotesCloud(deviceId, notes) {
+  return rpc('update_identity_notes', {
+    p_device_id: deviceId,
+    p_own_notes: notes,
   });
 }
 

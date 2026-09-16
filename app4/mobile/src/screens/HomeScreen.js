@@ -11,7 +11,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
 import { APP_NAME_ZH } from '../data/branding';
-import { labelsForIdentities } from '../data/identities';
+import {
+  labelsForIdentities,
+  ownIdentitiesWithNotes,
+  identityNotesComplete,
+} from '../data/identities';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 export default function HomeScreen({
@@ -24,10 +28,19 @@ export default function HomeScreen({
   onSubscribe,
   onEditInterests,
   onEditLine,
+  onEditNotes,
 }) {
   const insets = useSafeAreaInsets();
   const remaining = usage?.remaining ?? 0;
   const lim = usage?.limit ?? (paid ? 5 : 1);
+  const notesOk = identityNotesComplete(
+    profile?.own_identities,
+    profile?.own_identity_notes,
+  );
+  const ownWithNotes = ownIdentitiesWithNotes(
+    profile?.own_identities,
+    profile?.own_identity_notes,
+  );
 
   return (
     <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={styles.fill}>
@@ -47,11 +60,22 @@ export default function HomeScreen({
           </Text>
         )}
 
+        {!notesOk && (
+          <Text style={styles.warn}>
+            請先為每個身份填寫 1～50 字的介紹，才能開始配對。
+          </Text>
+        )}
+
         <View style={styles.card}>
           <Text style={styles.label}>我的身份（已鎖定）</Text>
-          <Text style={styles.value}>
-            {labelsForIdentities(profile?.own_identities).join('、')}
-          </Text>
+          {ownWithNotes.map((item) => (
+            <View key={item.id} style={styles.noteItem}>
+              <Text style={styles.value}>{item.label}</Text>
+              <Text style={styles.noteText}>
+                {item.note || '（尚未填寫介紹）'}
+              </Text>
+            </View>
+          ))}
           <Text style={[styles.label, { marginTop: 12 }]}>有興趣的身份</Text>
           <Text style={styles.value}>
             {labelsForIdentities(profile?.interest_identities).join('、')}
@@ -63,8 +87,11 @@ export default function HomeScreen({
         <View style={styles.card}>
           <Text style={styles.h}>今日剩餘 {remaining} / {lim}</Text>
           <TouchableOpacity
-            style={[styles.primary, (remaining <= 0 || matching) && styles.disabled]}
-            disabled={remaining <= 0 || matching}
+            style={[
+              styles.primary,
+              (remaining <= 0 || matching || !notesOk) && styles.disabled,
+            ]}
+            disabled={remaining <= 0 || matching || !notesOk}
             onPress={onMatch}
           >
             {matching ? (
@@ -87,6 +114,9 @@ export default function HomeScreen({
           <Text style={styles.secondaryText}>
             {paid ? '修改有興趣的身份' : '修改興趣（需 Premium）'}
           </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.secondary} onPress={onEditNotes}>
+          <Text style={styles.secondaryText}>更新身份介紹</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondary} onPress={onEditLine}>
           <Text style={styles.secondaryText}>更新 LINE ID</Text>
@@ -124,6 +154,8 @@ const styles = StyleSheet.create({
   h: { fontSize: 17, fontWeight: '700', color: colors.ink },
   label: { color: colors.muted, fontSize: 13 },
   value: { color: colors.ink, fontSize: 16, fontWeight: '600' },
+  noteItem: { gap: 2, marginTop: 6 },
+  noteText: { color: colors.muted, fontSize: 13, lineHeight: 20 },
   primary: {
     marginTop: 8,
     backgroundColor: colors.brand,

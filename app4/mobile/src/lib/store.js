@@ -4,6 +4,7 @@ import {
   isSupabaseConfigured,
   registerOrLoadProfile,
   updateLineIdCloud,
+  updateIdentityNotesCloud,
   updateInterestsCloud,
   touchActiveCloud,
   getDailyUsageCloud,
@@ -19,6 +20,7 @@ import {
   localRegisterOrLoad,
   localLoadProfile,
   localUpdateLine,
+  localUpdateIdentityNotes,
   localUpdateInterests,
   localGetUsage,
   localDailyMatch,
@@ -61,11 +63,17 @@ export async function bootstrap() {
 
 export async function completeOnboarding({
   own_identities,
+  own_identity_notes,
   interest_identities,
   line_id,
 }) {
   const deviceId = await getDeviceId();
-  const payload = { own_identities, interest_identities, line_id };
+  const payload = {
+    own_identities,
+    own_identity_notes,
+    interest_identities,
+    line_id,
+  };
 
   if (isSupabaseConfigured) {
     const data = await registerOrLoadProfile(deviceId, payload);
@@ -144,6 +152,14 @@ export async function updateLine(lineId) {
     return updateLineIdCloud(deviceId, lineId);
   }
   return localUpdateLine(lineId);
+}
+
+export async function updateIdentityNotes(notes) {
+  const deviceId = await getDeviceId();
+  if (isSupabaseConfigured) {
+    return updateIdentityNotesCloud(deviceId, notes);
+  }
+  return localUpdateIdentityNotes(notes);
 }
 
 export async function updateInterests(interest) {
