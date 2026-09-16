@@ -9,7 +9,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.identitymatch.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "CFBundleDisplayName": "CraftQ",
         "ITSAppUsesNonExemptEncryption": false
@@ -34,7 +34,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+        "projectId": "5b2d80c0-ebdd-468a-bae9-6f3f55e69f1c"
       }
     },
     "owner": "leowang1105"

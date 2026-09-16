@@ -35,10 +35,18 @@ npm run eas:env:push:preview
 npm run eas:env:push:production
 ```
 
-### iOS IAP
+### iOS / TestFlight
 
-對照 [`APP_STORE_IAP.md`](./APP_STORE_IAP.md)。商品 ID 預設 `com.identitymatch.app.premium`。  
-**第一次**付費 build 前請先在 App Store Connect 建好訂閱與優惠碼（見根目錄 `README.md`）。
+對照 [`APP_STORE.md`](./APP_STORE.md)、[`APP_STORE_IAP.md`](./APP_STORE_IAP.md)、[`mobile/RELEASE_1.0.0.md`](./mobile/RELEASE_1.0.0.md)。
+
+```bash
+cd mobile
+npm run eas:env:push:production
+npm run deploy:testflight
+```
+
+商品 ID 預設 `com.identitymatch.app.premium`。  
+**第一次**付費功能實測前請先在 App Store Connect 建好訂閱與優惠碼（見根目錄 `README.md`）。
 
 ## 技術
 

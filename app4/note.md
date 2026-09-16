@@ -428,7 +428,7 @@ app4/
 5. ~~**檢舉**~~（改為結束 + 刪訊息）。
 6. ~~**IAP**~~（訂閱／恢復／優惠碼）+ 次數／改興趣牆。
 7. ~~**短聊 + 20 句閘門 + 雙方同意露 LINE + 拒絕刪訊息**~~（schema／RPC／Chat UI）。
-8. **ASC／EAS projectId／TestFlight**（對照 `APP_STORE_IAP.md` + 根 `README.md`）— 待上架時完成。
+8. **ASC／EAS／TestFlight**：EAS 專案 `@leowang1105/craftq`（`projectId` 已寫入 `mobile/app.json`）；上架文案見 `APP_STORE.md`；指令見 `mobile/RELEASE_1.0.0.md`。ASC 建 App／填 `ascAppId`、訂閱商品仍須在 App Store Connect 完成。
 
 > 若雲端已跑過舊 schema：請在 **app2 Supabase SQL Editor** 再執行一次最新 [`supabase/schema.sql`](./supabase/schema.sql)。
 
