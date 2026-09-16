@@ -40,21 +40,44 @@ export function dailyLimit(paid) {
   return paid ? PAID_DAILY_MATCHES : FREE_DAILY_MATCHES;
 }
 
+function isCloudUnavailableError(err) {
+  const msg = String(err?.message || err || '');
+  return (
+    msg.includes('Could not find the function public.register_or_load_profile') ||
+    msg.includes('schema cache') ||
+    msg.includes('network_timeout') ||
+    msg.includes('Failed to fetch') ||
+    msg.includes('Network request failed')
+  );
+}
+
 export async function bootstrap() {
   const deviceId = await getDeviceId();
   const paid = await isIapPaid();
 
   if (isSupabaseConfigured) {
-    const data = await registerOrLoadProfile(deviceId, null);
-    if (data?.ok && data.profile) {
-      try {
-        await touchActiveCloud(deviceId);
-      } catch {
-        // ignore
+    try {
+      const data = await registerOrLoadProfile(deviceId, null);
+      if (data?.ok && data.profile) {
+        try {
+          await touchActiveCloud(deviceId);
+        } catch {
+          // ignore
+        }
+        return { deviceId, paid, profile: data.profile, cloud: true };
       }
-      return { deviceId, paid, profile: data.profile, cloud: true };
+      return { deviceId, paid, profile: null, cloud: true, code: data?.code };
+    } catch (e) {
+      if (!isCloudUnavailableError(e)) throw e;
+      const profile = await localLoadProfile();
+      return {
+        deviceId,
+        paid,
+        profile,
+        cloud: false,
+        code: 'cloud_unavailable',
+      };
     }
-    return { deviceId, paid, profile: null, cloud: true, code: data?.code };
   }
 
   const profile = await localLoadProfile();

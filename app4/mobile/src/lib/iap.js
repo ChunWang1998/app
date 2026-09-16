@@ -126,6 +126,24 @@ async function tryNativePurchase() {
   }
 }
 
+function withTimeout(promise, ms, label) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label || '操作'}逾時`));
+    }, ms);
+    Promise.resolve(promise).then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 async function tryNativeRestore() {
   if (Platform.OS !== 'ios') {
     return { ok: false, restored: false, error: '目前僅支援 iOS' };
@@ -135,16 +153,15 @@ async function tryNativeRestore() {
     throw new Error('IAP unavailable');
   }
 
-  await iap.initConnection();
+  await withTimeout(iap.initConnection(), 15000, 'IAP 連線');
   try {
-    if (typeof iap.restorePurchases === 'function') {
-      try {
-        await iap.restorePurchases();
-      } catch {
-        // continue
-      }
-    }
-    const purchases = await iap.getAvailablePurchases();
+    // Prefer getAvailablePurchases only — calling restorePurchases() first
+    // can deadlock with a pending Apple ID sheet on TestFlight/Sandbox.
+    const purchases = await withTimeout(
+      iap.getAvailablePurchases(),
+      20000,
+      '恢復購買',
+    );
     const mine = (purchases || []).some(purchaseMatches);
     if (mine) {
       await setIapPaid(true);

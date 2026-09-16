@@ -21,7 +21,6 @@ import {
   reportUser,
   refreshPaidFlag,
 } from './src/lib/store';
-import { restoreSubscription } from './src/lib/iap';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ChatScreen from './src/screens/ChatScreen';
@@ -52,29 +51,31 @@ export default function App() {
   }, []);
 
   const reload = useCallback(async () => {
-    const boot = await bootstrap();
-    setPaid(Boolean(boot.paid));
-    setProfile(boot.profile || null);
-    if (boot.profile) {
-      try {
-        const u = await fetchUsage();
-        if (u?.ok) setUsage(u);
-      } catch {
-        // ignore
+    try {
+      const boot = await bootstrap();
+      setPaid(Boolean(boot.paid));
+      setProfile(boot.profile || null);
+      if (boot.profile) {
+        try {
+          const u = await fetchUsage();
+          if (u?.ok) setUsage(u);
+        } catch {
+          // ignore
+        }
       }
+    } catch {
+      // Keep app bootable even if cloud RPC fails unexpectedly.
+      setProfile(null);
+    } finally {
+      setReady(true);
     }
-    setReady(true);
   }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        await restoreSubscription().catch(() => null);
-      } catch {
-        // ignore
-      }
-      await reload();
-    })();
+    // Do not call StoreKit restore on launch — TestFlight/Sandbox Apple ID
+    // prompts can hang indefinitely. Paid state comes from local entitlement;
+    // users restore explicitly from the Subscribe screen.
+    reload();
   }, [reload]);
 
   const onOnboard = async (payload) => {
