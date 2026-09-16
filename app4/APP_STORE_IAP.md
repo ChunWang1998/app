@@ -1,4 +1,4 @@
-# 選業問 CraftQ — App Store Connect 訂閱（IAP）設定
+# 業問 CraftQ — App Store Connect 訂閱（IAP）設定
 
 > Bundle ID：`com.identitymatch.app`（見 `mobile/app.json`，可再調整）  
 > 訂閱商品 ID：`com.identitymatch.app.premium`（**自動續訂**；週期／價格暫緩）  
@@ -18,15 +18,15 @@
 
 ## 二、建立訂閱
 
-路徑：**我的 App → 選業問 → 訂閱**
+路徑：**我的 App → 業問 → 訂閱**
 
 1. 建立 **訂閱群組**（例如 `CraftQ Premium`）
 2. 新增自動續訂訂閱：
    - **產品 ID**：`com.identitymatch.app.premium`（建立後不可改）
    - **期間／價格**：待產品決策後填入
 3. 本地化（繁中）建議：
-   - 顯示名稱：`選業問 Premium`
-   - 描述：`每日最多 5 次配對，並可每 168 小時修改有興趣的身份。`
+   - 顯示名稱：`業問 Premium`
+   - 描述：`每日最多 5 次配對，並可每週修改有興趣的身份。`
 4. 狀態達 **準備提交**；版本頁勾選此訂閱一併送審
 
 ---
@@ -58,7 +58,7 @@ npm run deploy:testflight
 ```text
 IAP: auto-renewable subscription com.identitymatch.app.premium.
 Paywall: 訂閱 Premium → 立即訂閱 / 恢復購買 / 兌換優惠碼.
-Free: 1 match/day, interests locked. Paid: 5 matches/day, interests editable every 168h.
+Free: 1 match/day, interests locked. Paid: 5 matches/day, interests editable weekly.
 Chat: in-app short chat (max 20 messages total), then mutual consent before LINE ID reveal; declined chats delete messages from DB.
 ```
 

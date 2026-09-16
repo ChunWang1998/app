@@ -1,16 +1,11 @@
 {
   "expo": {
-    "name": "選業問",
+    "name": "業問",
     "slug": "craftq",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F3F0E8"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.identitymatch.app",
@@ -23,7 +18,20 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-font", "expo-iap"],
+    "plugins": [
+      "expo-font",
+      "expo-iap",
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F3F0E8",
+          "imageWidth": 200
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "REPLACE_WITH_EAS_PROJECT_ID"

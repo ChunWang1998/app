@@ -59,7 +59,7 @@ export default function EditInterestsScreen({
             '尚在冷卻',
             result.next_at
               ? `下次可修改時間：${new Date(result.next_at).toLocaleString('zh-TW')}`
-              : '每 168 小時只能修改一次',
+              : '每週只能修改一次',
           );
         } else {
           Alert.alert('無法儲存', result?.code || '失敗');

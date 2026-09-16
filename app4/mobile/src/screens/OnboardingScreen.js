@@ -98,7 +98,7 @@ export default function OnboardingScreen({ onComplete }) {
                 有興趣的身份（{interest.length}/{MAX_INTEREST}）
               </Text>
               <Text style={styles.p}>
-                最多 2 個。免費用戶之後不可修改；付費每 168 小時可改一次。
+                最多 2 個。免費用戶之後不可修改；付費每週可改一次。
               </Text>
               <IdentityPicker
                 value={interest}

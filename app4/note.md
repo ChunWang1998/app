@@ -34,7 +34,7 @@
 | 平台 | **iOS only** |
 | 金流 | Apple IAP（對齊 app3：訂閱 + 恢復購買 + **優惠碼**）；權益 **僅客戶端**判斷 |
 | 訂閱週期／價格 | **暫緩**（進 ASC／第一次付費 TestFlight 前再定） |
-| 技術基線 | 對齊 app2／app3（Expo 54 等）；上架注意見根目錄 `README.md` |
+| 技術基線 | Expo SDK 57（React 19.2、RN 0.86.3）；上架注意見根目錄 `README.md` |
 
 ---
 
@@ -321,15 +321,15 @@ Admin：直接在 Supabase Table Editor 查看；V1 不做後台 UI。
 
 以 **app3/mobile/package.json** 為主（IAP／訂閱最接近），需要匿名裝置 id 時參考 app2：
 
-| 套件 | 版本（對齊現有） |
+| 套件 | 版本（app4/mobile） |
 |------|------------------|
-| expo | ~54.0.0 |
-| react | 19.1.0 |
-| react-native | 0.81.5 |
-| expo-iap | ^5.5.1（或與 app3 當下一致） |
+| expo | ^57 |
+| react | 19.2.3 |
+| react-native | 0.86.3 |
+| expo-iap | ^5.5.1 |
 | @supabase/supabase-js | ^2.112.1 |
 | @react-native-async-storage/async-storage | ^2.2.0 |
-| expo-linear-gradient | ~15.0.8 |
+| expo-linear-gradient | ~57.0.2 |
 | react-native-safe-area-context | ~5.6.0 |
 | react-native-gesture-handler | ~2.28.0 |
 | react-native-url-polyfill | ^4.0.0 |

@@ -42,7 +42,7 @@ npm run eas:env:push:production
 
 ## 技術
 
-- Expo SDK 54、React 19.1、RN 0.81.5（對齊 app3）
+- Expo SDK 57、React 19.2、RN 0.86.3
 - 免登入 `device_id`（對齊 app2）
 - 訂閱 IAP + 優惠碼、本機權益 flag（對齊 app3）
 - iOS only；無權限 Purpose String（V1 無相簿／相機／定位）

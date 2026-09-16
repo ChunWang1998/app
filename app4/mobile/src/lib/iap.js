@@ -1,4 +1,5 @@
 import { Platform, Alert } from 'react-native';
+import { APP_PREMIUM } from '../data/branding';
 import { isIapPaid, setIapPaid } from './entitlements';
 
 const PRODUCT_ID =
@@ -185,7 +186,7 @@ export async function purchaseSubscription() {
   const simulated = await new Promise((resolve) => {
     Alert.alert(
       '開發模式模擬訂閱',
-      `模擬訂閱「選業問 Premium」？\n（正式版商品：${PRODUCT_ID}）`,
+      `模擬訂閱「${APP_PREMIUM}」？\n（正式版商品：${PRODUCT_ID}）`,
       [
         { text: '取消', style: 'cancel', onPress: () => resolve(false) },
         { text: '模擬訂閱', onPress: () => resolve(true) },

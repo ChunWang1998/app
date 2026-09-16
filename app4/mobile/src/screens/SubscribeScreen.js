@@ -26,7 +26,7 @@ export default function SubscribeScreen({ onBack, onUnlocked }) {
 
   const finishOk = async () => {
     await onUnlocked?.();
-    Alert.alert('已解鎖', 'Premium 已生效：每日 5 次配對，每 168 小時可改興趣。');
+    Alert.alert('已解鎖', 'Premium 已生效：每日 5 次配對，每週可改興趣。');
     onBack?.();
   };
 
@@ -65,7 +65,7 @@ export default function SubscribeScreen({ onBack, onUnlocked }) {
 
         <View style={styles.card}>
           <Text style={styles.bullet}>• 每日最多 5 次配對</Text>
-          <Text style={styles.bullet}>• 每 168 小時可修改有興趣的身份</Text>
+          <Text style={styles.bullet}>• 每週可修改有興趣的身份</Text>
           <Text style={styles.bullet}>• 支援恢復購買與優惠碼</Text>
         </View>
 
