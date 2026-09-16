@@ -1,4 +1,4 @@
-# 身份牽線 — App Store Connect 訂閱（IAP）設定
+# 選業問 CraftQ — App Store Connect 訂閱（IAP）設定
 
 > Bundle ID：`com.identitymatch.app`（見 `mobile/app.json`，可再調整）  
 > 訂閱商品 ID：`com.identitymatch.app.premium`（**自動續訂**；週期／價格暫緩）  
@@ -18,14 +18,14 @@
 
 ## 二、建立訂閱
 
-路徑：**我的 App → 身份牽線 → 訂閱**
+路徑：**我的 App → 選業問 → 訂閱**
 
-1. 建立 **訂閱群組**（例如 `Identity Match Premium`）
+1. 建立 **訂閱群組**（例如 `CraftQ Premium`）
 2. 新增自動續訂訂閱：
    - **產品 ID**：`com.identitymatch.app.premium`（建立後不可改）
    - **期間／價格**：待產品決策後填入
 3. 本地化（繁中）建議：
-   - 顯示名稱：`身份牽線 Premium`
+   - 顯示名稱：`選業問 Premium`
    - 描述：`每日最多 5 次配對，並可每 168 小時修改有興趣的身份。`
 4. 狀態達 **準備提交**；版本頁勾選此訂閱一併送審
 

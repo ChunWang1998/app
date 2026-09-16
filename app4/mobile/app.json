@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "身份牽線",
-    "slug": "identity-match",
+    "name": "選業問",
+    "slug": "craftq",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,6 +16,7 @@
       "bundleIdentifier": "com.identitymatch.app",
       "buildNumber": "1",
       "infoPlist": {
+        "CFBundleDisplayName": "CraftQ",
         "ITSAppUsesNonExemptEncryption": false
       }
     },

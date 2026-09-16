@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, DISCLAIMER } from '../theme';
+import { APP_NAME_ZH, APP_TAGLINE } from '../data/branding';
 import IdentityPicker from '../components/IdentityPicker';
 import {
   MAX_OWN,
@@ -67,8 +68,8 @@ export default function OnboardingScreen({ onComplete }) {
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.brand}>身份牽線</Text>
-          <Text style={styles.sub}>認識真實從業者的工作日常</Text>
+          <Text style={styles.brand}>{APP_NAME_ZH}</Text>
+          <Text style={styles.sub}>{APP_TAGLINE}</Text>
 
           {step === 0 && (
             <View style={styles.card}>
@@ -84,7 +85,9 @@ export default function OnboardingScreen({ onComplete }) {
           {step === 1 && (
             <View style={styles.card}>
               <Text style={styles.h}>你的身份（{own.length}/{MAX_OWN}）</Text>
-              <Text style={styles.p}>至少選 1 個，最多 5 個。送出後不可再改。</Text>
+              <Text style={styles.p}>
+                先選大類，再選職稱。至少 1 個、最多 5 個。送出後不可再改。
+              </Text>
               <IdentityPicker value={own} onChange={setOwn} max={MAX_OWN} />
             </View>
           )}

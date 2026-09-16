@@ -1,4 +1,4 @@
--- app4 身份牽線 — Supabase schema
+-- app4 選業問 CraftQ — Supabase schema
 -- Dashboard → SQL Editor 執行（可重複執行）。
 -- 流程：配對 → 站內簡聊最多 20 句 → 雙方同意才露 LINE；拒絕則刪訊息。
 -- 免登入：以 device_id 識別。訂閱權益僅客戶端 IAP 判定。

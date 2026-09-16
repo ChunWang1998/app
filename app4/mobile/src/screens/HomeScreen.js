@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
+import { APP_NAME_ZH } from '../data/branding';
 import { labelsForIdentities } from '../data/identities';
 import { isSupabaseConfigured } from '../lib/supabase';
 
@@ -36,7 +37,7 @@ export default function HomeScreen({
           { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 28 },
         ]}
       >
-        <Text style={styles.brand}>身份牽線</Text>
+        <Text style={styles.brand}>{APP_NAME_ZH}</Text>
         <Text style={styles.sub}>
           {paid ? 'Premium・每日最多 5 次配對' : '免費・每日 1 次配對'}
         </Text>

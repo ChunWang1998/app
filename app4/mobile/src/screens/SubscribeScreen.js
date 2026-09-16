@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
+import { APP_PREMIUM } from '../data/branding';
 import {
   purchaseSubscription,
   restoreSubscription,
@@ -59,7 +60,7 @@ export default function SubscribeScreen({ onBack, onUnlocked }) {
           { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 },
         ]}
       >
-        <Text style={styles.brand}>身份牽線 Premium</Text>
+        <Text style={styles.brand}>{APP_PREMIUM}</Text>
         <Text style={styles.sub}>商品 ID：{iapProductId()}</Text>
 
         <View style={styles.card}>
