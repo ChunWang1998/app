@@ -66,11 +66,12 @@ export function labelsForIdentities(ids) {
 export const REPORT_REASONS = [
   '騷擾或不當訊息',
   '疑似假身份',
-  'LINE 內容不當',
+  '聊天內容不當',
   '詐騙／廣告',
   '其他',
 ];
 
+export const CHAT_CAP = 20;
 export const FREE_DAILY_MATCHES = 1;
 export const PAID_DAILY_MATCHES = 5;
 export const MAX_OWN = 5;

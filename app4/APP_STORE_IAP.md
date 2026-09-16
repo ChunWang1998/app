@@ -59,7 +59,7 @@ npm run deploy:testflight
 IAP: auto-renewable subscription com.identitymatch.app.premium.
 Paywall: 訂閱 Premium → 立即訂閱 / 恢復購買 / 兌換優惠碼.
 Free: 1 match/day, interests locked. Paid: 5 matches/day, interests editable every 168h.
-Chat is LINE ID exchange only (with in-app disclaimer). Report available after match.
+Chat: in-app short chat (max 20 messages total), then mutual consent before LINE ID reveal; declined chats delete messages from DB.
 ```
 
 ---

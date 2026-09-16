@@ -74,8 +74,8 @@ export default function OnboardingScreen({ onComplete }) {
             <View style={styles.card}>
               <Text style={styles.h}>開始之前</Text>
               <Text style={styles.p}>
-                選擇你的身份與有興趣認識的身份。配對成功後會交換 LINE
-                ID，請謹慎分享個人資訊。
+                選擇你的身份與有興趣認識的身份。配對後可先站內簡聊最多 20
+                句，雙方同意後才會交換 LINE ID。
               </Text>
               <Text style={styles.disclaimer}>{DISCLAIMER}</Text>
             </View>

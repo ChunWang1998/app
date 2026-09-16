@@ -11,7 +11,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
-import { labelsForIdentities, REPORT_REASONS } from '../data/identities';
+import { labelsForIdentities, REPORT_REASONS, CHAT_CAP } from '../data/identities';
+
+const STATUS_LABEL = {
+  chatting: '簡聊中',
+  awaiting_consent: '待雙方同意',
+  line_revealed: '已交換 LINE',
+  ended_declined: '已結束（未交換）',
+  ended_left: '已離開',
+  ended_reported: '已檢舉結束',
+};
 
 export default function HistoryScreen({ loadMatches, onBack, onOpenMatch, onReport }) {
   const insets = useSafeAreaInsets();
@@ -43,6 +52,13 @@ export default function HistoryScreen({ loadMatches, onBack, onOpenMatch, onRepo
           try {
             await onReport(item.other.id, reason, item.match_id);
             Alert.alert('已收到檢舉');
+            setRows((prev) =>
+              prev.map((r) =>
+                r.match_id === item.match_id
+                  ? { ...r, status: 'ended_reported', other: { ...r.other, line_id: null } }
+                  : r,
+              ),
+            );
           } catch (e) {
             Alert.alert('無法檢舉', String(e?.message || e));
           }
@@ -65,30 +81,53 @@ export default function HistoryScreen({ loadMatches, onBack, onOpenMatch, onRepo
         {!loading && rows.length === 0 && (
           <Text style={styles.empty}>尚無配對</Text>
         )}
-        {rows.map((item) => (
-          <View key={item.match_id} style={styles.card}>
-            <Text style={styles.value}>
-              {labelsForIdentities(item.other?.own_identities).join('、')}
-            </Text>
-            <Text style={styles.line}>LINE：{item.other?.line_id}</Text>
-            <Text style={styles.meta}>
-              {item.created_at
-                ? new Date(item.created_at).toLocaleString('zh-TW')
-                : ''}
-            </Text>
-            <View style={styles.row}>
-              <TouchableOpacity
-                style={styles.secondary}
-                onPress={() => onOpenMatch(item)}
-              >
-                <Text style={styles.secondaryText}>查看</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.danger} onPress={() => report(item)}>
-                <Text style={styles.dangerText}>檢舉</Text>
-              </TouchableOpacity>
+        {rows.map((item) => {
+          const status = item.status || 'chatting';
+          const revealed = status === 'line_revealed';
+          const ended = String(status).startsWith('ended_');
+          const count = item.message_count ?? 0;
+          const cap = item.chat_cap ?? CHAT_CAP;
+          return (
+            <View key={item.match_id} style={styles.card}>
+              <Text style={styles.value}>
+                {labelsForIdentities(item.other?.own_identities).join('、')}
+              </Text>
+              <Text style={styles.status}>{STATUS_LABEL[status] || status}</Text>
+              {!ended && (
+                <Text style={styles.meta}>
+                  {count}/{cap} 句
+                </Text>
+              )}
+              {revealed && item.other?.line_id ? (
+                <Text style={styles.line}>LINE：{item.other.line_id}</Text>
+              ) : (
+                <Text style={styles.meta}>
+                  {ended ? '未交換聯絡方式' : '簡聊後雙方同意才顯示 LINE'}
+                </Text>
+              )}
+              <Text style={styles.meta}>
+                {item.created_at
+                  ? new Date(item.created_at).toLocaleString('zh-TW')
+                  : ''}
+              </Text>
+              <View style={styles.row}>
+                <TouchableOpacity
+                  style={styles.secondary}
+                  onPress={() => onOpenMatch(item)}
+                >
+                  <Text style={styles.secondaryText}>
+                    {revealed ? '查看 LINE' : ended ? '詳情' : '進入聊天'}
+                  </Text>
+                </TouchableOpacity>
+                {!ended && (
+                  <TouchableOpacity style={styles.danger} onPress={() => report(item)}>
+                    <Text style={styles.dangerText}>檢舉</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
         <TouchableOpacity style={styles.primary} onPress={onBack}>
           <Text style={styles.primaryText}>返回</Text>
         </TouchableOpacity>
@@ -111,6 +150,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   value: { fontWeight: '700', color: colors.ink, fontSize: 16 },
+  status: { color: colors.brandDeep, fontWeight: '600' },
   line: { color: colors.brandDeep, fontWeight: '600' },
   meta: { color: colors.muted, fontSize: 12 },
   row: { flexDirection: 'row', gap: 8, marginTop: 6 },

@@ -1,6 +1,6 @@
 # app4 — 身份牽線
 
-依職業／身份雙向興趣配對，成功後交換 LINE ID。規格見 [`note.md`](./note.md)。
+依職業／身份雙向興趣配對 → 站內簡聊最多 20 句 → **雙方同意後**才交換 LINE ID。規格見 [`note.md`](./note.md)。
 
 ## 快速開始
 
@@ -11,7 +11,9 @@ cp .env.example .env   # 填入 Supabase URL + anon key（可暫空，走本機�
 npm start
 ```
 
-未設定 Supabase 時使用本機 AsyncStorage + 內建種子用戶，方便測 UI／配對流程。
+未設定 Supabase 時使用本機 AsyncStorage + 內建種子用戶（會自動回訊息），方便測 UI／配對／短聊／同意閘門。
+
+> 雲端：請在 app2 專案 SQL Editor **重新執行** [`supabase/schema.sql`](./supabase/schema.sql)（含 messages 與同意 RPC）。
 
 ### 雲端（真人互配必做）
 

@@ -55,6 +55,36 @@ export async function listMyMatchesCloud(deviceId) {
   return rpc('list_my_matches', { p_device_id: deviceId });
 }
 
+export async function listMessagesCloud(deviceId, matchId) {
+  return rpc('list_messages', {
+    p_device_id: deviceId,
+    p_match_id: matchId,
+  });
+}
+
+export async function sendMessageCloud(deviceId, matchId, body) {
+  return rpc('send_message', {
+    p_device_id: deviceId,
+    p_match_id: matchId,
+    p_body: body,
+  });
+}
+
+export async function submitConsentCloud(deviceId, matchId, yes) {
+  return rpc('submit_continue_consent', {
+    p_device_id: deviceId,
+    p_match_id: matchId,
+    p_yes: Boolean(yes),
+  });
+}
+
+export async function leaveChatCloud(deviceId, matchId) {
+  return rpc('leave_chat', {
+    p_device_id: deviceId,
+    p_match_id: matchId,
+  });
+}
+
 export async function reportUserCloud(deviceId, targetId, reason, matchId) {
   return rpc('report_user', {
     p_device_id: deviceId,

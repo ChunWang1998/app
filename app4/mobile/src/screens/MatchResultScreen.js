@@ -46,8 +46,8 @@ export default function MatchResultScreen({
           { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 28 },
         ]}
       >
-        <Text style={styles.brand}>配對成功</Text>
-        <Text style={styles.sub}>雙方已可透過 LINE 聯絡</Text>
+        <Text style={styles.brand}>已交換 LINE</Text>
+        <Text style={styles.sub}>雙方同意繼續後的聯絡方式</Text>
 
         <View style={styles.card}>
           <Text style={styles.label}>對方身份</Text>
@@ -55,7 +55,7 @@ export default function MatchResultScreen({
             {labelsForIdentities(other?.own_identities).join('、')}
           </Text>
           <Text style={[styles.label, { marginTop: 12 }]}>對方 LINE ID</Text>
-          <Text style={styles.line}>{other?.line_id}</Text>
+          <Text style={styles.line}>{other?.line_id || '—'}</Text>
         </View>
 
         <View style={styles.card}>
@@ -64,7 +64,7 @@ export default function MatchResultScreen({
             {labelsForIdentities(me?.own_identities).join('、')}
           </Text>
           <Text style={[styles.label, { marginTop: 12 }]}>我的 LINE ID</Text>
-          <Text style={styles.line}>{me?.line_id}</Text>
+          <Text style={styles.line}>{me?.line_id || '—'}</Text>
         </View>
 
         <Text style={styles.disclaimer}>{DISCLAIMER}</Text>

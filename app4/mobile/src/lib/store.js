@@ -9,6 +9,10 @@ import {
   getDailyUsageCloud,
   dailyMatchCloud,
   listMyMatchesCloud,
+  listMessagesCloud,
+  sendMessageCloud,
+  submitConsentCloud,
+  leaveChatCloud,
   reportUserCloud,
 } from './cloud';
 import {
@@ -19,6 +23,10 @@ import {
   localGetUsage,
   localDailyMatch,
   localListMatches,
+  localListMessages,
+  localSendMessage,
+  localSubmitConsent,
+  localLeaveChat,
   localReport,
 } from './local';
 import {
@@ -96,6 +104,38 @@ export async function fetchMatches() {
     return listMyMatchesCloud(deviceId);
   }
   return localListMatches();
+}
+
+export async function fetchMessages(matchId) {
+  const deviceId = await getDeviceId();
+  if (isSupabaseConfigured) {
+    return listMessagesCloud(deviceId, matchId);
+  }
+  return localListMessages(matchId);
+}
+
+export async function sendChatMessage(matchId, body) {
+  const deviceId = await getDeviceId();
+  if (isSupabaseConfigured) {
+    return sendMessageCloud(deviceId, matchId, body);
+  }
+  return localSendMessage(matchId, body);
+}
+
+export async function submitContinueConsent(matchId, yes) {
+  const deviceId = await getDeviceId();
+  if (isSupabaseConfigured) {
+    return submitConsentCloud(deviceId, matchId, yes);
+  }
+  return localSubmitConsent(matchId, yes);
+}
+
+export async function leaveChat(matchId) {
+  const deviceId = await getDeviceId();
+  if (isSupabaseConfigured) {
+    return leaveChatCloud(deviceId, matchId);
+  }
+  return localLeaveChat(matchId);
 }
 
 export async function updateLine(lineId) {

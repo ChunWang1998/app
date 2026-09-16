@@ -1,15 +1,15 @@
 # app4 — 身份牽線（實作細節）
 
-> 職業／身份互相感興趣的人配對，交換 LINE 談實際工作內容、學習歷程、面試、證照等。  
+> 職業／身份互相感興趣的人配對；先站內簡聊篩選，雙方同意後才交換 LINE，談實際工作內容、學習歷程、面試、證照等。  
 > 本文件為實作規格；與對話決策衝突時，**以本文件為準**（並隨決策更新）。
 
 ---
 
 ## 1. 產品定位
 
-- **做什麼**：依「我是誰」與「我想認識什麼身份」做雙向興趣配對，成功後交換 LINE ID。
-- **不做什麼（V1）**：站內聊天、實名／年齡驗證、登入帳號、Android、伺服器收據驗證、後台管理 UI。
-- **價值主張**：低摩擦認識真實從業者；平台只負責配對與安全最低標（檢舉、免責）。
+- **做什麼**：依「我是誰」與「我想認識什麼身份」做雙向興趣配對 → **站內簡聊（上限 20 句）** → **雙方同意後**才顯示彼此 LINE ID。
+- **不做什麼（V1）**：無限站內長聊、實名／年齡驗證、登入帳號、Android、伺服器收據驗證、後台管理 UI。
+- **價值主張**：低摩擦認識真實從業者，但用短聊降低亂露聯絡方式的風險；平台負責配對、短聊閘門與安全最低標（檢舉、免責）。
 
 ---
 
@@ -20,13 +20,15 @@
 | 自己的身份 | 固定清單約 50 項 +「其他」；開通時選 **1～5** 個，之後**永遠不可改** |
 | 有興趣的身份 | 最多 **2** 個；免費用戶不可改；付費用戶 **每 7 天可改一次** |
 | 「其他」 | 清單選項，對方只看到「其他」，**無自由文字** |
-| LINE ID | 進配對池前 **必填** |
-| 聊天 | **只交換 LINE ID**；雙方同時看到；無站內聊天 |
-| 免責 | 交換前／交換畫面必須有免責聲明（站外聯絡責任歸屬） |
+| LINE ID | 進配對池前 **必填**（伺服器保存）；**未雙方同意前客戶端不得顯示對方 LINE** |
+| 聊天 | 配對後進入站內簡聊；全對話合計最多 **20 句**（雙方合計，含系統提示外的使用者訊息） |
+| 露出 LINE | 滿 20 句後詢問雙方是否願意繼續；**雙方皆同意**才顯示彼此 LINE ID + 站外免責 |
+| 拒絕／離開 | 任一方選「不願意」→ 結束聊天、離開房間；**自動刪除該 match 的聊天紀錄（DB）**；`matches` 列保留為已結束（防重複配對） |
+| 免責 | 露出 LINE 前／露出畫面必須有免責聲明（站外聯絡責任歸屬） |
 | 配對額度 | 免費用戶 **1 次／日**；付費用戶 **5 次／日**；額度只扣**發起配對者** |
 | 每日重置 | **UTC+8**（`Asia/Taipei`）午夜 |
-| 重複配對 | 同一對人終身不重複（`matches` 無序 pair 唯一） |
-| 檢舉 | 可檢舉並寫入後台表；檢舉後該對象**不再出現在檢舉者配對池** |
+| 重複配對 | 同一對人終身不重複（`matches` 無序 pair 唯一），含「短聊後拒絕」的 pair |
+| 檢舉 | 可檢舉並寫入後台表；檢舉後該對象**不再出現在檢舉者配對池**；檢舉亦可觸發結束並刪訊息 |
 | 登入 | **免登入**；匿名 `device_id`（對齊 app2） |
 | 年齡／實名 | 無 |
 | 平台 | **iOS only** |
@@ -62,22 +64,40 @@
    - 確認發起者今日剩餘次數 > 0（依 `Asia/Taipei` 日期）。
    - 找出符合雙向興趣、未配對過、未被發起者檢舉過、已填 LINE、非自己的候選人。
    - 挑選一人（見 §5）。
-   - 寫入 `matches`、扣發起者 1 次。
-4. 雙方畫面（發起者當下；被配對者下次開 App／進「配對紀錄」可見）顯示對方身份標籤 + **雙方 LINE ID** + 免責聲明。
-5. 可對該次配對對象發起**檢舉**。
+   - 寫入 `matches`（狀態 `chatting`）、扣發起者 1 次。
+4. **不**立即顯示 LINE。發起者進入聊天室；被配對者下次開 App／進「進行中」可見並可進聊天。畫面僅顯示對方身份標籤。
+5. 可對該次配對對象發起**檢舉**（見 §3.5）。
 
-### 3.3 付費解鎖
+### 3.3 站內簡聊 → 雙方同意 → 露 LINE
+
+1. 配對成功後進入聊天室；僅文字訊息（無圖／語音）。
+2. 計數：該 `match_id` 下使用者訊息合計，上限 **`CHAT_CAP = 20`**。第 20 句送出後伺服器拒絕再 `send_message`（錯誤碼 `chat_cap_reached`）。
+3. 達到上限後 UI 進入「是否願意繼續／交換 LINE」閘門；雙方各自回答一次（`yes` / `no`）。
+4. **雙方皆 `yes`**：
+   - `matches.status = line_revealed`
+   - API 回傳雙方 `line_id`；畫面顯示對方 LINE + 免責；之後可視為已結束站內聊（可選：關閉再送訊）。
+5. **任一方 `no`（或逾時規則見 §12）**：
+   - `matches.status = ended_declined`
+   - **立刻 `DELETE` 該 match 的全部 `messages`**（不可復原）
+   - 雙方離開聊天室；歷史僅顯示「已結束（未交換聯絡方式）」，**永不**露出對方 LINE
+6. 任一方在未滿 20 句前主動「離開」：等同拒絕 → 刪訊息、狀態 `ended_left`（與 declined 同效果：不露 LINE、pair 仍佔用）。
+
+### 3.4 付費解鎖
 
 - 對齊 app3：`SubscribeScreen` 風格 — 立即訂閱／恢復購買／兌換優惠碼。
 - 成功後本機 `AsyncStorage` 寫入付費 flag；UI 顯示每日 5 次與「每週可改興趣」。
 - **不**把訂閱狀態寫入 Supabase 作為權威來源（V1）。
 
-### 3.4 修改有興趣的身份（僅付費）
+### 3.5 修改有興趣的身份（僅付費）
 
 - 檢查本機付費 flag；未付費則導向訂閱頁。
 - 伺服器（或本機 + 伺服器雙寫）記錄 `interests_changed_at`；距上次 < 7 天（UTC+8 日曆或連續 168 小時，實作採 **連續 168 小時** 較簡單）則拒絕。
-- 允許改為最多 2 個興趣；**不可**改自己的身份、不可改 LINE？→ LINE 可改（見 §8 開放實作選擇；預設 **LINE 可隨時改**，否則換號無法更新）。
+- 允許改為最多 2 個興趣；**不可**改自己的身份。LINE 可隨時改（換號需要）；**對方仍只能在雙方同意後才看到你的 LINE**。
 
+### 3.6 檢舉
+
+- 聊天中或結束後可對該對象檢舉。
+- 寫入 `reports` 後：結束該 match（若仍在聊天）、**刪除訊息**、狀態 `ended_reported`；之後不再進入配對池。
 ---
 
 ## 4. 配對條件
@@ -134,7 +154,7 @@ B.interest ∩ A.own ≠ ∅
 1. 選中 B 後 `INSERT` 無序 pair：`user_low = min(A,B)`, `user_high = max(A,B)`，`UNIQUE(user_low, user_high)`。
 2. 若唯一鍵衝突（極少見競態），再抽一次（最多重試 2～3 次）。
 3. 成功後 `match_counts`（或等價）對發起者今日 +1。
-4. 回傳雙方公開欄位：身份標籤、LINE ID、match id。
+4. 回傳公開欄位：對方身份標籤、`match_id`、`status=chatting`。**不得**回傳對方 `line_id`。
 
 ### 5.5 無候選人
 
@@ -210,11 +230,34 @@ B.interest ∩ A.own ≠ ∅
 | `user_low_id` | uuid FK → profiles |
 | `user_high_id` | uuid FK → profiles |
 | `initiator_id` | uuid FK → profiles |
+| `status` | text：`chatting` \| `awaiting_consent` \| `line_revealed` \| `ended_declined` \| `ended_left` \| `ended_reported` |
+| `message_count` | int，使用者訊息合計（上限 20） |
+| `consent_low` | boolean nullable（對應 `user_low_id` 是否同意露 LINE） |
+| `consent_high` | boolean nullable |
+| `line_revealed_at` | timestamptz nullable |
+| `ended_at` | timestamptz nullable |
 | `created_at` | timestamptz |
 | UNIQUE(`user_low_id`, `user_high_id`) | 防重複 |
 | CHECK(`user_low_id` < `user_high_id`) | 強制無序 |
 
-### 8.3 `match_daily_usage`
+### 8.3 `messages`
+
+| 欄位 | 說明 |
+|------|------|
+| `id` | uuid PK |
+| `match_id` | uuid FK → matches ON DELETE CASCADE |
+| `sender_id` | uuid FK → profiles |
+| `body` | text，長度上限（建議 500） |
+| `created_at` | timestamptz |
+
+約束／行為：
+
+- 僅 `status ∈ {chatting, awaiting_consent}` 可讀取訊息；`awaiting_consent` 時不可再 insert。
+- `message_count >= 20` 時拒絕 insert，並把 status 推到 `awaiting_consent`（若尚未）。
+- 進入 `ended_*` 或拒絕同意時：**DELETE FROM messages WHERE match_id = …**（硬刪，不軟刪）。
+- `line_revealed` 後：訊息可保留或一併刪除（V1 建議**保留**至使用者手動清／產品再定；與「拒絕才刪」對齊）。
+
+### 8.4 `match_daily_usage`
 
 | 欄位 | 說明 |
 |------|------|
@@ -229,14 +272,14 @@ B.interest ∩ A.own ≠ ∅
 
 **V1 建議採納**：伺服器接受 `p_claimed_paid boolean`（客戶端依 IAP flag），`limit = p_claimed_paid ? 5 : 1`。接受可被竄改換取零收據驗證成本（與「只做客戶端權益」一致）。
 
-### 8.4 `reports`
+### 8.5 `reports`
 
 | 欄位 | 說明 |
 |------|------|
 | `id` | uuid |
 | `reporter_id` | uuid |
 | `target_id` | uuid |
-| `reason` | text（預設選項：騷擾／假身份／不當 LINE／其他） |
+| `reason` | text（預設選項：騷擾／假身份／不當內容／其他） |
 | `match_id` | uuid nullable |
 | `created_at` | timestamptz |
 
@@ -244,7 +287,7 @@ Admin：直接在 Supabase Table Editor 查看；V1 不做後台 UI。
 
 檢舉後配對 RPC 排除 `target_id ∈ reports WHERE reporter_id = 發起者`。
 
-### 8.5 身份清單
+### 8.6 身份清單
 
 - 客戶端常數檔（如 `src/data/identities.js`）維護約 50 個 id + 繁中標籤 + `other`。
 - 伺服器只存 id；展示用客戶端 map。改文案不必 migration。
@@ -258,12 +301,16 @@ Admin：直接在 Supabase Table Editor 查看；V1 不做後台 UI。
 | RPC | 用途 |
 |-----|------|
 | `register_or_load_profile` | 首次開通／載入既有 profile |
-| `update_line_id` | 更新 LINE |
+| `update_line_id` | 更新 LINE（僅寫入自己的 profile） |
 | `update_interests` | 付費週期檢查 + 更新興趣（伺服器可再檢查間隔；是否付費由 `p_claimed_paid`） |
 | `touch_active` | 更新 `last_active_at` |
-| `daily_match` | 核心配對（§5） |
-| `list_my_matches` | 配對紀錄（含對方身份與 LINE） |
-| `report_user` | 寫入檢舉 |
+| `daily_match` | 核心配對（§5）；回傳不含對方 LINE |
+| `list_my_matches` | 配對／聊天列表；僅 `line_revealed` 時附對方 `line_id` |
+| `list_messages` | 讀取該 match 訊息（權限：必須是 pair 成員且 status 允許） |
+| `send_message` | 送訊；強制 `message_count < 20`；達上限 → `awaiting_consent` |
+| `submit_continue_consent` | 滿 20 句後提交 yes/no；雙方 yes → 回傳雙方 LINE；任一方 no → 刪訊息並結束 |
+| `leave_chat` | 未滿 20 也可離開；刪訊息、`ended_left` |
+| `report_user` | 寫入檢舉；結束並刪訊息 |
 
 ---
 
@@ -322,10 +369,14 @@ app4/
 
 1. Onboarding（身份／興趣／LINE）
 2. Home（今日配對按鈕、剩餘次數、付費入口）
-3. Match result（雙方 LINE + 免責 + 檢舉）
-4. Match history
-5. Subscribe（訂閱／恢復／優惠碼）
-6. Edit interests（付費；自己的身份唯讀展示）
+3. Chat（簡聊、句數進度 0/20、離開、檢舉）
+4. Continue gate（滿 20 句：願意／不願意繼續並交換 LINE）
+5. Line reveal（雙方同意後：對方 LINE + 免責）
+6. Match history（進行中／已交換／已結束）
+7. Subscribe（訂閱／恢復／優惠碼）
+8. Edit interests（付費；自己的身份唯讀展示）
+
+即時：V1 可用輪詢（例如進聊天室每 2～3 秒 `list_messages`）；有餘力再上 Realtime（對齊 app3）。
 
 ---
 
@@ -340,8 +391,9 @@ app4/
 
 免責聲明（產品文案，需法務／自行定稿）應涵蓋：
 
-- 交換 LINE 後之對話、糾紛、詐騙風險由使用者自負。
+- 站內簡聊與後續交換 LINE 後之對話、糾紛、詐騙風險由使用者自負。
 - 平台不仲介勞動契約、不保證對方身份真實性。
+- 任一方拒絕繼續時聊天紀錄會刪除；已交換 LINE 後站外聯絡不在平台控制範圍。
 - 可透過 App 內檢舉回報不當行為。
 
 ---
@@ -353,10 +405,13 @@ app4/
 | 無候選人 | 不扣次；提示稍後再試 |
 | 唯一鍵衝突 | 重抽最多 2～3 次 |
 | 對方今日額度用完 | **忽略**（只扣發起者） |
-| 重複配對 | UNIQUE pair 排除 |
-| 檢舉過的人 | 排除出發起者池 |
+| 重複配對 | UNIQUE pair 排除（含已結束未露 LINE） |
+| 檢舉過的人 | 排除出發起者池；刪該次訊息 |
 | 重裝 App | 新 `device_id`＝新用戶；付費靠「恢復購買」 |
 | 未填 LINE | 不可進池、不可呼叫 `daily_match` |
+| 未同意前要看對方 LINE | API／UI 皆不回傳 |
+| 滿 20 句一方未回覆同意 | V1：可無限等待；或 48h 無回覆視為 `no` 並刪訊息（建議先做無限等待） |
+| 一方同意一方拒絕 | 刪訊息、結束、不露 LINE |
 | 想改自己身份 | UI 不提供；RPC 拒絕 |
 | 「其他」 | 標籤固定顯示「其他」 |
 | Expo Go 測 IAP | 允許模擬購買；正式包不可 |
@@ -366,12 +421,15 @@ app4/
 ## 13. 建議實作順序（低成本優先）
 
 1. ~~**Scaffold**~~：`mobile/` 已建立（Expo 54，對齊 app3 + app2 deviceId）。
-2. ~~**Supabase schema + RPC**~~：`supabase/schema.sql`。
+2. ~~**Supabase schema + RPC（舊：配對即露 LINE）**~~：`supabase/schema.sql` — **需遷移**為 §8 新模型。
 3. ~~**Onboarding + 身份常數**~~。
-4. ~~**daily_match + 結果頁 + 歷史**~~（含本機種子候選人 fallback）。
-5. ~~**檢舉**~~。
+4. ~~**daily_match + 歷史骨架**~~（目前結果頁仍直接露 LINE — **待改**）。
+5. ~~**檢舉**~~（改為結束 + 刪訊息）。
 6. ~~**IAP**~~（訂閱／恢復／優惠碼）+ 次數／改興趣牆。
-7. **ASC／EAS projectId／TestFlight**（對照 `APP_STORE_IAP.md` + 根 `README.md`）— 待上架時完成。
+7. ~~**短聊 + 20 句閘門 + 雙方同意露 LINE + 拒絕刪訊息**~~（schema／RPC／Chat UI）。
+8. **ASC／EAS projectId／TestFlight**（對照 `APP_STORE_IAP.md` + 根 `README.md`）— 待上架時完成。
+
+> 若雲端已跑過舊 schema：請在 **app2 Supabase SQL Editor** 再執行一次最新 [`supabase/schema.sql`](./supabase/schema.sql)。
 
 ---
 
@@ -383,7 +441,9 @@ app4/
 - [ ] 約 50 個身份的最終清單文案
 - [ ] 免責聲明定稿
 - [ ] 是否允許修改 LINE ID（本文件預設：**允許**）
-- [ ] 被配對者是否推播（V1 可不做；開 App 看歷史即可）
+- [ ] 被配對者是否推播（V1 可不做；開 App 看歷史／聊天列表即可）
+- [ ] 同意閘門逾時（無限等 vs 48h 視為拒絕）
+- [ ] `line_revealed` 後是否保留站內訊息
 
 ---
 
@@ -394,6 +454,6 @@ app4/
 | 登入 | 匿名 device_id | 手機號 login_key | 匿名 device_id |
 | 金流 | 非消耗型買斷 | 月訂閱 + 優惠碼 | 訂閱 + 優惠碼（同 app3） |
 | 權益 | 本機 | 本機 | 本機 |
-| 核心互動 | 地圖資料 | Connect／站內聊 | 配對 + 交換 LINE |
+| 核心互動 | 地圖資料 | Connect／站內聊 | 雙向身份配對 → 短聊 20 句 → 雙方同意才露 LINE |
 | Android | 有 | 有（IAP 偏 iOS） | **不做** |
-| 檢舉 | 無 | 有 | 有（簡化，V1 可不做封鎖） |
+| 檢舉 | 無 | 有 | 有（結束 + 刪訊息） |

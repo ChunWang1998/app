@@ -11,6 +11,10 @@ import {
   fetchUsage,
   runDailyMatch,
   fetchMatches,
+  fetchMessages,
+  sendChatMessage,
+  submitContinueConsent,
+  leaveChat,
   updateLine,
   updateInterests,
   reportUser,
@@ -19,6 +23,7 @@ import {
 import { restoreSubscription } from './src/lib/iap';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import ChatScreen from './src/screens/ChatScreen';
 import MatchResultScreen from './src/screens/MatchResultScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import SubscribeScreen from './src/screens/SubscribeScreen';
@@ -76,6 +81,11 @@ export default function App() {
     setScreen('home');
   };
 
+  const openChat = (payload) => {
+    setMatchPayload(payload);
+    setScreen('chat');
+  };
+
   const onMatch = async () => {
     setMatching(true);
     try {
@@ -100,14 +110,13 @@ export default function App() {
         await reloadUsage();
         return;
       }
-      setMatchPayload(result);
       setUsage({
         ok: true,
         used: result.used,
         limit: result.limit,
         remaining: result.remaining,
       });
-      setScreen('match');
+      openChat(result);
     } catch (e) {
       Alert.alert('配對失敗', String(e?.message || e));
     } finally {
@@ -128,13 +137,46 @@ export default function App() {
   let body = null;
   if (!profile) {
     body = <OnboardingScreen onComplete={onOnboard} />;
+  } else if (screen === 'chat' && matchPayload) {
+    body = (
+      <ChatScreen
+        matchId={matchPayload.match_id}
+        meId={profile.id}
+        initialOther={matchPayload.other}
+        loadMessages={fetchMessages}
+        sendMessage={sendChatMessage}
+        submitConsent={submitContinueConsent}
+        leaveChat={leaveChat}
+        onReport={reportUser}
+        onBack={() => {
+          setMatchPayload(null);
+          setScreen('home');
+        }}
+        onEnded={() => {
+          setMatchPayload(null);
+          setScreen('home');
+        }}
+        onLineRevealed={(data) => {
+          setMatchPayload({
+            match_id: matchPayload.match_id,
+            me: data.me || profile,
+            other: data.other,
+            status: 'line_revealed',
+          });
+          setScreen('match');
+        }}
+      />
+    );
   } else if (screen === 'match' && matchPayload) {
     body = (
       <MatchResultScreen
         me={matchPayload.me || profile}
         other={matchPayload.other}
         matchId={matchPayload.match_id}
-        onBack={() => setScreen('home')}
+        onBack={() => {
+          setMatchPayload(null);
+          setScreen('home');
+        }}
         onReport={reportUser}
       />
     );
@@ -144,12 +186,22 @@ export default function App() {
         loadMatches={fetchMatches}
         onBack={() => setScreen('home')}
         onOpenMatch={(item) => {
-          setMatchPayload({
+          if (item.status === 'line_revealed') {
+            setMatchPayload({
+              match_id: item.match_id,
+              me: { ...profile, line_id: item.me_line_id || profile.line_id },
+              other: item.other,
+              status: 'line_revealed',
+            });
+            setScreen('match');
+            return;
+          }
+          openChat({
             match_id: item.match_id,
-            me: profile,
             other: item.other,
+            status: item.status,
+            message_count: item.message_count,
           });
-          setScreen('match');
         }}
         onReport={reportUser}
       />

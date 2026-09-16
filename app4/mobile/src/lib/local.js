@@ -3,13 +3,23 @@ import {
   FREE_DAILY_MATCHES,
   INTEREST_COOLDOWN_MS,
   PAID_DAILY_MATCHES,
+  CHAT_CAP,
 } from '../data/identities';
 
 const PROFILE_KEY = 'app4:local_profile';
 const MATCHES_KEY = 'app4:local_matches';
+const MESSAGES_KEY = 'app4:local_messages';
 const USAGE_KEY = 'app4:local_usage';
 const REPORTS_KEY = 'app4:local_reports';
 const SEEDS_KEY = 'app4:local_seeds_v1';
+
+const SEED_REPLIES = [
+  '你好！想多了解你的日常工作～',
+  '我這行入行大概幾年了，可以問我。',
+  '面試時最常被問的其實是實務經驗。',
+  '如果你有想轉職，我可以分享一點心得。',
+  '證照有幫助，但專案經驗更重要。',
+];
 
 function uuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -46,6 +56,18 @@ async function readJson(key, fallback) {
 
 async function writeJson(key, value) {
   await AsyncStorage.setItem(key, JSON.stringify(value));
+}
+
+function maskOther(other, includeLine) {
+  if (!other) return other;
+  return {
+    ...other,
+    line_id: includeLine ? other.line_id : null,
+  };
+}
+
+function isSeedId(id) {
+  return String(id || '').startsWith('seed-');
 }
 
 const SEED_PROFILES = [
@@ -86,6 +108,32 @@ async function ensureSeeds() {
   if (existing) return existing;
   await writeJson(SEEDS_KEY, SEED_PROFILES);
   return SEED_PROFILES;
+}
+
+async function loadMatchesRaw() {
+  return readJson(MATCHES_KEY, []);
+}
+
+async function saveMatchesRaw(matches) {
+  await writeJson(MATCHES_KEY, matches);
+}
+
+async function loadAllMessages() {
+  return readJson(MESSAGES_KEY, {});
+}
+
+async function saveAllMessages(map) {
+  await writeJson(MESSAGES_KEY, map);
+}
+
+async function purgeMessages(matchId) {
+  const map = await loadAllMessages();
+  delete map[matchId];
+  await saveAllMessages(map);
+}
+
+function findMatch(matches, matchId) {
+  return matches.find((m) => m.match_id === matchId);
 }
 
 export async function localLoadProfile() {
@@ -143,7 +191,9 @@ export async function localUpdateInterests(interest, claimedPaid) {
       };
     }
   }
-  const cleaned = [...new Set((interest || []).map((x) => String(x).trim()).filter(Boolean))];
+  const cleaned = [
+    ...new Set((interest || []).map((x) => String(x).trim()).filter(Boolean)),
+  ];
   if (cleaned.length < 1 || cleaned.length > 2) {
     return { ok: false, code: 'invalid_interest' };
   }
@@ -184,12 +234,10 @@ export async function localDailyMatch(claimedPaid) {
   }
 
   const seeds = await ensureSeeds();
-  const matches = await readJson(MATCHES_KEY, []);
+  const matches = await loadMatchesRaw();
   const reports = await readJson(REPORTS_KEY, []);
   const reported = new Set(reports.map((r) => r.target_id));
-  const matchedIds = new Set(
-    matches.map((m) => (m.other.id === me.id ? null : m.other.id)).filter(Boolean),
-  );
+  const matchedIds = new Set(matches.map((m) => m.other?.id).filter(Boolean));
 
   const candidates = seeds.filter(
     (c) =>
@@ -208,11 +256,15 @@ export async function localDailyMatch(claimedPaid) {
     match_id: uuid(),
     created_at: new Date().toISOString(),
     initiator_id: me.id,
+    status: 'chatting',
+    message_count: 0,
+    my_consent: null,
+    peer_consent: null,
     other: { ...other },
     me: { ...me },
   };
   matches.unshift(match);
-  await writeJson(MATCHES_KEY, matches);
+  await saveMatchesRaw(matches);
 
   const day = taipeiDayKey();
   const usage = await readJson(USAGE_KEY, {});
@@ -224,8 +276,11 @@ export async function localDailyMatch(claimedPaid) {
   return {
     ok: true,
     match_id: match.match_id,
+    status: 'chatting',
+    message_count: 0,
+    chat_cap: CHAT_CAP,
     me,
-    other,
+    other: maskOther(other, false),
     used,
     limit: lim,
     remaining: Math.max(lim - used, 0),
@@ -233,16 +288,188 @@ export async function localDailyMatch(claimedPaid) {
 }
 
 export async function localListMatches() {
-  const matches = await readJson(MATCHES_KEY, []);
+  const me = await localLoadProfile();
+  const matches = await loadMatchesRaw();
   return {
     ok: true,
-    matches: matches.map((m) => ({
-      match_id: m.match_id,
-      created_at: m.created_at,
-      initiator_id: m.initiator_id,
-      other: m.other,
-    })),
+    matches: matches.map((m) => {
+      const revealed = m.status === 'line_revealed';
+      return {
+        match_id: m.match_id,
+        created_at: m.created_at,
+        initiator_id: m.initiator_id,
+        status: m.status || 'chatting',
+        message_count: m.message_count || 0,
+        chat_cap: CHAT_CAP,
+        my_consent: m.my_consent ?? null,
+        other: maskOther(m.other, revealed),
+        me_line_id: revealed ? me?.line_id : null,
+      };
+    }),
   };
+}
+
+async function buildListPayload(match) {
+  const me = await localLoadProfile();
+  const revealed = match.status === 'line_revealed';
+  const ended = String(match.status || '').startsWith('ended_');
+  const map = await loadAllMessages();
+  const messages = ended ? [] : map[match.match_id] || [];
+  return {
+    ok: true,
+    match_id: match.match_id,
+    status: match.status,
+    message_count: match.message_count || 0,
+    chat_cap: CHAT_CAP,
+    my_consent: match.my_consent ?? null,
+    peer_consent: match.peer_consent ?? null,
+    messages,
+    other: maskOther(match.other, revealed),
+    me,
+  };
+}
+
+export async function localListMessages(matchId) {
+  const matches = await loadMatchesRaw();
+  const match = findMatch(matches, matchId);
+  if (!match) return { ok: false, code: 'not_found' };
+  return buildListPayload(match);
+}
+
+export async function localSendMessage(matchId, body) {
+  const me = await localLoadProfile();
+  if (!me) return { ok: false, code: 'not_registered' };
+  const text = String(body || '').trim();
+  if (!text || text.length > 500) return { ok: false, code: 'invalid_body' };
+
+  const matches = await loadMatchesRaw();
+  const match = findMatch(matches, matchId);
+  if (!match) return { ok: false, code: 'not_found' };
+  if (match.status !== 'chatting') {
+    return {
+      ok: false,
+      code: match.status === 'awaiting_consent' ? 'chat_cap_reached' : 'ended',
+    };
+  }
+  if ((match.message_count || 0) >= CHAT_CAP) {
+    match.status = 'awaiting_consent';
+    await saveMatchesRaw(matches);
+    return { ok: false, code: 'chat_cap_reached' };
+  }
+
+  const map = await loadAllMessages();
+  const list = map[matchId] || [];
+  list.push({
+    id: uuid(),
+    sender_id: me.id,
+    body: text,
+    created_at: new Date().toISOString(),
+  });
+  match.message_count = (match.message_count || 0) + 1;
+
+  // 本機種子自動回一句，方便測到 20
+  if (
+    isSeedId(match.other?.id) &&
+    match.message_count < CHAT_CAP &&
+    match.status === 'chatting'
+  ) {
+    const reply =
+      SEED_REPLIES[list.length % SEED_REPLIES.length] || SEED_REPLIES[0];
+    list.push({
+      id: uuid(),
+      sender_id: match.other.id,
+      body: reply,
+      created_at: new Date().toISOString(),
+    });
+    match.message_count += 1;
+  }
+
+  if (match.message_count >= CHAT_CAP) {
+    match.status = 'awaiting_consent';
+  }
+
+  map[matchId] = list;
+  await saveAllMessages(map);
+  await saveMatchesRaw(matches);
+  return buildListPayload(match);
+}
+
+export async function localSubmitConsent(matchId, yes) {
+  const me = await localLoadProfile();
+  if (!me) return { ok: false, code: 'not_registered' };
+  const matches = await loadMatchesRaw();
+  const match = findMatch(matches, matchId);
+  if (!match) return { ok: false, code: 'not_found' };
+
+  if (match.status === 'line_revealed') {
+    return {
+      ok: true,
+      status: 'line_revealed',
+      other: maskOther(match.other, true),
+      me,
+    };
+  }
+  if (String(match.status || '').startsWith('ended_')) {
+    return { ok: false, code: 'ended', status: match.status };
+  }
+  if (match.status === 'chatting' && (match.message_count || 0) < CHAT_CAP) {
+    return { ok: false, code: 'too_early' };
+  }
+  if (match.status === 'chatting') match.status = 'awaiting_consent';
+
+  if (!yes) {
+    await purgeMessages(matchId);
+    match.status = 'ended_declined';
+    match.message_count = 0;
+    match.ended_at = new Date().toISOString();
+    await saveMatchesRaw(matches);
+    return { ok: true, status: 'ended_declined', messages_deleted: true };
+  }
+
+  match.my_consent = true;
+  // 種子對方自動同意，方便本機測露 LINE
+  if (isSeedId(match.other?.id)) {
+    match.peer_consent = true;
+  }
+
+  if (match.my_consent && match.peer_consent) {
+    match.status = 'line_revealed';
+    match.line_revealed_at = new Date().toISOString();
+    await saveMatchesRaw(matches);
+    return {
+      ok: true,
+      status: 'line_revealed',
+      other: maskOther(match.other, true),
+      me,
+    };
+  }
+
+  await saveMatchesRaw(matches);
+  return {
+    ok: true,
+    status: 'awaiting_consent',
+    my_consent: true,
+    peer_consent: match.peer_consent ?? null,
+    waiting_peer: true,
+  };
+}
+
+export async function localLeaveChat(matchId) {
+  const matches = await loadMatchesRaw();
+  const match = findMatch(matches, matchId);
+  if (!match) return { ok: false, code: 'not_found' };
+  if (match.status === 'line_revealed') {
+    return { ok: false, code: 'already_revealed' };
+  }
+  if (String(match.status || '').startsWith('ended_')) {
+    return { ok: true, status: match.status };
+  }
+  await purgeMessages(matchId);
+  match.status = 'ended_left';
+  match.message_count = 0;
+  match.ended_at = new Date().toISOString();
+  await saveMatchesRaw(matches);
+  return { ok: true, status: 'ended_left', messages_deleted: true };
 }
 
 export async function localReport(targetId, reason, matchId) {
@@ -258,5 +485,21 @@ export async function localReport(targetId, reason, matchId) {
     created_at: new Date().toISOString(),
   });
   await writeJson(REPORTS_KEY, reports);
+
+  if (matchId) {
+    const matches = await loadMatchesRaw();
+    const match = findMatch(matches, matchId);
+    if (
+      match &&
+      match.status !== 'line_revealed' &&
+      !String(match.status || '').startsWith('ended_')
+    ) {
+      await purgeMessages(matchId);
+      match.status = 'ended_reported';
+      match.message_count = 0;
+      match.ended_at = new Date().toISOString();
+      await saveMatchesRaw(matches);
+    }
+  }
   return { ok: true };
 }
