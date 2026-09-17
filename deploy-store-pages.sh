@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Deploy app1/app2/app3 store HTML (support + privacy) to GitHub Pages (gh-pages).
+# Deploy app1/app2/app3/app4 store HTML (support + privacy) to GitHub Pages (gh-pages).
 # After running:
-#   https://chunwang1998.github.io/app/app3/store/support.html
-#   https://chunwang1998.github.io/app/app3/store/privacy.html
-# (same pattern for app1 / app2)
+#   https://chunwang1998.github.io/app/app4/store/support.html
+#   https://chunwang1998.github.io/app/app4/store/privacy.html
+# (same pattern for app1 / app2 / app3)
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$REPO_ROOT"
@@ -20,7 +20,7 @@ else
   git worktree add "$TEMP_DIR" origin/gh-pages
 fi
 
-for app in app1 app2 app3; do
+for app in app1 app2 app3 app4; do
   src="$REPO_ROOT/$app/store"
   dest="$TEMP_DIR/$app/store"
   mkdir -p "$dest"
@@ -46,6 +46,7 @@ cat > "$TEMP_DIR/index.html" <<'EOF'
 <body>
   <p>Store pages:</p>
   <ul>
+    <li><a href="./app4/store/support.html">業問 support</a> · <a href="./app4/store/privacy.html">privacy</a></li>
     <li><a href="./app3/store/support.html">鄰汪 support</a> · <a href="./app3/store/privacy.html">privacy</a></li>
     <li><a href="./app2/store/support.html">app2 support</a> · <a href="./app2/store/privacy.html">privacy</a></li>
     <li><a href="./app1/store/support.html">app1 support</a> · <a href="./app1/store/privacy.html">privacy</a></li>
@@ -67,5 +68,5 @@ cd "$REPO_ROOT"
 git worktree remove "$TEMP_DIR" --force 2>/dev/null || true
 
 echo "Done. Verify:"
-echo "  https://chunwang1998.github.io/app/app3/store/support.html"
-echo "  https://chunwang1998.github.io/app/app3/store/privacy.html"
+echo "  https://chunwang1998.github.io/app/app4/store/support.html"
+echo "  https://chunwang1998.github.io/app/app4/store/privacy.html"

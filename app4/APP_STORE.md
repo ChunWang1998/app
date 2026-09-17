@@ -80,7 +80,7 @@
 ## 2. 圖形素材
 
 * App icon：`app4/mobile/assets/icon.png`（上架前請另備 1024×1024、無透明度、無圓角）
-* 截圖（已備 6.7" 行銷稿，1290×2796）：`app4/store/appstore/`
+* 截圖（已備 6.5"/6.7" 規格，**1284 × 2778**，同 app3）：`app4/store/appstore/`
   - `iphone-67-01-home.png` — 主頁／今日配對
   - `iphone-67-02-onboarding.png` — 開通身份選擇
   - `iphone-67-03-chat.png` — 站內短聊
