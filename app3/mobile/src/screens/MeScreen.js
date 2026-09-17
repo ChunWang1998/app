@@ -25,6 +25,7 @@ export default function MeScreen({
   connects,
   ownersById,
   myGatherings = [],
+  unreadConnectIds = [],
   onBack,
   onRegister,
   onCreateProfile,
@@ -256,13 +257,22 @@ export default function MeScreen({
                       onPress={() => onOpenChat(c.id)}
                       activeOpacity={0.9}
                     >
-                      <Text style={styles.v}>
-                        與 {nameOf(c.fromId === session.id ? c.toId : c.fromId)} 聊天
-                      </Text>
+                      <View style={styles.chatTop}>
+                        <Text style={[styles.v, styles.chatTitle]}>
+                          與{' '}
+                          {nameOf(c.fromId === session.id ? c.toId : c.fromId)}{' '}
+                          聊天
+                        </Text>
+                        {unreadConnectIds.includes(c.id) ? (
+                          <View style={styles.unreadBadge}>
+                            <Text style={styles.unreadTxt}>!</Text>
+                          </View>
+                        ) : null}
+                      </View>
                       <Text style={styles.hint}>
                         {c.status === 'disconnected'
                           ? '對方已解除 Connect'
-                          : '最多 20 句 · 滑動刪除'}
+                          : '最多 20 句 · 建議換 LINE 長聊'}
                       </Text>
                     </TouchableOpacity>
                   </Swipeable>
@@ -324,6 +334,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
+  chatTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  chatTitle: { flex: 1, marginTop: 0 },
+  unreadBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  unreadTxt: { color: '#fff', fontSize: 12, fontWeight: '900' },
   p: { color: colors.muted, marginBottom: 8, lineHeight: 20 },
   input: {
     borderWidth: 1,

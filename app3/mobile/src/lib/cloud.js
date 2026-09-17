@@ -131,6 +131,10 @@ export async function confirmMeetCloud(loginKey, connectId) {
   return rpc('confirm_meet', { p_key: loginKey, p_connect_id: connectId });
 }
 
+export async function getMeetStatusCloud(loginKey, connectId) {
+  return rpc('get_meet_status', { p_key: loginKey, p_connect_id: connectId });
+}
+
 function decorateGatheringRow(g) {
   const date = g.dateISO ? new Date(g.dateISO) : new Date();
   return {

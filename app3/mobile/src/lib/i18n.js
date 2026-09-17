@@ -42,6 +42,13 @@ const STRINGS = {
     language: '語言',
     chinese: '中文',
     english: 'English',
+    rolesHelpTitle: '說明',
+    captainHelpQ: '什麼是汪汪大隊長？',
+    captainHelpA:
+      '汪汪大隊長是聚會的主辦人。辦完一場，大隊長次數 +1；活動結束後，隊員可為主辦人按讚，累加「汪汪大隊長分數」（一人一場只能按一次）。聚會列表會依大隊長分數高→低排序。',
+    memberHelpQ: '什麼是汪汪隊員？',
+    memberHelpA:
+      '汪汪隊員是聚會的參加者。以參加者身分完成一場聚會後，汪汪隊員次數 +1。',
     me: '個人頁',
     back: '← 返回',
     profileFile: '汪汪檔案',
@@ -103,6 +110,13 @@ const STRINGS = {
     language: 'Language',
     chinese: '中文',
     english: 'English',
+    rolesHelpTitle: 'Help',
+    captainHelpQ: 'What is a Captain?',
+    captainHelpA:
+      'A Captain hosts a gathering. After it ends, their Captain count goes up by 1. Members can like the host once per gathering to raise the Captain score. Gatherings are sorted by Captain score.',
+    memberHelpQ: 'What is a Member?',
+    memberHelpA:
+      'A Member joins a gathering. After finishing as a participant, their Member count goes up by 1.',
     me: 'Profile',
     back: '← Back',
     profileFile: 'Dog profile',

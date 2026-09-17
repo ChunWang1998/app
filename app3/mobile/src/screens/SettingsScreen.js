@@ -1,11 +1,15 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePrefs } from '../context/AppPrefs';
 import { radius } from '../theme';
 import ScreenHeader from '../components/ScreenHeader';
 
-export default function SettingsScreen({ profile, onProfile }) {
+export default function SettingsScreen({
+  profile,
+  onProfile,
+  hasUnreadChat = false,
+}) {
   const insets = useSafeAreaInsets();
   const { theme, lang, colors, setTheme, setLang, t } = usePrefs();
 
@@ -16,8 +20,15 @@ export default function SettingsScreen({ profile, onProfile }) {
         subtitle=""
         photoUri={profile?.photoUri}
         onProfile={onProfile}
+        showAlert={hasUnreadChat}
       />
-      <View style={[styles.body, { paddingBottom: insets.bottom + 16 }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.body,
+          { paddingBottom: insets.bottom + 24 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={[styles.section, { color: colors.brandDeep }]}>
           {t('appearance')}
         </Text>
@@ -36,7 +47,9 @@ export default function SettingsScreen({ profile, onProfile }) {
           />
         </View>
 
-        <Text style={[styles.section, { color: colors.brandDeep, marginTop: 20 }]}>
+        <Text
+          style={[styles.section, { color: colors.brandDeep, marginTop: 20 }]}
+        >
           {t('language')}
         </Text>
         <View style={styles.row}>
@@ -53,7 +66,32 @@ export default function SettingsScreen({ profile, onProfile }) {
             onPress={() => setLang('en')}
           />
         </View>
-      </View>
+
+        <Text
+          style={[styles.section, { color: colors.brandDeep, marginTop: 28 }]}
+        >
+          {t('rolesHelpTitle')}
+        </Text>
+        <View
+          style={[
+            styles.helpCard,
+            { backgroundColor: colors.card, borderColor: colors.line },
+          ]}
+        >
+          <Text style={[styles.helpQ, { color: colors.ink }]}>
+            {t('captainHelpQ')}
+          </Text>
+          <Text style={[styles.helpA, { color: colors.muted }]}>
+            {t('captainHelpA')}
+          </Text>
+          <Text style={[styles.helpQ, { color: colors.ink, marginTop: 14 }]}>
+            {t('memberHelpQ')}
+          </Text>
+          <Text style={[styles.helpA, { color: colors.muted }]}>
+            {t('memberHelpA')}
+          </Text>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -95,4 +133,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   optTxt: { fontWeight: '800', fontSize: 15 },
+  helpCard: {
+    borderRadius: radius.card,
+    borderWidth: 1,
+    padding: 14,
+  },
+  helpQ: { fontSize: 15, fontWeight: '800', marginBottom: 6 },
+  helpA: { fontSize: 13, lineHeight: 20 },
 });

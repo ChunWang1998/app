@@ -28,6 +28,7 @@ import {
   deleteAccount,
   reportOwner,
   blockOwner,
+  listUnreadConnectIds,
 } from './src/lib/store';
 import { ensureNotifyPermission } from './src/lib/notify';
 import { registerPushToken } from './src/lib/push';
@@ -70,6 +71,7 @@ function AppInner() {
   const [connects, setConnects] = useState([]);
   const [gatherings, setGatherings] = useState([]);
   const [myGatherings, setMyGatherings] = useState([]);
+  const [unreadConnectIds, setUnreadConnectIds] = useState([]);
 
   const [pendingPhone, setPendingPhone] = useState('');
   const [reminder, setReminder] = useState({ visible: false, name: '' });
@@ -89,7 +91,29 @@ function AppInner() {
     setConnects(cs);
     setGatherings(gs);
     setMyGatherings(gs.filter((g) => g.iJoined || g.iHost));
+    try {
+      setUnreadConnectIds(await listUnreadConnectIds(cs, s?.id));
+    } catch {
+      setUnreadConnectIds([]);
+    }
   }, []);
+
+  const refreshUnread = useCallback(async () => {
+    try {
+      const s = session || (await loadSession());
+      const cs = connects.length ? connects : await listConnects(s);
+      setUnreadConnectIds(await listUnreadConnectIds(cs, s?.id));
+    } catch {
+      // ignore
+    }
+  }, [session, connects]);
+
+  useEffect(() => {
+    if (!started || !ready || !session?.id) return;
+    refreshUnread();
+    const t = setInterval(refreshUnread, 12000);
+    return () => clearInterval(t);
+  }, [started, ready, session?.id, refreshUnread]);
 
   const ensureDistricts = useCallback(
     async (city) => {
@@ -419,6 +443,7 @@ function AppInner() {
         peerPlaces={ownersById[peerId]?.places || []}
         onBack={() => setOverlay(chatFrom === 'detail' ? 'detail' : 'profile')}
         onRefreshOwners={() => reload()}
+        onUnreadChange={refreshUnread}
       />
     );
   } else if (overlay === 'createGathering') {
@@ -481,6 +506,7 @@ function AppInner() {
           connects={connects}
           ownersById={ownersById}
           myGatherings={myGatherings}
+          unreadConnectIds={unreadConnectIds}
           onBack={() => setOverlay(null)}
           onRegister={async (phone) => {
             try {
@@ -575,12 +601,14 @@ function AppInner() {
                 onDecline={declineConnect}
                 onNeedRegister={() => setOverlay('profile')}
                 onNeedSubscribe={() => setOverlay('subscribe')}
+                hasUnreadChat={unreadConnectIds.length > 0}
               />
             ) : tab === 'gatherings' ? (
               <GatheringsScreen
                 gatherings={gatherings}
                 profile={profile}
                 hostingActive={myGatherings.some((g) => g.iHost && !g.ended)}
+                hasUnreadChat={unreadConnectIds.length > 0}
                 onProfile={openProfile}
                 onJoin={joinOne}
                 onOpen={(g) => openGathering(g, 'gatherings')}
@@ -604,7 +632,11 @@ function AppInner() {
                 }}
               />
             ) : (
-              <SettingsScreen profile={profile} onProfile={openProfile} />
+              <SettingsScreen
+                profile={profile}
+                onProfile={openProfile}
+                hasUnreadChat={unreadConnectIds.length > 0}
+              />
             )}
           </LinearGradient>
         </TabSwipe>

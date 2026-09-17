@@ -9,7 +9,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius } from '../theme';
+import { usePrefs } from '../context/AppPrefs';
+import { radius } from '../theme';
 
 /**
  * Simple dropdown: tap field → modal list of options.
@@ -24,15 +25,25 @@ export default function DropdownSelect({
   disabled = false,
   style,
 }) {
+  const { colors } = usePrefs();
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
   const display = selected?.label || placeholder;
 
   return (
     <View style={[styles.wrap, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? (
+        <Text style={[styles.label, { color: colors.muted }]}>{label}</Text>
+      ) : null}
       <TouchableOpacity
-        style={[styles.field, disabled && styles.fieldDisabled]}
+        style={[
+          styles.field,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.line,
+          },
+          disabled && styles.fieldDisabled,
+        ]}
         onPress={() => {
           if (!disabled) setOpen(true);
         }}
@@ -40,7 +51,11 @@ export default function DropdownSelect({
         disabled={disabled}
       >
         <Text
-          style={[styles.value, !selected && styles.placeholder]}
+          style={[
+            styles.value,
+            { color: selected ? colors.ink : colors.muted },
+            !selected && styles.placeholder,
+          ]}
           numberOfLines={1}
         >
           {display}
@@ -59,8 +74,15 @@ export default function DropdownSelect({
         onRequestClose={() => setOpen(false)}
       >
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            {label ? <Text style={styles.sheetTitle}>{label}</Text> : null}
+          <Pressable
+            style={[styles.sheet, { backgroundColor: colors.card }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {label ? (
+              <Text style={[styles.sheetTitle, { color: colors.brandDeep }]}>
+                {label}
+              </Text>
+            ) : null}
             <ScrollView
               style={styles.list}
               showsVerticalScrollIndicator={false}
@@ -71,14 +93,22 @@ export default function DropdownSelect({
                 return (
                   <TouchableOpacity
                     key={String(o.value)}
-                    style={[styles.option, on && styles.optionOn]}
+                    style={[
+                      styles.option,
+                      on && { backgroundColor: colors.brand },
+                    ]}
                     onPress={() => {
                       onChange(o.value);
                       setOpen(false);
                     }}
                     activeOpacity={0.8}
                   >
-                    <Text style={[styles.optionText, on && styles.optionTextOn]}>
+                    <Text
+                      style={[
+                        styles.optionText,
+                        { color: on ? '#fff' : colors.ink },
+                      ]}
+                    >
                       {o.label}
                     </Text>
                     {on ? (
@@ -96,19 +126,16 @@ export default function DropdownSelect({
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1 },
+  wrap: { alignSelf: 'stretch' },
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.muted,
     marginBottom: 4,
   },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.line,
     borderRadius: radius.row,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -119,10 +146,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '700',
-    color: colors.ink,
     marginRight: 6,
   },
-  placeholder: { color: colors.muted, fontWeight: '600' },
+  placeholder: { fontWeight: '600' },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(44, 36, 22, 0.35)',
@@ -130,7 +156,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   sheet: {
-    backgroundColor: colors.card,
     borderRadius: radius.sheet,
     maxHeight: '70%',
     paddingTop: 16,
@@ -140,7 +165,6 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.brandDeep,
     paddingHorizontal: 18,
     marginBottom: 8,
   },
@@ -153,12 +177,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.row,
     marginBottom: 2,
   },
-  optionOn: { backgroundColor: colors.brand },
   optionText: {
     flex: 1,
     fontSize: 15,
     fontWeight: '700',
-    color: colors.ink,
   },
-  optionTextOn: { color: '#fff' },
 });

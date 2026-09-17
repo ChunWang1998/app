@@ -25,6 +25,7 @@ export default function ExploreScreen({
   onDecline,
   onNeedRegister,
   onNeedSubscribe,
+  hasUnreadChat = false,
 }) {
   const { colors, t } = usePrefs();
   const [city, setCity] = useState('');
@@ -84,9 +85,9 @@ export default function ExploreScreen({
     <View style={styles.fill}>
       <ScreenHeader
         title={t('partnersTitle')}
-        subtitle={t('partnersSub')}
         photoUri={profile?.photoUri}
         onProfile={onProfile}
+        showAlert={hasUnreadChat}
       />
       <View style={styles.filters}>
         <DropdownSelect
@@ -224,7 +225,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     gap: 10,
   },
-  filterHalf: { flex: 1 },
+  filterHalf: { flex: 1, alignSelf: 'stretch' },
   list: { paddingHorizontal: 16, paddingBottom: 24 },
   groupTitle: {
     fontSize: 15,

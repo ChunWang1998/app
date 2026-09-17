@@ -32,6 +32,7 @@ import {
   listMessagesCloud,
   sendMessageCloud,
   confirmMeetCloud,
+  getMeetStatusCloud,
   listCityGatherings,
   listAllGatherings,
   createGatheringCloud,
@@ -58,6 +59,7 @@ const KEYS = {
   gatheringLikes: 'linwang:gatheringLikes',
   gatheringEnded: 'linwang:gatheringEnded',
   demoInvite: 'linwang:demoInvite',
+  chatReads: 'linwang:chatReads',
 };
 
 function uid(prefix) {
@@ -564,10 +566,63 @@ export async function completeGuideConnect(connectId, guideId) {
   return listConnects().then((rows) => rows.find((c) => c.id === connectId));
 }
 
+function normalizeMeetRow(row) {
+  const confirmedBy = (row?.confirmedBy || []).map(String);
+  return {
+    confirmedBy,
+    counted: !!row?.counted,
+  };
+}
+
+async function saveMeetCache(connectId, row) {
+  const meets = await readJson(KEYS.meets, {});
+  meets[connectId] = normalizeMeetRow(row);
+  await writeJson(KEYS.meets, meets);
+  return meets[connectId];
+}
+
+export async function getMeetStatus(connectId, userId) {
+  const session = await loadSession();
+  let row = null;
+  if (isCloudReady() && session?.loginKey && isUuid(connectId)) {
+    try {
+      const data = await getMeetStatusCloud(session.loginKey, connectId);
+      if (data?.ok !== false) {
+        row = await saveMeetCache(connectId, {
+          confirmedBy: data.confirmedBy || [],
+          counted: !!data.counted,
+        });
+      }
+    } catch {
+      // fall through to cache
+    }
+  }
+  if (!row) {
+    const meets = await readJson(KEYS.meets, {});
+    row = normalizeMeetRow(meets[connectId] || { confirmedBy: [] });
+  }
+  const confirmedBy = row.confirmedBy || [];
+  const iConfirmed = confirmedBy.includes(String(userId));
+  const peerConfirmed = confirmedBy.some((id) => id !== String(userId));
+  const both = confirmedBy.length >= 2 || row.counted;
+  return {
+    confirmedBy,
+    iConfirmed,
+    peerConfirmed,
+    both,
+    counted: !!row.counted,
+  };
+}
+
 export async function confirmMeet(connectId, userId) {
   const session = await loadSession();
   if (isCloudReady() && session?.loginKey && isUuid(connectId)) {
-    return confirmMeetCloud(session.loginKey, connectId);
+    const data = await confirmMeetCloud(session.loginKey, connectId);
+    const cached = await saveMeetCache(connectId, {
+      confirmedBy: data.confirmedBy || [],
+      counted: !!data.counted,
+    });
+    return cached;
   }
   const meets = await readJson(KEYS.meets, {});
   const row = meets[connectId] || { confirmedBy: [] };
@@ -582,7 +637,41 @@ export async function confirmMeet(connectId, userId) {
     const c = connects.find((x) => x.id === connectId);
     if (c) await bumpOutingCount([c.fromId, c.toId]);
   }
-  return row;
+  return normalizeMeetRow(row);
+}
+
+export async function markChatRead(connectId, at) {
+  if (!connectId) return;
+  const reads = await readJson(KEYS.chatReads, {});
+  const stamp = at || new Date().toISOString();
+  const prev = reads[connectId];
+  if (prev && prev >= stamp) return;
+  reads[connectId] = stamp;
+  await writeJson(KEYS.chatReads, reads);
+}
+
+export async function listUnreadConnectIds(connects, meId) {
+  if (!meId) return [];
+  const reads = await readJson(KEYS.chatReads, {});
+  const unread = [];
+  const chats = (connects || []).filter(
+    (c) =>
+      (c.fromId === meId || c.toId === meId) &&
+      (c.status === 'accepted' ||
+        (c.status === 'disconnected' && c.disconnectedBy !== meId)),
+  );
+  for (const c of chats) {
+    try {
+      const msgs = await listMessages(c.id);
+      const lastFromPeer = [...msgs].reverse().find((m) => m.fromId !== meId);
+      if (!lastFromPeer) continue;
+      const readAt = reads[c.id] || '';
+      if (String(lastFromPeer.at || '') > String(readAt)) unread.push(c.id);
+    } catch {
+      // ignore one connect failure
+    }
+  }
+  return unread;
 }
 
 async function bumpOutingCount(ids) {

@@ -14,7 +14,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme';
 import { MAX_CHAT } from '../data/constants';
-import { listMessages, sendMessage, confirmMeet } from '../lib/store';
+import {
+  listMessages,
+  sendMessage,
+  confirmMeet,
+  getMeetStatus,
+  markChatRead,
+} from '../lib/store';
 
 export default function ChatScreen({
   connect,
@@ -23,20 +29,44 @@ export default function ChatScreen({
   peerPlaces = [],
   onBack,
   onRefreshOwners,
+  onUnreadChange,
 }) {
   const insets = useSafeAreaInsets();
   const [rows, setRows] = useState([]);
   const [text, setText] = useState('');
+  const [meet, setMeet] = useState({
+    iConfirmed: false,
+    peerConfirmed: false,
+    both: false,
+    counted: false,
+  });
   const full = rows.length >= MAX_CHAT;
+
+  const reloadMeet = async () => {
+    if (!connect?.id || !meId) return;
+    try {
+      setMeet(await getMeetStatus(connect.id, meId));
+    } catch {
+      // keep previous
+    }
+  };
 
   const reload = async () => {
     if (!connect) return;
-    setRows(await listMessages(connect.id));
+    const next = await listMessages(connect.id);
+    setRows(next);
+    const last = next[next.length - 1];
+    await markChatRead(connect.id, last?.at || new Date().toISOString());
+    onUnreadChange?.();
   };
 
   useEffect(() => {
     reload();
-    const t = setInterval(reload, 4000);
+    reloadMeet();
+    const t = setInterval(() => {
+      reload();
+      reloadMeet();
+    }, 4000);
     return () => clearInterval(t);
   }, [connect?.id]);
 
@@ -47,11 +77,48 @@ export default function ChatScreen({
       const next = await sendMessage(connect.id, meId, t);
       setRows(next);
       setText('');
+      const last = next[next.length - 1];
+      await markChatRead(connect.id, last?.at || new Date().toISOString());
     } catch (e) {
-      if (e.code === 'full') Alert.alert('已滿 20 句', '之後請自行約見面。');
-      else if (e.code === 'disconnected') Alert.alert('已解除 Connect');
+      if (e.code === 'full') {
+        Alert.alert('已滿 20 句', '聊天句數有限，建議換 LINE 繼續聊。');
+      } else if (e.code === 'disconnected') Alert.alert('已解除 Connect');
     }
   };
+
+  const onConfirmMeet = async () => {
+    if (!connect?.id || meet.iConfirmed || meet.both) return;
+    try {
+      const row = await confirmMeet(connect.id, meId);
+      const status = await getMeetStatus(connect.id, meId);
+      setMeet(status);
+      if (status.both || row.counted) {
+        Alert.alert('雙方已見面', '出去次數已各 +1。');
+        onRefreshOwners?.();
+      } else {
+        Alert.alert('已記錄', '等對方也按「我已見面」後，雙方出去次數才會 +1。');
+      }
+    } catch (e) {
+      Alert.alert('無法記錄', e.message || String(e));
+    }
+  };
+
+  let meetLabel = '我已見面';
+  let meetHint = '雙方都按了，出去次數才 +1';
+  let meetDisabled = connect?.status !== 'accepted';
+  if (meet.both || meet.counted) {
+    meetLabel = '雙方已見面';
+    meetHint = '出去次數已各 +1';
+    meetDisabled = true;
+  } else if (meet.iConfirmed && !meet.peerConfirmed) {
+    meetLabel = '已記錄 · 等對方確認';
+    meetHint = '你已按，等對方也按';
+    meetDisabled = true;
+  } else if (!meet.iConfirmed && meet.peerConfirmed) {
+    meetLabel = '對方已按 · 請你確認';
+    meetHint = '對方已按「我已見面」，請你也按';
+    meetDisabled = connect?.status !== 'accepted';
+  }
 
   return (
     <KeyboardAvoidingView
@@ -66,7 +133,7 @@ export default function ChatScreen({
         <Text style={styles.hint}>
           {connect?.status === 'disconnected'
             ? '已解除 Connect，無法再傳訊息'
-            : `${rows.length}/${MAX_CHAT} 句 · 第一次見面建議公園平行走 15 分鐘`}
+            : `${rows.length}/${MAX_CHAT} 句 · 聊天句數有限，建議換 LINE 繼續聊`}
         </Text>
         {connect?.status === 'accepted' && peerPlaces.length ? (
           <Text style={styles.places}>
@@ -78,7 +145,10 @@ export default function ChatScreen({
         {rows.map((m, i) => {
           const mine = m.fromId === meId;
           return (
-            <View key={`${m.at}-${i}`} style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
+            <View
+              key={`${m.at}-${i}`}
+              style={[styles.bubble, mine ? styles.mine : styles.theirs]}
+            >
               <Text style={[styles.msg, mine && { color: '#fff' }]}>{m.text}</Text>
             </View>
           );
@@ -86,16 +156,23 @@ export default function ChatScreen({
       </ScrollView>
       <View style={[styles.bottom, { paddingBottom: insets.bottom + 8 }]}>
         <TouchableOpacity
-          onPress={async () => {
-            await confirmMeet(connect.id, meId);
-            Alert.alert('已記錄', '需雙方都按「已見面」才會 +1 出去次數。');
-            onRefreshOwners?.();
-          }}
+          onPress={onConfirmMeet}
+          disabled={meetDisabled}
+          activeOpacity={meetDisabled ? 1 : 0.7}
         >
-          <Text style={styles.link}>我已見面</Text>
+          <Text
+            style={[
+              styles.link,
+              meetDisabled && styles.linkDisabled,
+              (meet.both || meet.counted) && styles.linkDone,
+            ]}
+          >
+            {meetLabel}
+          </Text>
         </TouchableOpacity>
+        <Text style={styles.meetHint}>{meetHint}</Text>
         {full && connect?.status !== 'disconnected' ? (
-          <Text style={styles.full}>對話已滿，請自行約</Text>
+          <Text style={styles.full}>對話已滿 · 建議換 LINE 繼續聊</Text>
         ) : (
           <View style={styles.row}>
             <TextInput
@@ -103,7 +180,9 @@ export default function ChatScreen({
               value={text}
               onChangeText={setText}
               placeholder={
-                connect?.status === 'disconnected' ? '已解除 Connect' : '最多 20 句'
+                connect?.status === 'disconnected'
+                  ? '已解除 Connect'
+                  : '最多 20 句，建議換 LINE 長聊'
               }
             />
             <TouchableOpacity style={styles.send} onPress={send}>
@@ -121,7 +200,7 @@ const styles = StyleSheet.create({
   top: { paddingHorizontal: 16, paddingBottom: 8 },
   back: { color: colors.brandDeep, fontWeight: '800' },
   title: { marginTop: 6, fontSize: 20, fontWeight: '800', color: colors.ink },
-  hint: { marginTop: 4, color: colors.muted, fontSize: 12 },
+  hint: { marginTop: 4, color: colors.muted, fontSize: 12, lineHeight: 18 },
   places: { marginTop: 6, color: colors.ink, fontSize: 13, lineHeight: 18 },
   msgs: { paddingHorizontal: 16, paddingBottom: 12 },
   bubble: {
@@ -135,7 +214,10 @@ const styles = StyleSheet.create({
   msg: { color: colors.ink },
   bottom: { paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: colors.line },
   link: { color: colors.brandDeep, fontWeight: '800', marginTop: 8 },
-  full: { marginTop: 8, color: colors.muted },
+  linkDisabled: { color: colors.muted },
+  linkDone: { color: colors.ok },
+  meetHint: { marginTop: 2, fontSize: 11, color: colors.muted },
+  full: { marginTop: 8, color: colors.muted, lineHeight: 18 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   input: {
     flex: 1,
