@@ -2,7 +2,7 @@
   "expo": {
     "name": "鄰汪",
     "slug": "linwang",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "automatic",
@@ -14,7 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.linwang.app",
-      "buildNumber": "11",
+      "buildNumber": "12",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "需要相簿來上傳主人與狗的合照。",
         "ITSAppUsesNonExemptEncryption": false
