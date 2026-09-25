@@ -20,6 +20,8 @@ import {
   updateInterests,
   reportUser,
   refreshPaidFlag,
+  fetchHeadcounts,
+  syncPushToken,
 } from './src/lib/store';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -31,6 +33,7 @@ import HistoryScreen from './src/screens/HistoryScreen';
 import SubscribeScreen from './src/screens/SubscribeScreen';
 import EditInterestsScreen from './src/screens/EditInterestsScreen';
 import EditLineScreen from './src/screens/EditLineScreen';
+import StatsScreen from './src/screens/StatsScreen';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -77,6 +80,13 @@ export default function App() {
     // users restore explicitly from the Subscribe screen.
     reload();
   }, [reload]);
+
+  useEffect(() => {
+    if (!ready || !profile?.id) return;
+    syncPushToken().catch(() => {});
+  }, [ready, profile?.id]);
+
+  const loadStats = useCallback((categories) => fetchHeadcounts(categories), []);
 
   const onOnboard = async (payload) => {
     const p = await completeOnboarding(payload);
@@ -267,6 +277,8 @@ export default function App() {
         onBack={() => setScreen('home')}
       />
     );
+  } else if (screen === 'stats') {
+    body = <StatsScreen onLoad={loadStats} onBack={() => setScreen('home')} />;
   } else if (screen === 'line') {
     body = (
       <EditLineScreen
@@ -292,6 +304,7 @@ export default function App() {
         onEditInterests={() => setScreen('interests')}
         onEditLine={() => setScreen('line')}
         onEditNotes={() => setScreen('notes')}
+        onStats={() => setScreen('stats')}
       />
     );
   }

@@ -534,3 +534,27 @@ export async function localReport(targetId, reason, matchId) {
   }
   return { ok: true };
 }
+
+export async function localHeadcountStats(categories) {
+  const me = await localLoadProfile();
+  const own = new Set(me?.own_identities || []);
+  const rows = (categories || []).map((cat) => {
+    const hit = (cat.ids || []).some((id) => own.has(id));
+    const n = hit ? 1 : 0;
+    return { id: cat.id, count: n >= 50 ? n : null };
+  });
+  const matches = await loadMatchesRaw();
+  const people = new Set();
+  for (const match of matches) {
+    if (match.status !== 'line_revealed') continue;
+    if (me?.id) people.add(me.id);
+    if (match.other?.id) people.add(match.other.id);
+  }
+  const success = people.size;
+  return {
+    ok: true,
+    threshold: 50,
+    categories: rows,
+    successful_people: success >= 50 ? success : null,
+  };
+}

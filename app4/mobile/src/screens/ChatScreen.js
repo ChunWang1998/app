@@ -10,6 +10,10 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Keyboard,
+  Animated,
+  PanResponder,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -41,6 +45,13 @@ export default function ChatScreen({
   onLineRevealed,
 }) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const columnWidth = Math.min(windowWidth, 640);
+  const expandedHeight = Math.min(Math.round(windowHeight * 0.46), 520);
+  const collapsedHeight = 52;
+  const [promptsOpen, setPromptsOpen] = useState(false);
+  const sheetAnim = useRef(new Animated.Value(0)).current;
+  const promptsOpenRef = useRef(false);
   const scrollRef = useRef(null);
   const revealedNotified = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -80,11 +91,43 @@ export default function ChatScreen({
     }
   }, [matchId, loadMessages, applyPayload, onBack]);
 
+  const setSheetOpen = useCallback(
+    (open) => {
+      promptsOpenRef.current = open;
+      setPromptsOpen(open);
+      Animated.timing(sheetAnim, {
+        toValue: open ? 1 : 0,
+        duration: 220,
+        useNativeDriver: false,
+      }).start();
+    },
+    [sheetAnim],
+  );
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        Math.abs(gesture.dy) > 10 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dy < -28) setSheetOpen(true);
+        else if (gesture.dy > 28) setSheetOpen(false);
+        else setSheetOpen(!promptsOpenRef.current);
+      },
+    }),
+  ).current;
+
   useEffect(() => {
     reload();
     const t = setInterval(reload, 3000);
     return () => clearInterval(t);
   }, [reload]);
+
+  useEffect(() => {
+    const event = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const sub = Keyboard.addListener(event, () => setSheetOpen(false));
+    return () => sub.remove();
+  }, [setSheetOpen]);
 
   useEffect(() => {
     if (!payload?.messages?.length) return;
@@ -103,7 +146,11 @@ export default function ChatScreen({
   const revealed = status === 'line_revealed';
   const myConsent = payload?.my_consent;
   const canSend = status === 'chatting' && count < cap && !sending;
-  const showPrompts = messages.length === 0 && !ended && !revealed;
+  const showPromptSheet = !ended && !revealed;
+  const sheetHeight = sheetAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [collapsedHeight, Math.max(collapsedHeight + 8, expandedHeight)],
+  });
 
   const send = async () => {
     const body = text.trim();
@@ -227,28 +274,10 @@ export default function ChatScreen({
             contentContainerStyle={styles.msgs}
             keyboardShouldPersistTaps="handled"
           >
-            {showPrompts && (
-              <View style={styles.prompts}>
-                <Text style={styles.empty}>
-                  開始簡聊吧。滿 {cap} 句後再決定是否交換 LINE。
-                </Text>
-                <Text style={styles.promptTitle}>參考問題（點一下帶入輸入框）</Text>
-                {CHAT_PROMPT_GROUPS.map((group) => (
-                  <View key={group.title} style={styles.promptGroup}>
-                    <Text style={styles.promptGroupTitle}>{group.title}</Text>
-                    {group.items.map((prompt) => (
-                      <TouchableOpacity
-                        key={prompt}
-                        style={styles.promptChip}
-                        onPress={() => setText(prompt)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.promptChipText}>{prompt}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ))}
-              </View>
+            {messages.length === 0 && !ended && !revealed && (
+              <Text style={styles.empty}>
+                開始簡聊吧。滿 {cap} 句後再決定是否交換 LINE。參考問題可從下方上拉。
+              </Text>
             )}
             {messages.map((m) => {
               const mine = m.sender_id === meId;
@@ -305,7 +334,60 @@ export default function ChatScreen({
           </ScrollView>
         )}
 
-        <View style={[styles.bottom, { paddingBottom: insets.bottom + 8 }]}>
+        <View
+          style={[
+            styles.bottom,
+            {
+              paddingBottom: insets.bottom + 8,
+              width: columnWidth,
+              alignSelf: 'center',
+            },
+          ]}
+        >
+          {showPromptSheet && (
+            <Animated.View style={[styles.sheet, { height: sheetHeight }]}>
+              <View
+                style={styles.sheetHandleBtn}
+                accessibilityRole="button"
+                {...panResponder.panHandlers}
+              >
+                <View style={styles.grabber} />
+                <Text style={styles.promptTitle}>參考問題</Text>
+                <Ionicons
+                  name={promptsOpen ? 'chevron-down' : 'chevron-up'}
+                  size={18}
+                  color={colors.brandDeep}
+                />
+              </View>
+              <ScrollView
+                style={styles.sheetScroll}
+                contentContainerStyle={styles.sheetBody}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+              >
+                <Text style={styles.promptHint}>點一下帶入輸入框，再往下拉可收合。</Text>
+                {CHAT_PROMPT_GROUPS.map((group) => (
+                  <View key={group.title} style={styles.promptGroup}>
+                    <Text style={styles.promptGroupTitle}>{group.title}</Text>
+                    {group.items.map((prompt) => (
+                      <TouchableOpacity
+                        key={prompt}
+                        style={styles.promptChip}
+                        onPress={() => {
+                          if (!canSend) return;
+                          setText(prompt);
+                          setSheetOpen(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.promptChipText}>{prompt}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ))}
+              </ScrollView>
+            </Animated.View>
+          )}
           {!ended && !revealed && (
             <TouchableOpacity onPress={onLeave}>
               <Text style={styles.leave}>離開並刪除紀錄</Text>
@@ -350,7 +432,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   msgs: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   empty: { color: colors.muted, lineHeight: 20 },
-  prompts: { gap: 10, marginBottom: 8 },
   promptTitle: {
     color: colors.ink,
     fontSize: 15,
@@ -437,7 +518,31 @@ const styles = StyleSheet.create({
   },
   disclaimer: { fontSize: 12, lineHeight: 18, color: colors.warn },
   ended: { color: colors.muted, textAlign: 'center', marginTop: 20 },
-  bottom: { paddingHorizontal: 16, gap: 8 },
+  bottom: { paddingHorizontal: 16, gap: 8, maxWidth: '100%' },
+  sheet: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.card,
+    overflow: 'hidden',
+  },
+  sheetHandle: { backgroundColor: colors.card },
+  sheetHandleBtn: {
+    minHeight: 52,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  grabber: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.line,
+  },
+  sheetScroll: { flex: 1 },
+  sheetBody: { paddingHorizontal: 12, paddingBottom: 12, gap: 8 },
+  promptHint: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   leave: {
     color: colors.danger,
     fontWeight: '600',

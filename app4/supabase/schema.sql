@@ -34,6 +34,17 @@ create table if not exists public.profiles (
 alter table public.profiles
   add column if not exists own_identity_notes jsonb not null default '{}'::jsonb;
 
+alter table public.profiles
+  add column if not exists expo_push_token text;
+
+do $$
+begin
+  create extension if not exists pg_net;
+exception
+  when others then
+    raise notice 'pg_net unavailable: %', sqlerrm;
+end $$;
+
 create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),
   user_low_id uuid not null references public.profiles (id) on delete cascade,
@@ -722,6 +733,155 @@ begin
 end;
 $$;
 
+-- Counts below 50 are returned as JSON null so the client shows "<50 人".
+create or replace function public.app4_headcount_stats(
+  p_device_id text,
+  p_categories jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  cat jsonb;
+  leaf_ids text[];
+  n int;
+  cats jsonb := '[]'::jsonb;
+  success_n int;
+  floor_n int := 50;
+begin
+  perform public.app4_require_profile(p_device_id);
+
+  if p_categories is null or jsonb_typeof(p_categories) <> 'array' then
+    return jsonb_build_object('ok', false, 'code', 'invalid_categories');
+  end if;
+  if jsonb_array_length(p_categories) > 40 then
+    return jsonb_build_object('ok', false, 'code', 'too_many_categories');
+  end if;
+
+  for cat in select value from jsonb_array_elements(p_categories)
+  loop
+    leaf_ids := '{}';
+    if jsonb_typeof(cat->'ids') = 'array' then
+      select coalesce(array_agg(s.leaf), '{}')
+        into leaf_ids
+      from (
+        select left(trim(x), 64) as leaf
+        from jsonb_array_elements_text(cat->'ids') as t(x)
+        where char_length(trim(x)) between 1 and 64
+        limit 200
+      ) s;
+    end if;
+
+    if cardinality(leaf_ids) = 0 then
+      n := 0;
+    else
+      select count(*)::int into n
+      from public.profiles p
+      where p.deleted_at is null
+        and p.own_identities && leaf_ids;
+    end if;
+
+    cats := cats || jsonb_build_array(
+      jsonb_build_object(
+        'id', left(coalesce(cat->>'id', ''), 64),
+        'count', case when n >= floor_n then n else null end
+      )
+    );
+  end loop;
+
+  select count(*)::int into success_n
+  from (
+    select m.user_low_id as pid
+    from public.matches m
+    where m.status = 'line_revealed'
+    union
+    select m.user_high_id
+    from public.matches m
+    where m.status = 'line_revealed'
+  ) people
+  join public.profiles p on p.id = people.pid and p.deleted_at is null;
+
+  return jsonb_build_object(
+    'ok', true,
+    'threshold', floor_n,
+    'categories', cats,
+    'successful_people', case when success_n >= floor_n then success_n else null end
+  );
+end;
+$$;
+
+create or replace function public.register_push_token(
+  p_device_id text,
+  p_token text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me public.profiles;
+  token text;
+begin
+  me := public.app4_require_profile(p_device_id);
+  token := trim(coalesce(p_token, ''));
+  if token !~ '^Expo(nent)?PushToken\[[^\[\]]{10,180}\]$' then
+    return jsonb_build_object('ok', false, 'code', 'invalid_token');
+  end if;
+
+  update public.profiles
+    set expo_push_token = null,
+        updated_at = now()
+    where expo_push_token = token
+      and id <> me.id;
+
+  update public.profiles
+    set expo_push_token = token,
+        updated_at = now()
+    where id = me.id;
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+-- Alert-only push. Failure must not block sending the chat message.
+create or replace function public.app4_push_new_message(
+  p_token text,
+  p_match_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_token is null or length(trim(p_token)) < 10 then
+    return;
+  end if;
+  if to_regnamespace('net') is null then
+    return;
+  end if;
+
+  perform net.http_post(
+    url := 'https://exp.host/--/api/v2/push/send',
+    headers := '{"Content-Type":"application/json","Accept":"application/json"}'::jsonb,
+    body := jsonb_build_object(
+      'to', trim(p_token),
+      'title', '業問',
+      'body', '你有一則新訊息',
+      'sound', 'default',
+      'priority', 'high',
+      'data', jsonb_build_object('matchId', p_match_id)
+    )
+  );
+exception
+  when others then
+    return;
+end;
+$$;
+
 create or replace function public.send_message(
   p_device_id text,
   p_match_id uuid,
@@ -738,6 +898,7 @@ declare
   body text;
   cap int := public.app4_chat_cap();
   new_count int;
+  peer_token text;
 begin
   me := public.app4_require_profile(p_device_id);
   body := trim(coalesce(p_body, ''));
@@ -767,6 +928,15 @@ begin
     set message_count = new_count,
         status = case when new_count >= cap then 'awaiting_consent' else 'chatting' end
     where id = m.id;
+
+  select p.expo_push_token into peer_token
+  from public.profiles p
+  where p.id = case
+    when m.user_low_id = me.id then m.user_high_id
+    else m.user_low_id
+  end;
+
+  perform public.app4_push_new_message(peer_token, m.id);
 
   return public.list_messages(p_device_id, p_match_id);
 end;
@@ -959,3 +1129,5 @@ grant execute on function public.send_message(text, uuid, text) to anon, authent
 grant execute on function public.submit_continue_consent(text, uuid, boolean) to anon, authenticated;
 grant execute on function public.leave_chat(text, uuid) to anon, authenticated;
 grant execute on function public.report_user(text, uuid, text, uuid) to anon, authenticated;
+grant execute on function public.app4_headcount_stats(text, jsonb) to anon, authenticated;
+grant execute on function public.register_push_token(text, text) to anon, authenticated;

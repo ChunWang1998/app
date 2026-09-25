@@ -15,7 +15,10 @@ import {
   submitConsentCloud,
   leaveChatCloud,
   reportUserCloud,
+  headcountStatsCloud,
+  registerPushTokenCloud,
 } from './cloud';
+import { readExpoPushToken } from './push';
 import {
   localRegisterOrLoad,
   localLoadProfile,
@@ -30,6 +33,7 @@ import {
   localSubmitConsent,
   localLeaveChat,
   localReport,
+  localHeadcountStats,
 } from './local';
 import {
   FREE_DAILY_MATCHES,
@@ -192,6 +196,22 @@ export async function updateInterests(interest) {
     return updateInterestsCloud(deviceId, interest, paid);
   }
   return localUpdateInterests(interest, paid);
+}
+
+export async function fetchHeadcounts(categories) {
+  const deviceId = await getDeviceId();
+  if (isSupabaseConfigured) {
+    return headcountStatsCloud(deviceId, categories);
+  }
+  return localHeadcountStats(categories);
+}
+
+export async function syncPushToken() {
+  const token = await readExpoPushToken();
+  if (!token) return { ok: false, code: 'no_token' };
+  if (!isSupabaseConfigured) return { ok: true };
+  const deviceId = await getDeviceId();
+  return registerPushTokenCloud(deviceId, token);
 }
 
 export async function reportUser(targetId, reason, matchId) {

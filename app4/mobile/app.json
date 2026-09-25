@@ -9,9 +9,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.identitymatch.app",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "infoPlist": {
-        "CFBundleDisplayName": "CraftQ",
+        "CFBundleDisplayName": "業問",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -21,6 +21,12 @@
     "plugins": [
       "expo-font",
       "expo-iap",
+      [
+        "expo-notifications",
+        {
+          "enableBackgroundRemoteNotifications": true
+        }
+      ],
       "expo-status-bar",
       [
         "expo-splash-screen",

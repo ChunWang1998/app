@@ -29,6 +29,7 @@ export default function HomeScreen({
   onEditInterests,
   onEditLine,
   onEditNotes,
+  onStats,
 }) {
   const insets = useSafeAreaInsets();
   const remaining = usage?.remaining ?? 0;
@@ -120,6 +121,9 @@ export default function HomeScreen({
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondary} onPress={onEditLine}>
           <Text style={styles.secondaryText}>更新 LINE ID</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.secondary} onPress={onStats}>
+          <Text style={styles.secondaryText}>統計人數</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondary} onPress={onSubscribe}>
           <Text style={styles.secondaryText}>

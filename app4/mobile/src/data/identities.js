@@ -52,29 +52,6 @@ export const IDENTITY_CATEGORIES = [
     ],
   },
   {
-    id: 'legal',
-    label: '法務智財',
-    groups: [
-      {
-        id: 'legal_practice',
-        label: '法務',
-        items: [
-          { id: 'lawyer', label: '律師' },
-          { id: 'legal_officer', label: '法務人員' },
-          { id: 'compliance', label: '法遵人員' },
-        ],
-      },
-      {
-        id: 'legal_ip',
-        label: '智財',
-        items: [
-          { id: 'patent_engineer', label: '專利工程師' },
-          { id: 'trademark_specialist', label: '商標／專利人員' },
-        ],
-      },
-    ],
-  },
-  {
     id: 'finance',
     label: '財務會計稅務',
     groups: [
@@ -259,38 +236,6 @@ export const IDENTITY_CATEGORIES = [
     ],
   },
   {
-    id: 'manufacturing',
-    label: '生產製造',
-    groups: [
-      {
-        id: 'manufacturing_mgmt',
-        label: '生產管理',
-        items: [
-          { id: 'production_manager', label: '生產管理主管' },
-          { id: 'plant_manager', label: '工廠主管' },
-          { id: 'production_planner', label: '生管' },
-        ],
-      },
-      {
-        id: 'manufacturing_process',
-        label: '製程／設備',
-        items: [
-          { id: 'process_engineer', label: '生產技術／製程工程師' },
-          { id: 'equipment_engineer', label: '生產設備工程師' },
-          { id: 'factory', label: '製造業作業' },
-        ],
-      },
-      {
-        id: 'manufacturing_qc',
-        label: '品保／品管',
-        items: [
-          { id: 'qa_engineer', label: '品管／品保工程師' },
-          { id: 'qc_inspector', label: '品管／檢驗人員' },
-        ],
-      },
-    ],
-  },
-  {
     id: 'technician',
     label: '操作技術維修',
     groups: [
@@ -454,29 +399,6 @@ export const IDENTITY_CATEGORIES = [
     ],
   },
   {
-    id: 'transport',
-    label: '資材物流運輸',
-    groups: [
-      {
-        id: 'transport_ops',
-        label: '運輸',
-        items: [
-          { id: 'driver', label: '司機／運輸' },
-          { id: 'courier', label: '快遞' },
-        ],
-      },
-      {
-        id: 'transport_logistics',
-        label: '物流倉儲',
-        items: [
-          { id: 'logistics', label: '物流倉儲' },
-          { id: 'warehouse', label: '倉管' },
-          { id: 'purchasing', label: '採購人員' },
-        ],
-      },
-    ],
-  },
-  {
     id: 'public',
     label: '公職軍警',
     groups: [
@@ -571,6 +493,15 @@ export function pathForIdentity(id) {
 
 export function labelsForIdentities(ids) {
   return (ids || []).map(labelForIdentity);
+}
+
+/** Major categories plus the leaf ids used for headcount stats. */
+export function categoryStatGroups() {
+  return IDENTITY_CATEGORIES.map((cat) => ({
+    id: cat.id,
+    label: cat.label,
+    ids: cat.groups.flatMap((group) => group.items.map((item) => item.id)),
+  }));
 }
 
 /** Max characters per own-identity self-description. */

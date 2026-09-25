@@ -93,6 +93,20 @@ export async function leaveChatCloud(deviceId, matchId) {
   });
 }
 
+export async function headcountStatsCloud(deviceId, categories) {
+  return rpc('app4_headcount_stats', {
+    p_device_id: deviceId,
+    p_categories: categories,
+  });
+}
+
+export async function registerPushTokenCloud(deviceId, token) {
+  return rpc('register_push_token', {
+    p_device_id: deviceId,
+    p_token: token,
+  });
+}
+
 export async function reportUserCloud(deviceId, targetId, reason, matchId) {
   return rpc('report_user', {
     p_device_id: deviceId,
