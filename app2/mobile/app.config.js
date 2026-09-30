@@ -1,6 +1,4 @@
-const appJson = require('./app.json');
-
-module.exports = () => {
+module.exports = ({ config }) => {
   const googleMapsApiKey = String(
     process.env.GOOGLE_MAPS_API_KEY ||
       process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
@@ -17,19 +15,14 @@ module.exports = () => {
     );
   }
 
-  const expo = appJson.expo;
   return {
-    expo: {
-      ...expo,
-      // Reanimated 4 (Expo SDK 54) requires New Architecture.
-      newArchEnabled: true,
-      android: {
-        ...expo.android,
-        config: {
-          ...(expo.android?.config || {}),
-          googleMaps: {
-            apiKey: googleMapsApiKey,
-          },
+    ...config,
+    android: {
+      ...config.android,
+      config: {
+        ...(config.android?.config || {}),
+        googleMaps: {
+          apiKey: googleMapsApiKey,
         },
       },
     },

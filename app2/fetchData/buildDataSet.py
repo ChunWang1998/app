@@ -1,7 +1,7 @@
 """Merge source JSON files under data/ into data/dataSet.json, then shard by grid.
 
 Outputs:
-  data/dataSet.json              — free-tier merge (7-11); CDN online default
+  data/dataSet.json              — free-tier merge (7-11, HK MTR, HK KFC); CDN online default
   data/dist/manifest.json        — cellSize, counts, cell keys, cities
   data/dist/index.slim.json      — id/lat/lng/type for free places
   data/dist/cells/{i}_{j}.json   — full records per ~2 km cell (free)
@@ -32,13 +32,15 @@ WEB_PLACES = ROOT / "web" / "public" / "places"
 MOBILE_PLACES = ROOT / "mobile" / "assets" / "places"
 MOBILE_REGISTRY = ROOT / "mobile" / "src" / "data" / "cellRegistry.js"
 
-# Free CDN / App Store default: 7-11 only.
+# Free CDN / App Store default: Taiwan 7-11 plus Hong Kong MTR and KFC.
 FREE_SOURCE_FILES = [
     "711_with_toilet.json",
+    "hk_mtr.json",
+    "hk_kfc.json",
 ]
 
-# Pro offline pack: toilet-related sources still present under data/.
-# (gas / department / MRT JSONs removed — overlapped with public toilets)
+# Pro offline pack includes every free source plus paid types.
+# (Taiwan gas / department / MRT JSONs removed — overlapped with public toilets)
 PRO_SOURCE_FILES = [
     "711_with_toilet.json",
     "family_with_toilet.json",
@@ -46,6 +48,14 @@ PRO_SOURCE_FILES = [
     "starbucks_stores.json",
     "poya_stores.json",
     "public_toilets.json",
+    "hk_mtr.json",
+    "hk_kfc.json",
+    "hk_public_toilets.json",
+    "hk_lcsd.json",
+    "hk_gas_stations.json",
+    "hk_restaurants.json",
+    "hk_malls.json",
+    "hk_big_box.json",
 ]
 
 REQUIRED = ("id", "type", "地址", "lat", "lng", "營業時間")

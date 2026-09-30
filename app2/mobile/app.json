@@ -6,12 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#E8FBF7"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.toiletgo.app",
@@ -51,6 +45,15 @@
       ],
       "expo-font",
       "expo-file-system",
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#E8FBF7",
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain"
+        }
+      ],
       "expo-iap"
     ],
     "extra": {
