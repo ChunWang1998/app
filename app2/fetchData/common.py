@@ -32,13 +32,13 @@ OVERPASS_URLS = (
 SCHEMA_KEYS = ("id", "type", "name", "地址", "lat", "lng", "營業時間")
 
 
-def make_id(type_name: str, name: str, address: str, suffix: str = "") -> str:
+def make_id(type_name: str, name: str, address: str, suffix: str = "", *, prefix: str = "hk") -> str:
     raw = f"{type_name}|{name}|{address}|{suffix}"
     digest = hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]
-    return f"hk-{digest}"
+    return f"{prefix}-{digest}"
 
 
-def record(type_name, name, addr, lat, lng, hours, extra=None) -> dict:
+def record(type_name, name, addr, lat, lng, hours, extra=None, *, id_prefix: str = "hk") -> dict:
     """One place. `extra` only distinguishes ids; it is not written to JSON."""
     name = str(name or "").strip()
     addr = str(addr or "").strip()
@@ -48,14 +48,18 @@ def record(type_name, name, addr, lat, lng, hours, extra=None) -> dict:
             str(extra.get(k) or "")
             for k in ("osm_id", "toilet_location", "station_code")
         )
+    if isinstance(hours, dict) and "byDay" in hours:
+        hours_value = hours
+    else:
+        hours_value = normalize_hours(str(hours or ""))
     return {
-        "id": make_id(str(type_name), name, addr, suffix),
+        "id": make_id(str(type_name), name, addr, suffix, prefix=id_prefix),
         "type": str(type_name),
         "name": name,
         "地址": addr,
         "lat": lat,
         "lng": lng,
-        "營業時間": normalize_hours(str(hours or "")),
+        "營業時間": hours_value,
     }
 
 
