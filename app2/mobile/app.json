@@ -9,7 +9,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.toiletgo.app",
-      "buildNumber": "21",
+      "buildNumber": "22",
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
         "NSLocationWhenInUseUsageDescription": "Your location is used to find nearby stores and cafes with a toilet.",
@@ -48,8 +48,18 @@
         "expo-localization",
         {
           "supportedLocales": {
-            "ios": ["en", "ja", "zh-Hant"],
-            "android": ["en", "ja", "zh-Hant", "zh-TW", "zh-HK"]
+            "ios": [
+              "en",
+              "ja",
+              "zh-Hant"
+            ],
+            "android": [
+              "en",
+              "ja",
+              "zh-Hant",
+              "zh-TW",
+              "zh-HK"
+            ]
           }
         }
       ],
