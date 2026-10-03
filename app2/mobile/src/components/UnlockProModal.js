@@ -22,6 +22,7 @@ import {
   isFullPackIndexed,
   clearLocalFullPack,
 } from '../lib/fullPack';
+import { t, useLanguage } from '../i18n';
 
 /**
  * Buyout unlock + full offline pack download.
@@ -41,6 +42,7 @@ export default function UnlockProModal({
   onPackReady,
   onPackCleared,
 }) {
+  useLanguage();
   const [pro, setPro] = useState(false);
   const [packReady, setPackReady] = useState(false);
   const [remoteMeta, setRemoteMeta] = useState(null);
@@ -88,13 +90,13 @@ export default function UnlockProModal({
       const result = await purchaseProUnlock();
       if (result.cancelled) return;
       if (!result.ok) {
-        setError(result.error || '購買失敗');
+        setError(result.error || t('unlock.buyFail'));
         return;
       }
       setPro(true);
       await handleDownload();
     } catch (e) {
-      setError(String(e?.message || e || '購買失敗'));
+      setError(String(e?.message || e || t('unlock.buyFail')));
     } finally {
       setBusy(false);
       setPhase('idle');
@@ -107,11 +109,11 @@ export default function UnlockProModal({
     try {
       const result = await restoreProUnlock();
       if (!result.ok) {
-        setError(result.error || '恢復失敗');
+        setError(result.error || t('unlock.restoreFail'));
         return;
       }
       if (!result.restored) {
-        Alert.alert('找不到購買紀錄', '此 Apple ID 尚無「完整資料包」買斷。');
+        Alert.alert(t('unlock.noPurchaseTitle'), t('unlock.noPurchaseBody'));
         return;
       }
       setPro(true);
@@ -122,10 +124,10 @@ export default function UnlockProModal({
         await ensureFullPackIndexed();
         setPackReady(true);
         onPackReady?.();
-        Alert.alert('已恢復', '購買已恢復，並可使用本機資料包。');
+        Alert.alert(t('unlock.restoredTitle'), t('unlock.restoredBody'));
       }
     } catch (e) {
-      setError(String(e?.message || e || '恢復失敗'));
+      setError(String(e?.message || e || t('unlock.restoreFail')));
     } finally {
       setBusy(false);
       setPhase('idle');
@@ -146,9 +148,9 @@ export default function UnlockProModal({
       setRemoteMeta(meta);
       setPackReady(true);
       onPackReady?.();
-      Alert.alert('下載完成', '已解鎖全部廁所，可離線使用完整資料包。');
+      Alert.alert(t('unlock.downloadDoneTitle'), t('unlock.downloadDoneBody'));
     } catch (e) {
-      setError(String(e?.message || e || '下載失敗'));
+      setError(String(e?.message || e || t('unlock.downloadFail')));
     } finally {
       setBusy(false);
       setPhase('idle');
@@ -157,10 +159,10 @@ export default function UnlockProModal({
   };
 
   const handleDevReset = () => {
-    Alert.alert('清除本機解鎖（開發用）', '會清除 Pro 標記與已下載資料包，不會取消商店購買。', [
-      { text: '取消', style: 'cancel' },
+    Alert.alert(t('unlock.devResetTitle'), t('unlock.devResetBody'), [
+      { text: t('unlock.cancel'), style: 'cancel' },
       {
-        text: '清除',
+        text: t('unlock.clear'),
         style: 'destructive',
         onPress: async () => {
           setBusy(true);
@@ -171,9 +173,9 @@ export default function UnlockProModal({
             setPackReady(false);
             setLocalMeta(null);
             onPackCleared?.();
-            Alert.alert('已清除', '可重新測試解鎖流程。');
+            Alert.alert(t('unlock.clearedTitle'), t('unlock.clearedBody'));
           } catch (e) {
-            setError(String(e?.message || e || '清除失敗'));
+            setError(String(e?.message || e || t('unlock.clearFail')));
           } finally {
             setBusy(false);
           }
@@ -192,24 +194,22 @@ export default function UnlockProModal({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={busy ? undefined : onClose}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>解鎖完整資料包</Text>
-          <Text style={styles.body}>
-            免費版可線上查看全台 7-11。買斷後下載完整資料包，解鎖公廁與其他類型，並可離線使用。
-          </Text>
+          <Text style={styles.title}>{t('unlock.title')}</Text>
+          <Text style={styles.body}>{t('unlock.body')}</Text>
 
           {(placeCount || sizeLabel !== '0 B') && (
             <Text style={styles.meta}>
-              {placeCount ? `${placeCount.toLocaleString()} 筆地點` : ''}
+              {placeCount ? t('unlock.places', { count: placeCount.toLocaleString() }) : ''}
               {placeCount && sizeLabel !== '0 B' ? ' · ' : ''}
-              {sizeLabel !== '0 B' ? `約 ${sizeLabel}` : ''}
+              {sizeLabel !== '0 B' ? t('unlock.aboutSize', { size: sizeLabel }) : ''}
             </Text>
           )}
 
           {packReady ? (
             <View style={styles.readyBox}>
-              <Text style={styles.readyText}>已解鎖 · 完整資料包可用</Text>
+              <Text style={styles.readyText}>{t('unlock.ready')}</Text>
               {localMeta?.version ? (
-                <Text style={styles.note}>版本 {localMeta.version}</Text>
+                <Text style={styles.note}>{t('unlock.version', { version: localMeta.version })}</Text>
               ) : null}
             </View>
           ) : null}
@@ -220,11 +220,11 @@ export default function UnlockProModal({
             <View style={styles.progressWrap}>
               <ActivityIndicator color={colors.brand} />
               <Text style={styles.progressText}>
-                {phase === 'buying' && '處理購買…'}
+                {phase === 'buying' && t('unlock.buying')}
                 {phase === 'downloading' &&
-                  `下載資料包… ${Math.round(progress * 100)}%`}
-                {phase === 'indexing' && '建立離線索引…'}
-                {phase === 'idle' && '處理中…'}
+                  t('unlock.downloading', { percent: Math.round(progress * 100) })}
+                {phase === 'indexing' && t('unlock.indexing')}
+                {phase === 'idle' && t('unlock.working')}
               </Text>
             </View>
           )}
@@ -236,7 +236,7 @@ export default function UnlockProModal({
               disabled={busy}
               activeOpacity={0.85}
             >
-              <Text style={styles.btnText}>買斷並下載</Text>
+              <Text style={styles.btnText}>{t('unlock.buy')}</Text>
             </TouchableOpacity>
           )}
 
@@ -247,7 +247,7 @@ export default function UnlockProModal({
               disabled={busy}
               activeOpacity={0.85}
             >
-              <Text style={styles.btnText}>下載完整資料包</Text>
+              <Text style={styles.btnText}>{t('unlock.download')}</Text>
             </TouchableOpacity>
           )}
 
@@ -257,7 +257,7 @@ export default function UnlockProModal({
             disabled={busy}
             activeOpacity={0.85}
           >
-            <Text style={styles.linkText}>恢復購買</Text>
+            <Text style={styles.linkText}>{t('unlock.restore')}</Text>
           </TouchableOpacity>
 
           {typeof __DEV__ !== 'undefined' && __DEV__ ? (
@@ -267,7 +267,7 @@ export default function UnlockProModal({
               disabled={busy}
               activeOpacity={0.85}
             >
-              <Text style={[styles.linkText, styles.devResetText]}>清除解鎖（開發）</Text>
+              <Text style={[styles.linkText, styles.devResetText]}>{t('unlock.devReset')}</Text>
             </TouchableOpacity>
           ) : null}
 
@@ -277,7 +277,7 @@ export default function UnlockProModal({
             disabled={busy}
             activeOpacity={0.85}
           >
-            <Text style={styles.secondaryText}>{packReady ? '完成' : '稍後'}</Text>
+            <Text style={styles.secondaryText}>{packReady ? t('unlock.done') : t('unlock.later')}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

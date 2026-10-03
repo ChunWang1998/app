@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 const EARTH_RADIUS_M = 6371000;
 
 function toMinutes(hhmm) {
@@ -61,12 +63,12 @@ export function isHoursUnknown(hours) {
 }
 
 export function formatHours(hours) {
-  if (!hours) return '時間未知';
-  if (typeof hours === 'string') return hours || '時間未知';
-  if (hours.unknown) return '時間未知';
+  if (!hours) return t('detail.hoursMissing');
+  if (typeof hours === 'string') return hours || t('detail.hoursMissing');
+  if (hours.unknown) return t('detail.hoursMissing');
   if (hours.raw) return hours.raw;
   if (hours.allDay) return '24H';
-  return '時間未知';
+  return t('detail.hoursMissing');
 }
 
 export function haversineMeters(a, b) {

@@ -1,5 +1,6 @@
 import { Platform, Alert } from 'react-native';
 import { setProUnlocked, isProUnlocked } from './entitlements';
+import { t } from '../i18n';
 
 const PRO_PRODUCT_ID =
   process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.toiletgo.app.fullpack';
@@ -62,7 +63,7 @@ function waitForPurchaseEvent(iap, timeoutMs = 120000) {
       finish({ ok: true, purchase });
     });
     const subError = iap.purchaseErrorListener?.((error) => {
-      const msg = String(error?.message || error?.code || error || '購買失敗');
+      const msg = String(error?.message || error?.code || error || t('iap.buyFail'));
       if (/cancel|Cancel|E_USER_CANCELLED/i.test(msg)) {
         finish({ ok: false, cancelled: true });
         return;
@@ -71,7 +72,7 @@ function waitForPurchaseEvent(iap, timeoutMs = 120000) {
     });
 
     const timer = setTimeout(() => {
-      finish({ ok: false, error: '購買逾時，請稍後再試' });
+      finish({ ok: false, error: t('iap.timeout') });
     }, timeoutMs);
   });
 }
@@ -168,24 +169,24 @@ export async function purchaseProUnlock() {
       return { ok: false, cancelled: true };
     }
     if (!allowSimulate()) {
-      return { ok: false, error: msg || '購買失敗' };
+      return { ok: false, error: msg || t('iap.buyFail') };
     }
   }
 
   if (!allowSimulate()) {
     return {
       ok: false,
-      error: '此環境無法使用內購，請使用 TestFlight 或正式版。',
+      error: t('iap.unavailable'),
     };
   }
 
   const simulated = await new Promise((resolve) => {
     Alert.alert(
-      '開發模式模擬買斷',
-      `尚未連上 App Store（或於 Expo Go）。\n模擬購買「完整資料包」？\n（正式版商品：${PRO_PRODUCT_ID}）`,
+      t('iap.simTitle'),
+      t('iap.simBody', { productId: PRO_PRODUCT_ID }),
       [
-        { text: '取消', style: 'cancel', onPress: () => resolve(false) },
-        { text: '模擬購買', onPress: () => resolve(true) },
+        { text: t('iap.cancel'), style: 'cancel', onPress: () => resolve(false) },
+        { text: t('iap.simBuy'), onPress: () => resolve(true) },
       ],
     );
   });
@@ -213,9 +214,9 @@ export async function restoreProUnlock() {
 
   if (allowSimulate()) {
     const simulated = await new Promise((resolve) => {
-      Alert.alert('開發模式', '模擬「恢復購買」並解鎖？', [
-        { text: '取消', style: 'cancel', onPress: () => resolve(false) },
-        { text: '恢復', onPress: () => resolve(true) },
+      Alert.alert(t('iap.devTitle'), t('iap.devRestoreBody'), [
+        { text: t('iap.cancel'), style: 'cancel', onPress: () => resolve(false) },
+        { text: t('iap.restore'), onPress: () => resolve(true) },
       ]);
     });
     if (simulated) {
@@ -228,6 +229,6 @@ export async function restoreProUnlock() {
   return {
     ok: false,
     restored: false,
-    error: Platform.OS === 'ios' ? '找不到可恢復的購買' : '無法恢復購買',
+    error: Platform.OS === 'ios' ? t('iap.nothingToRestore') : t('iap.cannotRestore'),
   };
 }

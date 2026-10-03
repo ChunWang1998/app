@@ -12,6 +12,7 @@ import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { colors, radius } from '../theme';
 import { formatDistance, formatHours, isHoursUnknown } from '../lib/geo';
 import { MAX_COMMENT_LEN, MAX_COMMENTS_PER_PLACE } from '../lib/community';
+import { t, useLanguage } from '../i18n';
 
 export default function PlaceDetailSheet({
   place,
@@ -21,6 +22,7 @@ export default function PlaceDetailSheet({
   onNavigate,
   onSubmitComment,
 }) {
+  useLanguage();
   const sheetRef = useRef(null);
   const [sheetIndex, setSheetIndex] = useState(0);
   const [draft, setDraft] = useState('');
@@ -86,7 +88,7 @@ export default function PlaceDetailSheet({
             <Text style={styles.meta}>{formatDistance(place.distance)}</Text>
             <Text style={[styles.meta, isHoursUnknown(place.營業時間) && styles.metaUnknown]}>
               {isHoursUnknown(place.營業時間)
-                ? '營業時間不明，建議出發前確認'
+                ? t('detail.hoursUnknown')
                 : formatHours(place.營業時間)}
             </Text>
           </View>
@@ -96,16 +98,16 @@ export default function PlaceDetailSheet({
             activeOpacity={0.85}
             onPress={() => onNavigate?.(place)}
           >
-            <Text style={styles.navText}>開啟導航</Text>
+            <Text style={styles.navText}>{t('detail.navigate')}</Text>
           </TouchableOpacity>
 
           <Text style={styles.section}>
-            {sheetIndex === 0 ? '最近評論' : '全部評論'}
-            {sheetIndex === 0 ? ' · 再往上滑可留言' : ''}
+            {sheetIndex === 0 ? t('detail.recentComments') : t('detail.allComments')}
+            {sheetIndex === 0 ? t('detail.swipeHint') : ''}
           </Text>
 
           {previewComments.length === 0 ? (
-            <Text style={styles.empty}>還沒有評論，往上滑寫一句吧</Text>
+            <Text style={styles.empty}>{t('detail.noComments')}</Text>
           ) : (
             previewComments.map((text, i) => (
               <View key={`${text}-${i}`} style={styles.commentChip}>
@@ -119,8 +121,8 @@ export default function PlaceDetailSheet({
               <TextInput
                 style={styles.input}
                 value={draft}
-                onChangeText={(t) => setDraft(t.slice(0, MAX_COMMENT_LEN))}
-                placeholder="留言（30 字內）"
+                onChangeText={(value) => setDraft(value.slice(0, MAX_COMMENT_LEN))}
+                placeholder={t('detail.placeholder', { max: MAX_COMMENT_LEN })}
                 placeholderTextColor={colors.muted}
                 maxLength={MAX_COMMENT_LEN}
                 returnKeyType="send"
@@ -135,7 +137,7 @@ export default function PlaceDetailSheet({
                 onPress={submit}
                 activeOpacity={0.85}
               >
-                <Text style={styles.sendText}>送出</Text>
+                <Text style={styles.sendText}>{t('detail.send')}</Text>
               </TouchableOpacity>
             </View>
           )}

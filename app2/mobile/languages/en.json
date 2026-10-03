@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "Your location is used to find nearby stores and cafes with a toilet."
+  }
+}

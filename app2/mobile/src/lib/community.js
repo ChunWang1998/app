@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { getDeviceId } from './deviceId';
 
@@ -11,7 +12,7 @@ export const MAX_COMMENTS_PER_PLACE = 10;
 function assertBackendReady() {
   if (!isSupabaseConfigured || !supabase) {
     const err = new Error(
-      '尚未設定 Supabase。請在 mobile/.env 填入 EXPO_PUBLIC_SUPABASE_URL 與 EXPO_PUBLIC_SUPABASE_ANON_KEY，並執行 supabase/schema.sql。',
+      t('community.noBackend'),
     );
     err.code = 'NO_BACKEND';
     throw err;

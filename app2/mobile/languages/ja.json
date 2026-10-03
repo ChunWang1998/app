@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "近くのコンビニやカフェのトイレを探すために、位置情報を使います。"
+  }
+}

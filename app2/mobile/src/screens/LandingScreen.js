@@ -3,14 +3,16 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius } from '../theme';
 import WcFlag from '../components/WcFlag';
+import { t, useLanguage } from '../i18n';
 
 export default function LandingScreen({ onStart }) {
+  useLanguage();
   return (
     <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={styles.fill}>
       <View style={styles.wash} />
       <View style={styles.container}>
         <Text style={styles.brand}>急廁 Go</Text>
-        <Text style={styles.headline}>趕快找到你附近的廁所！</Text>
+        <Text style={styles.headline}>{t('landing.headline')}</Text>
 
         <View style={styles.flagWrap}>
           <WcFlag />
@@ -21,7 +23,7 @@ export default function LandingScreen({ onStart }) {
           style={styles.cta}
           onPress={onStart}
         >
-          <Text style={styles.ctaText}>開始找廁所</Text>
+          <Text style={styles.ctaText}>{t('landing.cta')}</Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>

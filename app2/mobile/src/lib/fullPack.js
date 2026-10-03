@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { cellKey } from '@shared/places';
+import { t } from '../i18n';
 
 const PACK_DIR = `${FileSystem.documentDirectory}packs/`;
 const PACK_FILE = `${PACK_DIR}full.json`;
@@ -108,7 +109,7 @@ export async function fetchPackManifest(baseUrl) {
  */
 export async function downloadFullPack(baseUrl, onProgress) {
   const root = String(baseUrl || '').replace(/\/$/, '');
-  if (!root) throw new Error('缺少 EXPO_PUBLIC_PLACES_URL，無法下載資料包');
+  if (!root) throw new Error(t('pack.missingUrl'));
 
   const remote = await fetchPackManifest(root);
   await FileSystem.makeDirectoryAsync(PACK_DIR, { intermediates: true });
@@ -135,13 +136,13 @@ export async function downloadFullPack(baseUrl, onProgress) {
   );
 
   const result = await downloadResumable.downloadAsync();
-  if (!result?.uri) throw new Error('下載失敗');
+  if (!result?.uri) throw new Error(t('pack.downloadFail'));
 
   await FileSystem.writeAsStringAsync(PACK_META_FILE, JSON.stringify(remote));
 
   clearFullPackIndex();
   const ok = await ensureFullPackIndexed();
-  if (!ok) throw new Error('資料包損毀，請重試下載');
+  if (!ok) throw new Error(t('pack.corrupt'));
   onProgress?.(1);
   return remote;
 }

@@ -7,25 +7,27 @@ import {
   Pressable,
 } from 'react-native';
 import { colors, radius } from '../theme';
+import { t, useLanguage } from '../i18n';
 
 export default function HelpModal({ visible, onClose }) {
+  useLanguage();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.card} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>說明</Text>
+          <Text style={styles.title}>{t('help.title')}</Text>
 
-          <Text style={styles.label}>免費版</Text>
-          <Text style={styles.body}>全台 7-11（線上載入）</Text>
-          <Text style={styles.note}>右上角「解鎖」可買斷完整資料包</Text>
+          <Text style={styles.label}>{t('help.freeLabel')}</Text>
+          <Text style={styles.body}>{t('help.freeBody')}</Text>
+          <Text style={styles.note}>{t('help.freeNote')}</Text>
 
-          <Text style={[styles.label, { marginTop: 14 }]}>完整資料包（買斷）</Text>
-          <Text style={styles.body}>公廁、全家、加油站、路易莎、星巴克、寶雅、百貨、捷運等</Text>
-          <Text style={styles.price}>一次性買斷 NT$100</Text>
-          <Text style={styles.note}>下載後可離線使用；支援恢復購買</Text>
+          <Text style={[styles.label, { marginTop: 14 }]}>{t('help.fullLabel')}</Text>
+          <Text style={styles.body}>{t('help.fullBody')}</Text>
+          <Text style={styles.price}>{t('help.price')}</Text>
+          <Text style={styles.note}>{t('help.offlineNote')}</Text>
 
           <TouchableOpacity style={styles.btn} onPress={onClose} activeOpacity={0.85}>
-            <Text style={styles.btnText}>知道了</Text>
+            <Text style={styles.btnText}>{t('help.ok')}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

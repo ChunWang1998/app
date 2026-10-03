@@ -11,7 +11,8 @@
       "bundleIdentifier": "com.toiletgo.app",
       "buildNumber": "21",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "需要你的位置來找出附近有廁所的超商／咖啡廳。",
+        "CFBundleAllowMixedLocalizations": true,
+        "NSLocationWhenInUseUsageDescription": "Your location is used to find nearby stores and cafes with a toilet.",
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": [
           "comgooglemaps"
@@ -40,7 +41,16 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "需要你的位置來找出附近有廁所的超商／咖啡廳。"
+          "locationWhenInUsePermission": "Your location is used to find nearby stores and cafes with a toilet."
+        }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": ["en", "ja", "zh-Hant"],
+            "android": ["en", "ja", "zh-Hant", "zh-TW", "zh-HK"]
+          }
         }
       ],
       "expo-font",
@@ -56,6 +66,13 @@
       ],
       "expo-iap"
     ],
+    "locales": {
+      "en": "./languages/en.json",
+      "ja": "./languages/ja.json",
+      "zh-Hant": "./languages/zh-Hant.json",
+      "zh-HK": "./languages/zh-Hant.json",
+      "zh-TW": "./languages/zh-Hant.json"
+    },
     "extra": {
       "eas": {
         "projectId": "bc9c70d1-9edd-4380-aad4-172c45eb4fca"

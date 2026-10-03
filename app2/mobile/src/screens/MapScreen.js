@@ -42,6 +42,7 @@ try {
 }
 import PlaceDetailSheet from '../components/PlaceDetailSheet';
 import HelpModal from '../components/HelpModal';
+import { t, useLanguage } from '../i18n';
 import UnlockProModal from '../components/UnlockProModal';
 
 const DEFAULT_CENTER = { lat: 22.6273, lng: 120.3014 };
@@ -131,7 +132,7 @@ function navigationQuery(place) {
 async function openGoogleMaps(place) {
   const query = navigationQuery(place);
   if (!query) {
-    Alert.alert('無法導航', '此地點沒有可用的名稱或地址');
+    Alert.alert(t('map.navFailTitle'), t('map.navFailBody'));
     return;
   }
 
@@ -154,12 +155,13 @@ async function openGoogleMaps(place) {
     try {
       await openWeb();
     } catch {
-      Alert.alert('無法開啟地圖', e?.message || '請稍後再試');
+      Alert.alert(t('map.mapsFailTitle'), e?.message || t('map.tryAgain'));
     }
   }
 }
 
 export default function MapScreen() {
+  useLanguage();
   const mapRef = useRef(null);
   const [status, setStatus] = useState('locating');
   const [userPos, setUserPos] = useState(DEFAULT_CENTER);
@@ -294,8 +296,8 @@ export default function MapScreen() {
   useEffect(() => {
     if (!isSupabaseConfigured) {
       Alert.alert(
-        '尚未連接雲端',
-        '請在 mobile/.env 設定 EXPO_PUBLIC_SUPABASE_URL 與 EXPO_PUBLIC_SUPABASE_ANON_KEY，並在 Supabase 執行 supabase/schema.sql。留言需連線後才會同步給所有人。',
+        t('map.cloudTitle'),
+        t('map.cloudBody'),
       );
     }
   }, []);
@@ -549,7 +551,7 @@ export default function MapScreen() {
     try {
       const { status: perm } = await Location.requestForegroundPermissionsAsync();
       if (perm !== 'granted') {
-        Alert.alert('無法定位', '請允許定位權限，才能回到目前位置');
+        Alert.alert(t('map.locateFailTitle'), t('map.locatePermission'));
         return;
       }
 
@@ -566,7 +568,7 @@ export default function MapScreen() {
         setStatus('ready');
       } catch {
         if (!pos || status !== 'ready') {
-          Alert.alert('無法定位', '請稍後再試');
+          Alert.alert(t('map.locateFailTitle'), t('map.tryAgain'));
           return;
         }
       }
@@ -590,30 +592,18 @@ export default function MapScreen() {
     async (text) => {
       if (!selectedId) return;
       if (!isSupabaseConfigured) {
-        Alert.alert('尚未連接雲端', '請先設定 Supabase 後再留言。');
+        Alert.alert(t('map.cloudTitle'), t('map.cloudComment'));
         return;
       }
       try {
         const list = await submitComment(selectedId, text);
         setComments((prev) => ({ ...prev, [selectedId]: list }));
       } catch (e) {
-        Alert.alert('留言失敗', e?.message || '請稍後再試');
+        Alert.alert(t('map.commentFailTitle'), e?.message || t('map.tryAgain'));
       }
     },
     [selectedId],
   );
-
-  const statusText = (() => {
-    if (status === 'locating') return '正在定位…';
-    if (placesStatus === 'loading') return '載入附近地點…';
-    if (showAll && viewportStatus === 'zoomedOut') return '請放大地圖以載入地點';
-    if (showAll && viewportStatus === 'loading') return '載入地圖範圍地點…';
-    if (placesStatus === 'error') return '地點資料載入失敗';
-    if (status === 'denied') return '無法取得定位，改用高雄市中心示範';
-    if (status === 'error') return '定位失敗，改用高雄市中心示範';
-    if (packReady) return '完整資料包 · 可離線';
-    return '';
-  })();
 
   const markerCount = mapMarkers.length;
 
@@ -623,7 +613,6 @@ export default function MapScreen() {
         <View style={styles.bar}>
           <View style={{ flex: 1 }}>
             <Text style={styles.brand}>急廁 Go</Text>
-            {!!statusText && <Text style={styles.status}>{statusText}</Text>}
           </View>
           <View style={styles.tabRow}>
             <TouchableOpacity
@@ -631,14 +620,14 @@ export default function MapScreen() {
               onPress={() => setShowAll(false)}
               activeOpacity={0.85}
             >
-              <Text style={[styles.tabText, !showAll && styles.tabTextActive]}>附近</Text>
+              <Text style={[styles.tabText, !showAll && styles.tabTextActive]}>{t('map.nearby')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.tab, showAll && styles.tabActive]}
               onPress={() => setShowAll(true)}
               activeOpacity={0.85}
             >
-              <Text style={[styles.tabText, showAll && styles.tabTextActive]}>全部</Text>
+              <Text style={[styles.tabText, showAll && styles.tabTextActive]}>{t('map.all')}</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
@@ -646,10 +635,10 @@ export default function MapScreen() {
             onPress={() => setUnlockOpen(true)}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel={packReady ? '完整資料包已解鎖' : '解鎖完整廁所資料包'}
+            accessibilityLabel={packReady ? t('map.unlockedA11y') : t('map.unlockA11y')}
           >
             <Text style={[styles.helpText, packReady && styles.unlockTextReady]}>
-              {packReady ? '離線' : '解鎖'}
+              {packReady ? t('map.offline') : t('map.unlock')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -657,14 +646,14 @@ export default function MapScreen() {
             onPress={() => setHelpOpen(true)}
             activeOpacity={0.85}
           >
-            <Text style={styles.helpText}>說明</Text>
+            <Text style={styles.helpText}>{t('map.help')}</Text>
           </TouchableOpacity>
         </View>
 
         {showAll && markerCount > 0 && (
           <View style={styles.countBadge}>
             <Text style={styles.countText}>
-              地圖範圍 {markerCount} 間營業中
+              {t('map.openCount', { count: markerCount })}
             </Text>
           </View>
         )}
@@ -704,7 +693,7 @@ export default function MapScreen() {
           {status === 'locating' ? (
             <View style={styles.locatingBanner} pointerEvents="none">
               <ActivityIndicator size="small" color={colors.brand} />
-              <Text style={styles.locatingText}>定位中…</Text>
+              <Text style={styles.locatingText}>{t('map.locating')}</Text>
             </View>
           ) : null}
         </View>
@@ -734,7 +723,7 @@ export default function MapScreen() {
             onPress={recenterOnUser}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel="回到目前位置"
+            accessibilityLabel={t('map.recenterA11y')}
             disabled={recentering}
           >
             {recentering ? (
@@ -783,11 +772,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: colors.brandDeep,
-  },
-  status: {
-    marginTop: 2,
-    fontSize: 13,
-    color: colors.muted,
   },
   tabRow: {
     flexDirection: 'row',
