@@ -58,6 +58,12 @@ async function persist(nextState) {
   state = { ...nextState, activities: nextState.activities || [] };
   await saveState(state, storage);
   notify();
+  try {
+    const { enforceReminderBudget } = require('../notifications/reminders');
+    await enforceReminderBudget(state.activities);
+  } catch {
+    // web / tests / missing permission — never block a save
+  }
 }
 
 export async function addActivity(input) {

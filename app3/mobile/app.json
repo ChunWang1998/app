@@ -49,7 +49,8 @@
         }
       ],
       "expo-iap",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-notifications"
     ],
     "locales": {
       "en": "./languages/en.json",

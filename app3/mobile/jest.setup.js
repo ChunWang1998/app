@@ -47,6 +47,16 @@ jest.mock('expo-font', () => ({
   loadAsync: jest.fn(async () => {}),
 }));
 
+jest.mock('expo-notifications', () => ({
+  getPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  setNotificationChannelAsync: jest.fn(async () => {}),
+  cancelAllScheduledNotificationsAsync: jest.fn(async () => {}),
+  scheduleNotificationAsync: jest.fn(async () => 'id'),
+  getAllScheduledNotificationsAsync: jest.fn(async () => []),
+  SchedulableTriggerInputTypes: { DATE: 'date' },
+}));
+
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(async () => {}),
   NotificationFeedbackType: { Success: 'success' },

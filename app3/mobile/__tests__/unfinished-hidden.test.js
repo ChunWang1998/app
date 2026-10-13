@@ -15,12 +15,12 @@ describe('v1.1 hides unfinished entry points', () => {
     expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(false);
   });
 
-  it('does not depend on expo-notifications yet', () => {
+  it('schedules reminders with expo-notifications', () => {
     const plugins = JSON.stringify(appJson.expo.plugins || []);
-    expect(plugins).not.toMatch(/expo-notifications/);
+    expect(plugins).toMatch(/expo-notifications/);
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
-    expect(pkg.dependencies['expo-notifications']).toBeUndefined();
-    expect(fs.existsSync(path.join(__dirname, '../src/notifications'))).toBe(false);
+    expect(pkg.dependencies['expo-notifications']).toBeDefined();
+    expect(fs.existsSync(path.join(__dirname, '../src/notifications/reminders.js'))).toBe(true);
   });
 
   it('does not expose import/export or recently deleted in Settings', () => {
