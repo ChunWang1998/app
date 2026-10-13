@@ -1,0 +1,42 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "好久沒了"
+  },
+  "app": {
+    "title": "好久沒了",
+    "placeholderUi": "（僅供測試邏輯的臨時介面）",
+    "loading": "載入中…"
+  },
+  "labels": {
+    "lastDone": "上次",
+    "never": "從未",
+    "deleted": "已刪除",
+    "empty": "還沒有項目",
+    "proUnlocked": "已解鎖 Pro",
+    "freeTier": "免費版"
+  },
+  "actions": {
+    "addSample": "新增範例",
+    "logNow": "現在記一次",
+    "delete": "刪除",
+    "undo": "復原",
+    "export": "匯出",
+    "exportedToConsole": "已在主控台列印匯出內容",
+    "refreshReminders": "更新提醒",
+    "restore": "恢復購買"
+  },
+  "iap": {
+    "buyFail": "購買失敗",
+    "unavailable": "無法使用內購",
+    "timeout": "等待購買逾時",
+    "cancel": "取消",
+    "simTitle": "模擬購買（開發）",
+    "simBody": "要為 {productId} 授予權限嗎？",
+    "simBuy": "模擬購買",
+    "devTitle": "模擬恢復",
+    "devRestoreBody": "要授予權限嗎？",
+    "restore": "恢復",
+    "nothingToRestore": "找不到已購買紀錄",
+    "cannotRestore": "此平台無法恢復"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "Been Ages"
+  },
+  "app": {
+    "title": "Been Ages",
+    "placeholderUi": "(placeholder UI for logic only)",
+    "loading": "Loading..."
+  },
+  "labels": {
+    "lastDone": "Last done",
+    "never": "Never",
+    "deleted": "Deleted",
+    "empty": "No activities yet",
+    "proUnlocked": "Pro unlocked",
+    "freeTier": "Free tier"
+  },
+  "actions": {
+    "addSample": "Add sample",
+    "logNow": "Log now",
+    "delete": "Delete",
+    "undo": "Undo",
+    "export": "Export",
+    "exportedToConsole": "Export printed to console",
+    "refreshReminders": "Refresh reminders",
+    "restore": "Restore purchases"
+  },
+  "iap": {
+    "buyFail": "Purchase failed",
+    "unavailable": "Purchases unavailable",
+    "timeout": "Timed out waiting for purchase",
+    "cancel": "Cancel",
+    "simTitle": "Simulate purchase (dev)",
+    "simBody": "Grant entitlement for {productId}?",
+    "simBuy": "Simulate purchase",
+    "devTitle": "Simulate restore",
+    "devRestoreBody": "Grant entitlement?",
+    "restore": "Restore",
+    "nothingToRestore": "No previous purchase found",
+    "cannotRestore": "Cannot restore on this platform"
+  }
+}

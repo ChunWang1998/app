@@ -1,0 +1,258 @@
+import { Platform, Alert } from 'react-native';
+import {
+  setProUnlocked,
+  isProUnlocked,
+  getEmptyPurchaseStreak,
+  setEmptyPurchaseStreak,
+} from './entitlements';
+import { t } from '../i18n';
+
+const PRO_PRODUCT_ID =
+  process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack';
+
+function runningInExpoGo() {
+  try {
+    const Constants = require('expo-constants').default ?? require('expo-constants');
+    return (
+      Constants.appOwnership === 'expo' ||
+      Constants.executionEnvironment === 'storeClient'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function allowSimulate() {
+  if (process.env.EXPO_PUBLIC_IAP_SIMULATE === '1') return true;
+  if (runningInExpoGo()) return true;
+  if (typeof __DEV__ !== 'undefined' && __DEV__) return true;
+  return false;
+}
+
+function purchaseMatches(p) {
+  return (
+    p?.productId === PRO_PRODUCT_ID ||
+    p?.id === PRO_PRODUCT_ID ||
+    p?.sku === PRO_PRODUCT_ID ||
+    (Array.isArray(p?.ids) && p.ids.includes(PRO_PRODUCT_ID))
+  );
+}
+
+function waitForPurchaseEvent(iap, timeoutMs = 120000) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      try {
+        subUpdate?.remove?.();
+      } catch {}
+      try {
+        subError?.remove?.();
+      } catch {}
+      clearTimeout(timer);
+      resolve(result);
+    };
+
+    const subUpdate = iap.purchaseUpdatedListener((purchase) => {
+      if (!purchaseMatches(purchase)) return;
+      finish({ ok: true, purchase });
+    });
+    const subError = iap.purchaseErrorListener?.((error) => {
+      const msg = String(error?.message || error?.code || error || t('iap.buyFail'));
+      if (/cancel|Cancel|E_USER_CANCELLED/i.test(msg)) {
+        finish({ ok: false, cancelled: true });
+        return;
+      }
+      finish({ ok: false, error: msg });
+    });
+
+    const timer = setTimeout(() => {
+      finish({ ok: false, error: t('iap.timeout') });
+    }, timeoutMs);
+  });
+}
+
+async function tryNativePurchase() {
+  const iap = require('expo-iap');
+  if (!iap?.initConnection || !iap?.requestPurchase) {
+    throw new Error('IAP unavailable');
+  }
+
+  await iap.initConnection();
+  try {
+    if (typeof iap.fetchProducts === 'function') {
+      await iap.fetchProducts({ skus: [PRO_PRODUCT_ID], type: 'in-app' });
+    }
+
+    const pending = waitForPurchaseEvent(iap);
+    await iap.requestPurchase({
+      request: {
+        apple: { sku: PRO_PRODUCT_ID },
+        google: { skus: [PRO_PRODUCT_ID] }
+      },
+      type: 'in-app'
+    });
+
+    const result = await pending;
+    if (!result.ok) return result;
+
+    if (result.purchase && typeof iap.finishTransaction === 'function') {
+      try {
+        await iap.finishTransaction({
+          purchase: result.purchase,
+          isConsumable: false
+        });
+      } catch {}
+    }
+    await setProUnlocked(true);
+    return { ok: true };
+  } finally {
+    try {
+      await iap.endConnection?.();
+    } catch {}
+  }
+}
+
+async function tryNativeRestore() {
+  const iap = require('expo-iap');
+  if (!iap?.initConnection || !iap?.getAvailablePurchases) {
+    throw new Error('IAP unavailable');
+  }
+
+  await iap.initConnection();
+  try {
+    if (typeof iap.restorePurchases === 'function') {
+      try {
+        await iap.restorePurchases();
+      } catch {
+        // continue to query
+      }
+    }
+    const purchases = await iap.getAvailablePurchases();
+    const mine = (purchases || []).some(purchaseMatches);
+    if (mine) {
+      await setProUnlocked(true);
+      return { ok: true, restored: true };
+    }
+    return { ok: true, restored: false };
+  } finally {
+    try {
+      await iap.endConnection?.();
+    } catch {}
+  }
+}
+
+export async function purchaseProUnlock() {
+  if (await isProUnlocked()) {
+    return { ok: true };
+  }
+
+  try {
+    return await tryNativePurchase();
+  } catch (e) {
+    const msg = String(e?.message || e || '');
+    if (/cancel|Cancel|E_USER_CANCELLED/i.test(msg)) {
+      return { ok: false, cancelled: true };
+    }
+    if (!allowSimulate()) {
+      return { ok: false, error: msg || t('iap.buyFail') };
+    }
+  }
+
+  if (!allowSimulate()) {
+    return {
+      ok: false,
+      error: t('iap.unavailable')
+    };
+  }
+
+  const simulated = await new Promise((resolve) => {
+    Alert.alert(
+      t('iap.simTitle'),
+      t('iap.simBody', { productId: PRO_PRODUCT_ID }),
+      [
+        { text: t('iap.cancel'), style: 'cancel', onPress: () => resolve(false) },
+        { text: t('iap.simBuy'), onPress: () => resolve(true) }
+      ]
+    );
+  });
+
+  if (!simulated) return { ok: false, cancelled: true };
+  await setProUnlocked(true);
+  return { ok: true, simulated: true };
+}
+
+export async function restoreProUnlock() {
+  if (await isProUnlocked()) {
+    return { ok: true, restored: true };
+  }
+
+  try {
+    return await tryNativeRestore();
+  } catch (e) {
+    if (!allowSimulate()) {
+      return { ok: false, restored: false, error: String(e?.message || e) };
+    }
+  }
+
+  if (allowSimulate()) {
+    const simulated = await new Promise((resolve) => {
+      Alert.alert(t('iap.devTitle'), t('iap.devRestoreBody'), [
+        { text: t('iap.cancel'), style: 'cancel', onPress: () => resolve(false) },
+        { text: t('iap.restore'), onPress: () => resolve(true) }
+      ]);
+    });
+    if (simulated) {
+      await setProUnlocked(true);
+      return { ok: true, restored: true, simulated: true };
+    }
+    return { ok: true, restored: false, simulated: true };
+  }
+
+  return {
+    ok: false,
+    restored: false,
+    error: Platform.OS === 'ios' ? t('iap.nothingToRestore') : t('iap.cannotRestore')
+  };
+}
+
+const EMPTY_LIST_REVOKE_AFTER = 3;
+
+/**
+ * On launch, re-verify entitlement via getAvailablePurchases() only
+ * (not restorePurchases). Grants locally when a matching purchase exists.
+ * Does not revoke in IAP_SIMULATE / preview / Expo Go. An empty list can
+ * mean offline or a StoreKit cache miss, so revocation requires N consecutive
+ * successful empty queries.
+ */
+export async function verifyProOnLaunch() {
+  if (allowSimulate()) {
+    return;
+  }
+  try {
+    const iap = require('expo-iap');
+    if (!iap?.initConnection || !iap?.getAvailablePurchases) return;
+    await iap.initConnection();
+    try {
+      const purchases = await iap.getAvailablePurchases();
+      const mine = (purchases || []).some(purchaseMatches);
+      if (mine) {
+        await setProUnlocked(true);
+        await setEmptyPurchaseStreak(0);
+        return;
+      }
+      const streak = (await getEmptyPurchaseStreak()) + 1;
+      await setEmptyPurchaseStreak(streak);
+      if (streak >= EMPTY_LIST_REVOKE_AFTER) {
+        await setProUnlocked(false);
+      }
+    } finally {
+      try {
+        await iap.endConnection?.();
+      } catch {}
+    }
+  } catch {
+    // Network / StoreKit errors: do not increment streak or revoke.
+  }
+}

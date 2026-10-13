@@ -1,16 +1,16 @@
 # Apps
 
-此 repo 有兩個獨立的 Expo app。根目錄的 `package.json`、`app.json`、`eas.json` 是空殼；版本、權限與 EAS 設定都在各 app 目錄裡。
+此 repo 有多個獨立的 Expo app。根目錄的 `package.json`、`app.json`、`eas.json` 是空殼；版本、權限與 EAS 設定都在各 app 目錄裡。
 
-| | app1 | app2 |
-|---|---|---|
-| 名稱 | 諧音猜猜 | 急廁 Go |
-| 目錄 | `app1/game` | `app2/mobile`（正式）；`app2/web` 為舊版 demo |
-| Bundle / package | `com.soundalike.app` | `com.toiletgo.app` |
-| 版本 | `1.0.0`（`ios.buildNumber` 由 EAS remote 遞增） | `1.1.5`（`ios.buildNumber` `22`，`appVersionSource: local`） |
-| ASC App ID | `6798265759` | `6798266716` |
-| 內購 | 無 | 非消耗型 `com.toiletgo.app.fullpack` |
-| 敏感權限 | 無（播放音效；麥克風已關閉） | 僅使用期間定位 |
+| | app1 | app2 | app3 |
+|---|---|---|---|
+| 名稱 | 諧音猜猜 | 急廁 Go | Been Ages |
+| 目錄 | `app1/game` | `app2/mobile`（正式）；`app2/web` 為舊版 demo | `app3/mobile` |
+| Bundle / package | `com.soundalike.app` | `com.toiletgo.app` | `com.beenages.app` |
+| 版本 | `1.0.0`（`ios.buildNumber` 由 EAS remote 遞增） | `1.1.5`（`ios.buildNumber` `22`，`appVersionSource: local`） | `1.0.0`（`ios.buildNumber` `1`，`appVersionSource: local`） |
+| ASC App ID | `6798265759` | `6798266716` | TBA |
+| 內購 | 無 | 非消耗型 `com.toiletgo.app.fullpack` | 非消耗型 `com.beenages.app.fullpack` |
+| 敏感權限 | 無（播放音效；麥克風已關閉） | 僅使用期間定位 | 無（僅本機通知） |
 
 商店頁（支援／隱私）由 repo 根目錄 `deploy-store-pages.sh` 部署到 GitHub Pages。腳本會掃 `app1`–`app4`，目前只有 app1、app2 有 `store/support.html` 與 `store/privacy.html`。
 
@@ -56,6 +56,22 @@ cd app2/mobile && npm install && npm start
 - Android 只宣告 `ACCESS_COARSE_LOCATION`、`ACCESS_FINE_LOCATION`
 
 沒有相機、相簿、麥克風。
+
+---
+
+## app3 — Been Ages
+
+「上次做這件事是多久以前？」生活記錄器。此版本僅實作核心邏輯（資料層、匯出匯入、提醒排程、IAP 解鎖／恢復購買、i18n）；UI 為最小可互動的占位介面，僅供開發測試。
+
+```bash
+cd app3/mobile && npm install && npm start
+```
+
+- i18n：英文為主，含繁中（`zh-Hant`）與本機化顯示名稱
+- IAP：一次性買斷 `com.beenages.app.fullpack`（照 `eas.json`；`preview` 以 `EXPO_PUBLIC_IAP_SIMULATE=1` 模擬）
+- 本機提醒：`expo-notifications`，排程遵守 iOS 64 筆上限（以每項目 1 筆為原則，取「最近將到期」的前 64 筆）
+- 匯出匯入：JSON（有 schema 驗證）
+- 單元測試：`npm test`
 
 ---
 
