@@ -1,18 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 
-describe('v1.1 hides unfinished entry points', () => {
+describe('v1.1 ships finished entry points only', () => {
   const nav = fs.readFileSync(path.join(__dirname, '../src/navigation/AppNavigator.js'), 'utf8');
   const settings = fs.readFileSync(path.join(__dirname, '../src/screens/SettingsScreen.js'), 'utf8');
   const home = fs.readFileSync(path.join(__dirname, '../src/screens/HomeScreen.js'), 'utf8');
   const app = fs.readFileSync(path.join(__dirname, '../src/App.js'), 'utf8');
   const appJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../app.json'), 'utf8'));
 
-  it('ships Reminder but not RecentlyDeleted or widgets', () => {
+  it('ships Reminder and RecentlyDeleted', () => {
     expect(nav).toMatch(/ReminderScreen/);
-    expect(nav).not.toMatch(/RecentlyDeleted/);
+    expect(nav).toMatch(/RecentlyDeleted/);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/ReminderScreen.js'))).toBe(true);
-    expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(false);
+    expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(true);
   });
 
   it('schedules reminders with expo-notifications', () => {
@@ -23,12 +23,12 @@ describe('v1.1 hides unfinished entry points', () => {
     expect(fs.existsSync(path.join(__dirname, '../src/notifications/reminders.js'))).toBe(true);
   });
 
-  it('does not expose import/export or recently deleted in Settings', () => {
-    expect(settings).not.toMatch(/匯出/);
-    expect(settings).not.toMatch(/匯入/);
-    expect(settings).not.toMatch(/最近刪除/);
-    expect(settings).toMatch(/恢復購買/);
+  it('exposes import/export and recently deleted in Settings', () => {
+    expect(settings).toMatch(/匯出/);
+    expect(settings).toMatch(/匯入/);
+    expect(settings).toMatch(/最近刪除/);
     expect(settings).toMatch(/顯示/);
+    expect(settings).toMatch(/恢復購買/);
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/privacy.html');
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/support.html');
   });

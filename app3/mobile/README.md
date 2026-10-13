@@ -7,7 +7,7 @@ v1.1 core UI (this slice):
 - IAP unlock + Restore Purchases (expo-iap), free tier = 3 items
 - i18n (en, zh-Hant)
 - Local reminders are scheduled with expo-notifications (one per item, iOS 64 cap, snooze)
-- Import/export and Recently Deleted are the next slice
+- Recently Deleted (30 days) + JSON/CSV export and JSON import
 
 Security review notes
 - Pro entitlement storage is local-only (AsyncStorage) and unverified. On app launch, re-verify past purchases via expo-iap (e.g., getAvailablePurchases/restorePurchases) to re-grant entitlement if needed — mirror the pattern in app2. This is planned before shipping UI polish.

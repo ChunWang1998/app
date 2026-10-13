@@ -25,14 +25,24 @@ function visibleCount(list = state.activities) {
   return (list || []).filter((a) => !a.deletedAt).length;
 }
 
+const TRASH_MS = 30 * 864e5;
+
 export async function initRepository() {
   if (initialized) return;
   const loaded = await loadState(storage);
-  // v1.0: leftover soft-deletes (crash during the 5s undo window, or older 30-day rows) are dropped.
-  const visible = (loaded.activities || []).filter((a) => !a.deletedAt);
-  state = { ...loaded, activities: visible };
+  const now = Date.now();
+  const kept = (loaded.activities || []).filter((a) => {
+    if (!a.deletedAt) return true;
+    const t = new Date(a.deletedAt).getTime();
+    return Number.isFinite(t) && now - t < TRASH_MS;
+  });
+  state = { ...loaded, activities: kept };
   initialized = true;
   notify();
+}
+
+export function getRecentlyDeleted() {
+  return state.activities.filter((a) => a.deletedAt);
 }
 
 export async function resetRepositoryForTests() {
@@ -150,6 +160,29 @@ export async function undoDelete(id) {
   const ts = nowIso();
   const next = state.activities.map(a => (a.id === id ? { ...a, deletedAt: null, updatedAt: ts } : a));
   await persist({ ...state, activities: next });
+}
+
+export async function exportToCsv() {
+  const rows = state.activities.filter((a) => !a.deletedAt);
+  const header = ['id', 'title', 'icon', 'lastDoneAt', 'reminderDays', 'notes', 'history'];
+  const escape = (v) => {
+    const s = v == null ? '' : String(v);
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const lines = [header.join(',')];
+  for (const a of rows) {
+    lines.push([
+      a.id,
+      a.title,
+      a.icon || '',
+      a.lastDoneAt || '',
+      a.reminderDays ?? '',
+      a.notes || '',
+      (a.history || []).map((e) => e.at).join('|'),
+    ].map(escape).join(','));
+  }
+  return lines.join('\n');
 }
 
 export async function exportToJson() {
