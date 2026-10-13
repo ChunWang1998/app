@@ -22,7 +22,6 @@
     "undo": "復原",
     "export": "匯出",
     "exportedToConsole": "已在主控台列印匯出內容",
-    "refreshReminders": "更新提醒",
     "restore": "恢復購買"
   },
   "iap": {
