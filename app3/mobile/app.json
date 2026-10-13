@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Been Ages",
+    "slug": "been-ages",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.beenages.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
+      },
+      "runtimeVersion": {
+        "policy": "sdkVersion"
+      }
+    },
+    "android": {
+      "package": "com.beenages.app",
+      "permissions": []
+    },
+    "plugins": [
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": ["en", "zh-Hant"],
+            "android": ["en", "zh-Hant", "zh-TW", "zh-HK"]
+          }
+        }
+      ],
+      "expo-notifications",
+      "expo-iap"
+    ],
+    "locales": {
+      "en": "./languages/en.json",
+      "zh-Hant": "./languages/zh-Hant.json",
+      "zh-TW": "./languages/zh-Hant.json",
+      "zh-HK": "./languages/zh-Hant.json"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID_BEFORE_FIRST_BUILD"
+      }
+    },
+    "owner": "leowang1105"
+  }
+}
