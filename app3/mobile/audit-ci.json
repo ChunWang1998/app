@@ -1,0 +1,11 @@
+{
+  "allowlist": [
+    "GHSA-vfj7-8cjw-p6xm",  // braces DoS (transitive via metro/jest)
+    "GHSA-86w9-cpqp-85rv",  // node-forge signature verification (Expo tooling)
+    "GHSA-hp3w-g68c-fv3c",  // sprintf-js (transitive via js-yaml in tooling)
+    "GHSA-w5hq-g745-h8pq"   // uuid v3/5/6 bounds check (transitive via xcode)
+  ],
+  "report-type": "important",
+  "fail-on-severity": "high",
+  "skip-dev": true
+}
