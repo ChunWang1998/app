@@ -10,6 +10,9 @@ import * as FileSystem from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
 import { importFromJson } from '../data/repository';
 
+const STORE_PRIVACY_URL = 'https://chunwang1998.github.io/app/app3/store/privacy.html';
+const STORE_SUPPORT_URL = 'https://chunwang1998.github.io/app/app3/store/support.html';
+
 export default function SettingsScreen() {
   const c = useThemeColors();
   const nav = useNavigation();
@@ -117,6 +120,12 @@ export default function SettingsScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:tinytoolshedhq@gmail.com')}>
             <Text style={[styles.rowTitle, { color: c.label }]}>聯絡我們</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL(STORE_SUPPORT_URL)}>
+            <Text style={[styles.rowTitle, { color: c.label }]}>支援</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL(STORE_PRIVACY_URL)}>
+            <Text style={[styles.rowTitle, { color: c.label }]}>隱私權政策</Text>
           </TouchableOpacity>
         </View>
         <Text style={{ textAlign: 'center', marginTop: 20, color: c.l2 }}>Been Ages 1.0</Text>

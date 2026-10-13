@@ -1,6 +1,0 @@
-# GitHub Pages project site. Enable: Settings → Pages → Deploy from a branch → main /docs
-title: Been Ages
-markdown: kramdown
-kramdown:
-  input: GFM
-permalink: pretty
