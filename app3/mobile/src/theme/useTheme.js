@@ -17,4 +17,4 @@ export function useForcedScheme() {
   }
 }
 
-export { useTheme, useItemTone } from './ThemeContext';
+export { ThemeProvider, useTheme, useItemTone } from './ThemeContext';
