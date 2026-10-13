@@ -15,3 +15,7 @@ Security review notes
 Environment
 - See `.env.example` for non-secret placeholders. Do not commit `.env`.
 
+Store pages (GitHub Pages, `gh-pages` branch)
+- Privacy: https://chunwang1998.github.io/app/app3/store/privacy.html
+- Support: https://chunwang1998.github.io/app/app3/store/support.html
+
