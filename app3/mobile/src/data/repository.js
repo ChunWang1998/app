@@ -120,17 +120,20 @@ export async function importFromJson(data) {
     }
   }
   let nextActivities = Array.from(map.values());
+  let truncated = false;
   // Enforce free tier for non-pro: only keep up to FREE_ACTIVITY_LIMIT visible items
   const pro = await isProUnlocked();
   if (!pro) {
     const visible = nextActivities.filter((a) => !a.deletedAt);
     if (visible.length > FREE_ACTIVITY_LIMIT) {
+      truncated = true;
       const trimmedVisible = visible.slice(0, FREE_ACTIVITY_LIMIT);
       const keepIds = new Set(trimmedVisible.map((a) => a.id));
       nextActivities = nextActivities.filter((a) => a.deletedAt || keepIds.has(a.id));
     }
   }
   await persist({ ...state, activities: nextActivities });
+  return { truncated };
 }
 
 export function getRecentlyDeleted(nowMs = Date.now()) {

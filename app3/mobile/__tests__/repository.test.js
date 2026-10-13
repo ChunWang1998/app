@@ -48,6 +48,30 @@ describe('repository', () => {
     await importFromJson(JSON.parse(JSON.stringify(blob)));
   });
 
+  it('truncates import for free users and reports truncated', async () => {
+    await resetRepositoryForTests();
+    jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(false);
+    const ts = new Date().toISOString();
+    const activities = Array.from({ length: 6 }, (_, i) => ({
+      id: `imp_${i}`,
+      title: `Imported ${i}`,
+      lastDoneAt: null,
+      reminderDays: 7,
+      createdAt: ts,
+      updatedAt: ts,
+      deletedAt: null,
+    }));
+    const result = await importFromJson({
+      schema: 'been-ages/export',
+      version: 1,
+      exportedAt: ts,
+      activities,
+    });
+    expect(result.truncated).toBe(true);
+    const blob = await exportToJson();
+    expect(blob.activities.length).toBe(FREE_ACTIVITY_LIMIT);
+  });
+
   it('purges items soft-deleted over 30 days', async () => {
     await resetRepositoryForTests();
     const a = await addActivity({ title: 'Old' });

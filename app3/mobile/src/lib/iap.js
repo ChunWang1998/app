@@ -1,5 +1,10 @@
 import { Platform, Alert } from 'react-native';
-import { setProUnlocked, isProUnlocked } from './entitlements';
+import {
+  setProUnlocked,
+  isProUnlocked,
+  getEmptyPurchaseStreak,
+  setEmptyPurchaseStreak,
+} from './entitlements';
 import { t } from '../i18n';
 
 const PRO_PRODUCT_ID =
@@ -212,12 +217,19 @@ export async function restoreProUnlock() {
   };
 }
 
+const EMPTY_LIST_REVOKE_AFTER = 3;
+
 /**
- * On launch, re-verify entitlement by checking available purchases.
- * Grants local entitlement when a matching non-consumable is found.
- * Swallows errors silently to avoid blocking app start.
+ * On launch, re-verify entitlement via getAvailablePurchases() only
+ * (not restorePurchases). Grants locally when a matching purchase exists.
+ * Does not revoke in IAP_SIMULATE / preview / Expo Go. An empty list can
+ * mean offline or a StoreKit cache miss, so revocation requires N consecutive
+ * successful empty queries.
  */
 export async function verifyProOnLaunch() {
+  if (allowSimulate()) {
+    return;
+  }
   try {
     const iap = require('expo-iap');
     if (!iap?.initConnection || !iap?.getAvailablePurchases) return;
@@ -227,8 +239,12 @@ export async function verifyProOnLaunch() {
       const mine = (purchases || []).some(purchaseMatches);
       if (mine) {
         await setProUnlocked(true);
-      } else {
-        // Revoke entitlement if no valid purchases (e.g., refunds)
+        await setEmptyPurchaseStreak(0);
+        return;
+      }
+      const streak = (await getEmptyPurchaseStreak()) + 1;
+      await setEmptyPurchaseStreak(streak);
+      if (streak >= EMPTY_LIST_REVOKE_AFTER) {
         await setProUnlocked(false);
       }
     } finally {
@@ -237,6 +253,6 @@ export async function verifyProOnLaunch() {
       } catch {}
     }
   } catch {
-    // ignore
+    // Network / StoreKit errors: do not increment streak or revoke.
   }
 }

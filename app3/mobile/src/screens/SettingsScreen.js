@@ -37,7 +37,20 @@ export default function SettingsScreen() {
       const pick = await DocumentPicker.getDocumentAsync({ type: 'application/json', multiple: false, copyToCacheDirectory: true });
       if (pick.canceled) return;
       const file = pick.assets?.[0];
-      if (file?.size != null && Number(file.size) > 1024 * 1024) {
+      if (!file?.uri) {
+        Alert.alert('匯入失敗', '找不到檔案');
+        return;
+      }
+      let byteSize = file.size != null ? Number(file.size) : NaN;
+      if (!Number.isFinite(byteSize) || byteSize <= 0) {
+        try {
+          const info = await FileSystem.getInfoAsync(file.uri);
+          byteSize = Number(info?.size);
+        } catch {
+          byteSize = NaN;
+        }
+      }
+      if (Number.isFinite(byteSize) && byteSize > 1024 * 1024) {
         Alert.alert('匯入失敗', '檔案太大（超過 1MB）');
         return;
       }
@@ -57,8 +70,12 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await importFromJson(data); // has validation inside
-              Alert.alert('完成', '已匯入資料');
+              const result = await importFromJson(data);
+              if (result?.truncated) {
+                Alert.alert('完成', '已匯入資料。免費版只保留 3 個項目。');
+              } else {
+                Alert.alert('完成', '已匯入資料');
+              }
             } catch (e) {
               Alert.alert('匯入失敗', String(e?.message || e));
             }

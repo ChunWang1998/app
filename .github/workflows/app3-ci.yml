@@ -22,5 +22,5 @@ jobs:
           cache-dependency-path: app3/mobile/package-lock.json
       - run: npm ci
       - run: npm test --silent
-      - name: Audit high severity (prod deps)
-        run: npm audit --omit=dev --audit-level=high
+      - name: Audit (high/critical) with allowlist
+        run: npx audit-ci --config audit-ci.json
