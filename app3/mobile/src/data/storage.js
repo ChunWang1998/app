@@ -23,15 +23,17 @@ export class KeyValueStorage {
   }
 }
 
-const STATE_KEY = 'state/v1';
+export const STATE_KEY = 'state/v1';
+export const CORRUPT_KEY = 'state/v1.corrupt';
 
 /**
  * Persist entire app state in one blob (simple and atomic for v1).
  * Shape: { activities: Activity[], version: 1 }
  */
 export async function loadState(storage = new KeyValueStorage()) {
+  let raw = null;
   try {
-    const raw = await storage.getItem(STATE_KEY);
+    raw = await storage.getItem(STATE_KEY);
     if (!raw) return { version: 1, activities: [] };
     const data = JSON.parse(raw);
     if (!data || typeof data !== 'object') throw new Error('bad state');
@@ -41,6 +43,13 @@ export async function loadState(storage = new KeyValueStorage()) {
       activities: data.activities.map(migrateActivity),
     };
   } catch {
+    if (raw) {
+      try {
+        await storage.setItem(CORRUPT_KEY, raw);
+      } catch {
+        // backup is best-effort; never block launching on an empty store
+      }
+    }
     return { version: 1, activities: [] };
   }
 }

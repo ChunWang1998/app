@@ -9,6 +9,7 @@ import {
   undoLogActivity,
   softDeleteActivity,
   undoDelete,
+  hardDeleteActivity,
   FREE_ACTIVITY_LIMIT,
 } from '../data/repository';
 import { useThemeColors } from '../theme/useTheme';
@@ -29,6 +30,7 @@ export default function HomeScreen() {
   const { activities, ready } = useActivities();
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
+  const pendingHardDelete = useRef(null);
 
   const data = useMemo(() => {
     return [...activities].map((a) => {
@@ -38,10 +40,23 @@ export default function HomeScreen() {
   }, [activities]);
   const overdueCount = data.filter((x) => x._due < 0).length;
 
-  function showToast(next) {
+  function commitPendingDelete() {
+    const id = pendingHardDelete.current;
+    pendingHardDelete.current = null;
+    if (id) hardDeleteActivity(id).catch(() => {});
+  }
+
+  function showToast(next, { hardDeleteId } = {}) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
+    if (pendingHardDelete.current && pendingHardDelete.current !== hardDeleteId) {
+      commitPendingDelete();
+    }
+    pendingHardDelete.current = hardDeleteId || null;
     setToast(next);
-    toastTimer.current = setTimeout(() => setToast(null), 5000);
+    toastTimer.current = setTimeout(() => {
+      commitPendingDelete();
+      setToast(null);
+    }, 5000);
   }
 
   async function handleCheck(a) {
@@ -69,9 +84,20 @@ export default function HomeScreen() {
     showToast({
       text: '已刪除',
       undo: async () => {
-        await undoDelete(a.id);
+        pendingHardDelete.current = null;
+        try {
+          await undoDelete(a.id);
+          return true;
+        } catch (e) {
+          if (e?.code === 'FREE_LIMIT') {
+            pendingHardDelete.current = a.id;
+            nav.navigate('Paywall');
+            return false;
+          }
+          throw e;
+        }
       },
-    });
+    }, { hardDeleteId: a.id });
   }
 
   return (
@@ -142,8 +168,8 @@ export default function HomeScreen() {
           {toast.undo ? (
             <TouchableOpacity
               onPress={async () => {
-                await toast.undo();
-                setToast(null);
+                const ok = await toast.undo();
+                if (ok !== false) setToast(null);
               }}
               hitSlop={8}
             >

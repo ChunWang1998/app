@@ -22,7 +22,6 @@
     "undo": "Undo",
     "export": "Export",
     "exportedToConsole": "Export printed to console",
-    "refreshReminders": "Refresh reminders",
     "restore": "Restore purchases"
   },
   "iap": {

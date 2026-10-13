@@ -2,7 +2,6 @@ import React from 'react';
 import { createActivity, nowIso, migrateActivity } from './models';
 import { KeyValueStorage, loadState, saveState } from './storage';
 import { validateExport } from './schema';
-import { enforceReminderBudget } from '../notifications/reminders';
 import { isProUnlocked } from '../lib/entitlements';
 
 const storage = new KeyValueStorage();
@@ -16,12 +15,22 @@ function notify() {
   for (const l of listeners) l(state);
 }
 
+function freeLimitError() {
+  const err = new Error(`Free tier limit ${FREE_ACTIVITY_LIMIT}`);
+  err.code = 'FREE_LIMIT';
+  return err;
+}
+
+function visibleCount(list = state.activities) {
+  return (list || []).filter((a) => !a.deletedAt).length;
+}
+
 export async function initRepository() {
   if (initialized) return;
   const loaded = await loadState(storage);
-  // Purge expired deleted on load
-  const purged = (loaded.activities || []).filter((a) => !isExpiredDeleted(a));
-  state = { ...loaded, activities: purged };
+  // v1.0: leftover soft-deletes (crash during the 5s undo window, or older 30-day rows) are dropped.
+  const visible = (loaded.activities || []).filter((a) => !a.deletedAt);
+  state = { ...loaded, activities: visible };
   initialized = true;
   notify();
 }
@@ -29,7 +38,6 @@ export async function initRepository() {
 export async function resetRepositoryForTests() {
   initialized = false;
   state = { version: 1, activities: [] };
-  // wipe persisted storage
   await saveState(state, storage);
   initialized = true;
   notify();
@@ -46,29 +54,16 @@ export function useActivities() {
   return { activities: snap.activities.filter(a => !a.deletedAt), ready: initialized, raw: snap.activities };
 }
 
-function isExpiredDeleted(activity, nowMs = Date.now()) {
-  if (!activity.deletedAt) return false;
-  const delMs = new Date(activity.deletedAt).getTime();
-  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-  return delMs + THIRTY_DAYS < nowMs;
-}
-
 async function persist(nextState) {
-  // Purge items soft-deleted over 30 days ago
-  const purgedActivities = (nextState.activities || []).filter((a) => !isExpiredDeleted(a));
-  state = { ...nextState, activities: purgedActivities };
+  state = { ...nextState, activities: nextState.activities || [] };
   await saveState(state, storage);
   notify();
-  await enforceReminderBudget(state.activities);
 }
 
 export async function addActivity(input) {
   const pro = await isProUnlocked();
-  const visible = state.activities.filter(a => !a.deletedAt).length;
-  if (!pro && visible >= FREE_ACTIVITY_LIMIT) {
-    const err = new Error(`Free tier limit ${FREE_ACTIVITY_LIMIT}`);
-    err.code = 'FREE_LIMIT';
-    throw err;
+  if (!pro && visibleCount() >= FREE_ACTIVITY_LIMIT) {
+    throw freeLimitError();
   }
   const a = createActivity(input);
   await persist({ ...state, activities: [a, ...state.activities] });
@@ -101,13 +96,25 @@ export async function undoLogActivity(id, previousLastDoneAt) {
   await persist({ ...state, activities: next });
 }
 
+/** Hide from the list for the 5s undo window. Call hardDeleteActivity when the window ends. */
 export async function softDeleteActivity(id) {
   const ts = nowIso();
   const next = state.activities.map(a => (a.id === id ? { ...a, deletedAt: ts, updatedAt: ts } : a));
   await persist({ ...state, activities: next });
 }
 
+export async function hardDeleteActivity(id) {
+  const next = state.activities.filter((a) => a.id !== id);
+  await persist({ ...state, activities: next });
+}
+
 export async function undoDelete(id) {
+  const target = state.activities.find((a) => a.id === id);
+  if (!target || !target.deletedAt) return;
+  const pro = await isProUnlocked();
+  if (!pro && visibleCount() >= FREE_ACTIVITY_LIMIT) {
+    throw freeLimitError();
+  }
   const ts = nowIso();
   const next = state.activities.map(a => (a.id === id ? { ...a, deletedAt: null, updatedAt: ts } : a));
   await persist({ ...state, activities: next });
@@ -125,7 +132,6 @@ export async function exportToJson() {
 
 export async function importFromJson(data) {
   const valid = validateExport(data);
-  // de-dupe by id, keep latest updatedAt
   const map = new Map();
   for (const a of valid.activities) {
     const existing = map.get(a.id);
@@ -133,23 +139,15 @@ export async function importFromJson(data) {
       map.set(a.id, migrateActivity(a));
     }
   }
-  let nextActivities = Array.from(map.values());
+  let nextActivities = Array.from(map.values()).filter((a) => !a.deletedAt);
   let truncated = false;
-  // Enforce free tier for non-pro: only keep up to FREE_ACTIVITY_LIMIT visible items
   const pro = await isProUnlocked();
   if (!pro) {
-    const visible = nextActivities.filter((a) => !a.deletedAt);
-    if (visible.length > FREE_ACTIVITY_LIMIT) {
+    if (nextActivities.length > FREE_ACTIVITY_LIMIT) {
       truncated = true;
-      const trimmedVisible = visible.slice(0, FREE_ACTIVITY_LIMIT);
-      const keepIds = new Set(trimmedVisible.map((a) => a.id));
-      nextActivities = nextActivities.filter((a) => a.deletedAt || keepIds.has(a.id));
+      nextActivities = nextActivities.slice(0, FREE_ACTIVITY_LIMIT);
     }
   }
   await persist({ ...state, activities: nextActivities });
   return { truncated };
-}
-
-export function getRecentlyDeleted(nowMs = Date.now()) {
-  return state.activities.filter((a) => a.deletedAt && !isExpiredDeleted(a, nowMs));
 }

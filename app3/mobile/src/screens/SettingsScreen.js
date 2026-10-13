@@ -27,6 +27,10 @@ export default function SettingsScreen() {
       setPro(true);
       return;
     }
+    if (r.error) {
+      Alert.alert('失敗', r.error);
+      return;
+    }
     if (r.ok && r.restored === false) {
       Alert.alert('恢復購買', '找不到已購買紀錄');
     }

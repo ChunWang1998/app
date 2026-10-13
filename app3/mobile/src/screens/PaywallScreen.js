@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../theme/useTheme';
@@ -18,19 +18,35 @@ export default function PaywallScreen() {
   const [priceReady, setPriceReady] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
+  const loadPrice = React.useCallback(async () => {
+    setPriceReady(false);
+    try {
+      const p = await getProDisplayPrice();
+      setPrice(p);
+    } catch {
+      setPrice(null);
+    } finally {
+      setPriceReady(true);
+    }
+  }, []);
+
   React.useEffect(() => {
     isProUnlocked().then(setPro);
-    getProDisplayPrice()
-      .then((p) => setPrice(p))
-      .finally(() => setPriceReady(true));
-  }, []);
+    loadPrice();
+  }, [loadPrice]);
 
   async function buy() {
     if (busy || pro) return;
     setBusy(true);
     try {
       const r = await purchaseProUnlock();
-      if (r.ok) setPro(true);
+      if (r.ok) {
+        setPro(true);
+        return;
+      }
+      if (!r.cancelled && r.error) {
+        Alert.alert('失敗', r.error);
+      }
     } finally {
       setBusy(false);
     }
@@ -41,7 +57,17 @@ export default function PaywallScreen() {
     setBusy(true);
     try {
       const r = await restoreProUnlock();
-      if (r.ok && r.restored !== false) setPro(true);
+      if (r.ok && r.restored !== false) {
+        setPro(true);
+        return;
+      }
+      if (r.error) {
+        Alert.alert('失敗', r.error);
+        return;
+      }
+      if (r.ok && r.restored === false) {
+        Alert.alert('恢復購買', '找不到已購買紀錄');
+      }
     } finally {
       setBusy(false);
     }
@@ -74,7 +100,12 @@ export default function PaywallScreen() {
         {priceReady ? (
           price ? (
             <Text style={[styles.price, { color: c.label }]}>{price}</Text>
-          ) : null
+          ) : (
+            <TouchableOpacity onPress={loadPrice} style={styles.retry} accessibilityLabel="再試">
+              <Text style={[styles.priceFail, { color: c.label }]}>無法取得價格</Text>
+              <Text style={{ color: c.brand, fontSize: 15, fontFamily: 'NaikaiSubset-SemiBold', marginTop: 4 }}>再試</Text>
+            </TouchableOpacity>
+          )
         ) : (
           <ActivityIndicator color={c.brand} />
         )}
@@ -124,6 +155,8 @@ const styles = StyleSheet.create({
   g: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   bottom: { marginTop: 'auto', paddingHorizontal: 20 },
   price: { textAlign: 'center', fontFamily: 'NaikaiSubset-SemiBold', fontSize: 34 },
+  priceFail: { textAlign: 'center', fontFamily: 'NaikaiSubset-SemiBold', fontSize: 20 },
+  retry: { alignItems: 'center', paddingVertical: 4 },
   once: { textAlign: 'center', fontSize: 13, marginTop: 2, fontFamily: 'NaikaiSubset-Regular' },
   cta: { marginTop: 18, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   ctaText: { fontSize: 18, fontFamily: 'NaikaiSubset-SemiBold' },

@@ -1,11 +1,10 @@
 # Been Ages (app3/mobile)
 
-This app currently ships core logic only (non-UI) per scope:
-- Data layer with soft-delete + undo (30-day auto purge)
-- Local reminders (expo-notifications), respects iOS 64 pending limit
+v1.0 ships a reviewable light-only UI:
+- List / add / edit / log / swipe-delete with a 5s undo, then hard-delete
 - IAP unlock + Restore Purchases (expo-iap), free tier = 3 items
-- JSON export/import with validation
 - i18n (en, zh-Hant)
+- Reminders, import/export, and Recently Deleted are deferred (v1.0.1)
 
 Security review notes
 - Pro entitlement storage is local-only (AsyncStorage) and unverified. On app launch, re-verify past purchases via expo-iap (e.g., getAvailablePurchases/restorePurchases) to re-grant entitlement if needed — mirror the pattern in app2. This is planned before shipping UI polish.
@@ -14,4 +13,8 @@ Security review notes
 
 Environment
 - See `.env.example` for non-secret placeholders. Do not commit `.env`.
+
+Store pages (GitHub Pages, `gh-pages` branch)
+- Privacy: https://chunwang1998.github.io/app/app3/store/privacy.html
+- Support: https://chunwang1998.github.io/app/app3/store/support.html
 

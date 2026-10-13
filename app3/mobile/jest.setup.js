@@ -1,17 +1,4 @@
 // Basic jest setup for non-UI logic tests
-jest.mock('expo-notifications', () => {
-  return {
-    getPermissionsAsync: jest.fn(async () => ({ status: 'granted', granted: true })),
-    requestPermissionsAsync: jest.fn(async () => ({ status: 'granted', granted: true })),
-    getAllScheduledNotificationsAsync: jest.fn(async () => []),
-    cancelAllScheduledNotificationsAsync: jest.fn(async () => {}),
-    scheduleNotificationAsync: jest.fn(async (req) => {
-      return `mock-${Date.now()}`;
-    }),
-    setNotificationChannelAsync: jest.fn(async () => {}),
-  };
-});
-
 jest.mock('expo-iap', () => {
   let purchased = false;
   let onUpdate = null;
