@@ -1,13 +1,20 @@
+import { useTheme } from './ThemeContext';
 import { light } from './colors';
 
-/**
- * v1.0 ships light-only (app.json userInterfaceStyle: "light").
- * Dark mode is deferred to v1.0.1.
- */
 export function useThemeColors() {
-  return light;
+  try {
+    return useTheme().colors || light;
+  } catch {
+    return light;
+  }
 }
 
 export function useForcedScheme() {
-  return 'light';
+  try {
+    return useTheme().scheme || 'light';
+  } catch {
+    return 'light';
+  }
 }
+
+export { useTheme, useItemTone } from './ThemeContext';

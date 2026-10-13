@@ -12,11 +12,10 @@ import {
   hardDeleteActivity,
   FREE_ACTIVITY_LIMIT,
 } from '../data/repository';
-import { useThemeColors } from '../theme/useTheme';
-import { itemPalette } from '../theme/colors';
+import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { Mascot } from '../components/Mascot';
-import { GearIcon, PlusIcon, CheckIcon } from '../components/Icons';
+import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { formatSpan, formatDateShort, dueInMs, progressRatio, elapsedMs, formatSpanParts } from '../lib/time';
 import * as Haptics from 'expo-haptics';
 import { isProUnlocked } from '../lib/entitlements';
@@ -26,6 +25,7 @@ const JUST_MS = 60e3;
 export default function HomeScreen() {
   const nav = useNavigation();
   const c = useThemeColors();
+  const { sort, setSort, preciseTime } = useTheme();
   const insets = useSafeAreaInsets();
   const { activities, ready } = useActivities();
   const [toast, setToast] = useState(null);
@@ -33,11 +33,19 @@ export default function HomeScreen() {
   const pendingHardDelete = useRef(null);
 
   const data = useMemo(() => {
-    return [...activities].map((a) => {
+    const mapped = [...activities].map((a) => {
       const due = dueInMs(a);
       return { ...a, _due: due };
-    }).sort((x, y) => (x._due === y._due ? 0 : x._due - y._due));
-  }, [activities]);
+    });
+    if (sort === 'last') {
+      return mapped.sort((x, y) => {
+        const tx = x.lastDoneAt ? new Date(x.lastDoneAt).getTime() : 0;
+        const ty = y.lastDoneAt ? new Date(y.lastDoneAt).getTime() : 0;
+        return ty - tx;
+      });
+    }
+    return mapped.sort((x, y) => (x._due === y._due ? 0 : x._due - y._due));
+  }, [activities, sort]);
   const overdueCount = data.filter((x) => x._due < 0).length;
 
   function commitPendingDelete() {
@@ -65,7 +73,7 @@ export default function HomeScreen() {
     showToast({
       text: '已記錄',
       undo: async () => {
-        await undoLogActivity(a.id, result.previousLastDoneAt);
+        await undoLogActivity(a.id, result.previousLastDoneAt, result.previousHistory);
       },
     });
   }
@@ -112,14 +120,24 @@ export default function HomeScreen() {
           >
             <GearIcon color={c.brand} />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleAdd}
-            accessibilityLabel="新增項目"
-            style={styles.ib}
-            hitSlop={8}
-          >
-            <PlusIcon color={c.brand} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row' }}>
+            <TouchableOpacity
+              onPress={() => setSort(sort === 'due' ? 'last' : 'due')}
+              accessibilityLabel="排序"
+              style={styles.ib}
+              hitSlop={8}
+            >
+              <SortIcon color={c.brand} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleAdd}
+              accessibilityLabel="新增項目"
+              style={styles.ib}
+              hitSlop={8}
+            >
+              <PlusIcon color={c.brand} />
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.bandRow}>
           <Text style={[styles.lt, { color: c.label }]}>好久沒了</Text>
@@ -146,6 +164,7 @@ export default function HomeScreen() {
                 onCheck={() => handleCheck(item)}
                 onOpen={() => nav.navigate('Detail', { id: item.id })}
                 onDelete={() => handleDelete(item)}
+                preciseTime={preciseTime}
               />
             )}
             ListEmptyComponent={
@@ -153,8 +172,7 @@ export default function HomeScreen() {
                 <Mascot size={150} mood="sleepy" />
                 <Text style={[styles.emptyT1, { color: c.label }]}>還沒有要記的事</Text>
                 <TouchableOpacity onPress={handleAdd} style={[styles.cta, { backgroundColor: c.brand }]}>
-                  <PlusIcon color={c.onbrand} size={18} />
-                  <Text style={[styles.ctaText, { color: c.onbrand }]}>新增</Text>
+                  <Text style={[styles.ctaText, { color: c.onbrand }]}>+ 新增</Text>
                 </TouchableOpacity>
               </View>
             }
@@ -182,10 +200,9 @@ export default function HomeScreen() {
   );
 }
 
-function Row({ item, onCheck, onOpen, onDelete }) {
+function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
   const c = useThemeColors();
-  const pal = itemPalette[item.icon || 'brush'] || itemPalette.brush;
-  const tone = pal.light;
+  const tone = useItemTone(item.icon);
   const due = item._due;
   const soon = due < 2 * 864e5 && due >= 0;
   const od = due < 0;
@@ -212,7 +229,7 @@ function Row({ item, onCheck, onOpen, onDelete }) {
 
   return (
     <Swipeable renderRightActions={renderRight} overshootRight={false} friction={2}>
-      <View style={[styles.it, { backgroundColor: c.bg }]}>
+      <View style={[styles.it, { backgroundColor: c.bg, borderBottomColor: c.sep }]}>
         <View style={[styles.gl, { backgroundColor: od ? c.odtint : tone.ac }]}>
           <ItemGlyph kind={item.icon || 'brush'} color={tone.acf} />
           {od ? <View style={[styles.odDot, { backgroundColor: c.red, borderColor: c.bg }]} /> : null}
@@ -238,7 +255,7 @@ function Row({ item, onCheck, onOpen, onDelete }) {
           {elapsed == null ? (
             <Text style={[styles.numSmall, { color: c.l2 }]}>—</Text>
           ) : (
-            <Numeral ms={elapsed} just={just} color={c.label} dim={c.l2} />
+            <Numeral ms={elapsed} just={just} color={c.label} dim={c.l2} preciseTime={preciseTime} />
           )}
         </TouchableOpacity>
         <TouchableOpacity
@@ -256,8 +273,8 @@ function Row({ item, onCheck, onOpen, onDelete }) {
   );
 }
 
-function Numeral({ ms, just, color, dim }) {
-  const parts = formatSpanParts(ms, just ? 1 : 2);
+function Numeral({ ms, just, color, dim, preciseTime }) {
+  const parts = formatSpanParts(ms, just || !preciseTime ? 1 : 2);
   return (
     <Text style={[styles.num, { color }]}>
       {parts.map((p, i) => (
@@ -303,7 +320,7 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     minHeight: 80,
     borderBottomWidth: 1.5,
-    borderBottomColor: 'rgba(46,41,37,0.09)',
+    borderBottomColor: 'transparent',
     borderStyle: 'dashed',
   },
   gl: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },

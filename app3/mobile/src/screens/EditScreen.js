@@ -3,10 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvo
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useActivities, addActivity, updateActivity, hardDeleteActivity, FREE_ACTIVITY_LIMIT } from '../data/repository';
-import { useThemeColors } from '../theme/useTheme';
-import { itemPalette } from '../theme/colors';
+import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { ItemGlyph } from '../components/ItemGlyph';
+import { ChevronRightIcon } from '../components/Icons';
 import { isProUnlocked } from '../lib/entitlements';
+import { formatDate, formatTime } from '../lib/time';
 
 const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car'];
 
@@ -16,11 +17,16 @@ export default function EditScreen() {
   const { activities } = useActivities();
   const current = activities.find((a) => a.id === params?.id);
   const c = useThemeColors();
+  const { reminderTime: defaultTime } = useTheme();
   const insets = useSafeAreaInsets();
   const isNew = !current;
   const [title, setTitle] = useState(current?.title || '');
   const [icon, setIcon] = useState(current?.icon || 'brush');
+  const [notes, setNotes] = useState(current?.notes || '');
+  const [lastDoneAt, setLastDoneAt] = useState(current?.lastDoneAt || null);
   const [busy, setBusy] = useState(false);
+
+  const remLabel = current?.reminderDays ? `每 ${current.reminderDays} 天` : '不提醒';
 
   async function save() {
     if (busy) return;
@@ -29,7 +35,12 @@ export default function EditScreen() {
     setBusy(true);
     try {
       if (current) {
-        await updateActivity(current.id, { title: trimmed, icon });
+        const patch = { title: trimmed, icon, notes };
+        if (lastDoneAt !== current.lastDoneAt) {
+          const rest = (current.history || []).filter((e) => e.at !== current.lastDoneAt);
+          patch.history = lastDoneAt ? [{ at: lastDoneAt }, ...rest] : rest;
+        }
+        await updateActivity(current.id, patch);
       } else {
         const pro = await isProUnlocked();
         if (!pro && activities.length >= FREE_ACTIVITY_LIMIT) {
@@ -37,7 +48,14 @@ export default function EditScreen() {
           return;
         }
         try {
-          await addActivity({ title: trimmed, icon, reminderDays: null });
+          await addActivity({
+            title: trimmed,
+            icon,
+            notes,
+            lastDoneAt,
+            reminderDays: null,
+            reminderTime: defaultTime,
+          });
         } catch (e) {
           if (e?.code === 'FREE_LIMIT') {
             nav.replace('Paywall');
@@ -67,6 +85,20 @@ export default function EditScreen() {
         },
       },
     ]);
+  }
+
+  function setLastToday() {
+    const d = lastDoneAt ? new Date(lastDoneAt) : new Date();
+    const n = new Date();
+    n.setHours(d.getHours(), d.getMinutes(), 0, 0);
+    setLastDoneAt(n.toISOString());
+  }
+
+  function setLastNowTime() {
+    const d = lastDoneAt ? new Date(lastDoneAt) : new Date();
+    const n = new Date();
+    d.setHours(n.getHours(), n.getMinutes(), 0, 0);
+    setLastDoneAt(d.toISOString());
   }
 
   return (
@@ -99,21 +131,51 @@ export default function EditScreen() {
           </View>
         </View>
         <View style={styles.icp}>
-          {PICKER.map((k) => {
-            const pal = itemPalette[k] || itemPalette.brush;
-            const on = icon === k;
-            return (
-              <TouchableOpacity
-                onPress={() => setIcon(k)}
-                key={k}
-                style={[styles.icBtn, { backgroundColor: on ? pal.light.ac : c.cell }]}
-                accessibilityLabel={k}
-              >
-                <ItemGlyph kind={k} color={on ? pal.light.acf : c.l2} />
-              </TouchableOpacity>
-            );
-          })}
+          {PICKER.map((k) => (
+            <IconBtn key={k} k={k} on={icon === k} onPress={() => setIcon(k)} idle={c.cell} dim={c.l2} />
+          ))}
         </View>
+
+        <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 18 }]}>
+          <View style={[styles.row, styles.rowLine]}>
+            <Text style={[styles.lab, { color: c.label }]}>上次</Text>
+            <TouchableOpacity onPress={setLastToday} style={[styles.pill, { backgroundColor: c.fill }]}>
+              <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular' }}>
+                {lastDoneAt ? formatDate(lastDoneAt) : '今天'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={setLastNowTime} style={[styles.pill, { backgroundColor: c.fill }]}>
+              <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular' }}>
+                {lastDoneAt ? formatTime(lastDoneAt) : formatTime(new Date().toISOString())}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => {
+              if (current) nav.navigate('Reminder', { id: current.id });
+              else Alert.alert('提醒', '先加入項目，再到詳情設定提醒。');
+            }}
+          >
+            <Text style={[styles.lab, { color: c.label }]}>提醒</Text>
+            <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular', marginLeft: 'auto', marginRight: 6 }}>
+              {remLabel}
+            </Text>
+            <ChevronRightIcon color={c.l3} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 18, minHeight: 96 }]}>
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="備註"
+            placeholderTextColor={c.l3}
+            multiline
+            style={[styles.notes, { color: c.label }, Platform.OS === 'web' ? { outlineStyle: 'none' } : null]}
+          />
+        </View>
+
         {!!current && (
           <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 24 }]}>
             <TouchableOpacity onPress={del} style={[styles.row, { justifyContent: 'center' }]}>
@@ -123,6 +185,19 @@ export default function EditScreen() {
         )}
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function IconBtn({ k, on, onPress, idle, dim }) {
+  const tone = useItemTone(k);
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.icBtn, { backgroundColor: on ? tone.ac : idle }]}
+      accessibilityLabel={k}
+    >
+      <ItemGlyph kind={k} color={on ? tone.acf : dim} />
+    </TouchableOpacity>
   );
 }
 
@@ -138,8 +213,19 @@ const styles = StyleSheet.create({
   navSideRight: { minWidth: 64, height: 44, justifyContent: 'center', alignItems: 'flex-end' },
   title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
   grp: { marginHorizontal: 16, borderRadius: 18, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16 },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16, gap: 10 },
+  rowLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(46,41,37,0.09)' },
   input: { flex: 1, fontSize: 22, fontFamily: 'NaikaiSubset-SemiBold', paddingVertical: 14 },
+  lab: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', minWidth: 44 },
+  pill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  notes: {
+    minHeight: 96,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 17,
+    fontFamily: 'NaikaiSubset-Regular',
+    textAlignVertical: 'top',
+  },
   icp: { flexDirection: 'row', gap: 6, paddingTop: 14, paddingHorizontal: 16, justifyContent: 'space-between' },
   icBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });
