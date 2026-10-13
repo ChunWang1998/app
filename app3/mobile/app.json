@@ -11,7 +11,8 @@
       "bundleIdentifier": "com.beenages.app",
       "buildNumber": "1",
       "infoPlist": {
-        "CFBundleAllowMixedLocalizations": true
+        "CFBundleAllowMixedLocalizations": true,
+        "ITSAppUsesNonExemptEncryption": false
       },
       "runtimeVersion": {
         "policy": "sdkVersion"
@@ -59,7 +60,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID_BEFORE_FIRST_BUILD"
+        "projectId": "33ece313-8cae-4778-8ec5-e483fc9bf204"
       }
     },
     "owner": "leowang1105"
