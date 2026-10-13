@@ -217,6 +217,45 @@ export async function restoreProUnlock() {
   };
 }
 
+function pickDisplayPrice(product) {
+  if (!product || typeof product !== 'object') return null;
+  const raw = product.displayPrice || product.localizedPrice;
+  if (typeof raw === 'string' && raw.trim()) return raw.trim();
+  return null;
+}
+
+/**
+ * Localized one-time price from StoreKit / Play (`displayPrice`).
+ * Returns null when the store is unreachable — never a hardcoded fallback.
+ */
+export async function getProDisplayPrice() {
+  let timer;
+  try {
+    const iap = require('expo-iap');
+    if (!iap?.initConnection || typeof iap.fetchProducts !== 'function') return null;
+    await iap.initConnection();
+    try {
+      const products = await Promise.race([
+        iap.fetchProducts({ skus: [PRO_PRODUCT_ID], type: 'in-app' }),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error('timeout')), 8000);
+        }),
+      ]);
+      const list = Array.isArray(products) ? products : [];
+      const match = list.find((p) => purchaseMatches(p) || p?.id === PRO_PRODUCT_ID) || list[0];
+      return pickDisplayPrice(match);
+    } finally {
+      if (timer) clearTimeout(timer);
+      try {
+        await iap.endConnection?.();
+      } catch {}
+    }
+  } catch {
+    if (timer) clearTimeout(timer);
+    return null;
+  }
+}
+
 const EMPTY_LIST_REVOKE_AFTER = 3;
 
 /**

@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useActivities, addActivity, updateActivity } from '../data/repository';
-import { softDeleteActivity } from '../data/repository';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useActivities, addActivity, updateActivity, softDeleteActivity, FREE_ACTIVITY_LIMIT } from '../data/repository';
 import { useThemeColors } from '../theme/useTheme';
 import { itemPalette } from '../theme/colors';
 import { ItemGlyph } from '../components/ItemGlyph';
+import { isProUnlocked } from '../lib/entitlements';
 
-const KINDS = ['brush', 'drop', 'eye', 'leaf', 'bed', 'scissors'];
+const PICKER = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car'];
 
 export default function EditScreen() {
   const nav = useNavigation();
@@ -15,74 +16,130 @@ export default function EditScreen() {
   const { activities } = useActivities();
   const current = activities.find((a) => a.id === params?.id);
   const c = useThemeColors();
+  const insets = useSafeAreaInsets();
+  const isNew = !current;
   const [title, setTitle] = useState(current?.title || '');
-  const [icon, setIcon] = useState(current?.icon || 'drop');
-  const [reminderDays, setReminderDays] = useState(current?.reminderDays || 0);
+  const [icon, setIcon] = useState(current?.icon || 'brush');
+  const [busy, setBusy] = useState(false);
 
   async function save() {
-    if (current) {
-      await updateActivity(current.id, { title, icon, reminderDays: reminderDays || null });
-    } else {
-      await addActivity({ title, reminderDays: reminderDays || null });
+    if (busy) return;
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    try {
+      if (current) {
+        await updateActivity(current.id, { title: trimmed, icon });
+      } else {
+        const pro = await isProUnlocked();
+        if (!pro && activities.length >= FREE_ACTIVITY_LIMIT) {
+          nav.replace('Paywall');
+          return;
+        }
+        try {
+          await addActivity({ title: trimmed, icon, reminderDays: null });
+        } catch (e) {
+          if (e?.code === 'FREE_LIMIT') {
+            nav.replace('Paywall');
+            return;
+          }
+          throw e;
+        }
+      }
+      nav.goBack();
+    } catch (e) {
+      Alert.alert('失敗', String(e?.message || e));
+    } finally {
+      setBusy(false);
     }
-    nav.goBack();
   }
 
-  async function del() {
+  function del() {
     if (!current) return nav.goBack();
-    await softDeleteActivity(current.id);
-    nav.goBack();
+    Alert.alert(current.title, '', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '刪除',
+        style: 'destructive',
+        onPress: async () => {
+          await softDeleteActivity(current.id);
+          nav.reset({ index: 0, routes: [{ name: 'Home' }] });
+        },
+      },
+    ]);
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.sheetbg }}>
-      <View style={styles.nav}>
-        <TouchableOpacity onPress={() => nav.goBack()}><Text style={{ color: c.label }}>取消</Text></TouchableOpacity>
-        <Text style={[styles.title, { color: c.label }]}>{current ? '編輯' : '新增'}</Text>
-        <TouchableOpacity onPress={save}><Text style={{ color: c.brand }}>完成</Text></TouchableOpacity>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: c.sheetbg }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={[styles.nav, { paddingTop: 8 }]}>
+        <TouchableOpacity onPress={() => nav.goBack()} style={styles.navSide}>
+          <Text style={{ color: c.brand, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>取消</Text>
+        </TouchableOpacity>
+        <Text style={[styles.title, { color: c.label }]}>{isNew ? '新項目' : '編輯'}</Text>
+        <TouchableOpacity onPress={save} style={styles.navSideRight} disabled={busy || !title.trim()}>
+          <Text style={{ color: title.trim() ? c.brand : c.l3, fontSize: 17, fontFamily: 'NaikaiSubset-SemiBold' }}>
+            {isNew ? '加入' : '完成'}
+          </Text>
+        </TouchableOpacity>
       </View>
-      <View style={[styles.grp, { backgroundColor: c.cell }]}>
-        <View style={styles.row}>
-          <TextInput value={title} onChangeText={setTitle} placeholder="要記的事" placeholderTextColor={c.l3} style={[styles.input, { color: c.label }]} />
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
+        <View style={[styles.grp, { backgroundColor: c.cell }]}>
+          <View style={styles.row}>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              placeholder="要記的事"
+              placeholderTextColor={c.l3}
+              style={[styles.input, { color: c.label }]}
+              autoFocus={isNew}
+            />
+          </View>
         </View>
-        <View style={[styles.icp]}>
-          {KINDS.map((k) => {
-            const pal = itemPalette[k];
-            const tone = (c.bg === '#1B1917' ? pal.dark : pal.light);
+        <View style={styles.icp}>
+          {PICKER.map((k) => {
+            const pal = itemPalette[k] || itemPalette.brush;
+            const on = icon === k;
             return (
-              <TouchableOpacity onPress={() => setIcon(k)} key={k} style={[styles.icBtn, { backgroundColor: icon === k ? c.brand : c.cell }]}>
-                <ItemGlyph kind={k} color={icon === k ? c.onbrand : tone.acf} />
+              <TouchableOpacity
+                onPress={() => setIcon(k)}
+                key={k}
+                style={[styles.icBtn, { backgroundColor: on ? pal.light.ac : c.cell }]}
+                accessibilityLabel={k}
+              >
+                <ItemGlyph kind={k} color={on ? pal.light.acf : c.l2} />
               </TouchableOpacity>
             );
           })}
         </View>
-      </View>
-      <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 12 }]}>
-        <View style={styles.row}>
-          <Text style={{ color: c.label, fontSize: 17 }}>提醒</Text>
-          <TouchableOpacity onPress={() => setReminderDays((reminderDays || 0) + 1)} style={styles.pill}>
-            <Text style={{ color: c.label }}>{reminderDays ? `每 ${reminderDays} 天` : '不提醒'}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      {!!current && (
-        <View style={{ paddingHorizontal: 16 }}>
-          <TouchableOpacity onPress={del} style={{ marginTop: 20, alignItems: 'center' }}>
-            <Text style={{ color: '#B42318', fontWeight: '700' }}>刪除</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
+        {!!current && (
+          <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 24 }]}>
+            <TouchableOpacity onPress={del} style={[styles.row, { justifyContent: 'center' }]}>
+              <Text style={{ color: c.red, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>刪除</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  nav: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
-  title: { fontWeight: '600', fontSize: 17 },
+  nav: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  navSide: { minWidth: 64, height: 44, justifyContent: 'center' },
+  navSideRight: { minWidth: 64, height: 44, justifyContent: 'center', alignItems: 'flex-end' },
+  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
   grp: { marginHorizontal: 16, borderRadius: 18, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16, gap: 12 },
-  input: { flex: 1, fontSize: 22, fontWeight: '600', paddingVertical: 14 },
-  icp: { flexDirection: 'row', gap: 10, padding: 14, justifyContent: 'space-between', marginHorizontal: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16 },
+  input: { flex: 1, fontSize: 22, fontFamily: 'NaikaiSubset-SemiBold', paddingVertical: 14 },
+  icp: { flexDirection: 'row', gap: 10, paddingTop: 14, paddingHorizontal: 20, justifyContent: 'space-between' },
   icBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  pill: { marginLeft: 'auto', backgroundColor: 'rgba(0,0,0,0.06)', paddingVertical: 6, paddingHorizontal: 11, borderRadius: 8 }
 });

@@ -1,4 +1,4 @@
-import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, softDeleteActivity, undoDelete, exportToJson, importFromJson, FREE_ACTIVITY_LIMIT, getRecentlyDeleted } from '../src/data/repository';
+import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, undoLogActivity, softDeleteActivity, undoDelete, exportToJson, importFromJson, FREE_ACTIVITY_LIMIT, getRecentlyDeleted } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
 import React from 'react';
 import TestRenderer from 'react-test-renderer';
@@ -9,6 +9,9 @@ describe('repository', () => {
     const a = await addActivity({ title: 'Test A', reminderDays: 3 });
     expect(a.id).toBeTruthy();
 
+    const logged = await logActivityNow(a.id);
+    expect(logged.previousLastDoneAt).toBeNull();
+    await undoLogActivity(a.id, logged.previousLastDoneAt);
     await logActivityNow(a.id);
 
     await softDeleteActivity(a.id);
@@ -85,5 +88,31 @@ describe('repository', () => {
     await importFromJson(hacked);
     const after = await exportToJson();
     expect(after.activities.find(x => x.id === a.id)).toBeUndefined();
+  });
+
+  it('persists icon and migrates rows without one', async () => {
+    await resetRepositoryForTests();
+    const a = await addActivity({ title: '濾心', icon: 'drop' });
+    expect(a.icon).toBe('drop');
+    const blob = await exportToJson();
+    expect(blob.activities[0].icon).toBe('drop');
+    const ts = new Date().toISOString();
+    await importFromJson({
+      schema: 'been-ages/export',
+      version: 1,
+      exportedAt: ts,
+      activities: [{
+        id: 'legacy_1',
+        title: '舊項目',
+        lastDoneAt: null,
+        reminderDays: null,
+        createdAt: ts,
+        updatedAt: ts,
+        deletedAt: null,
+      }],
+    });
+    const after = await exportToJson();
+    const legacy = after.activities.find((x) => x.id === 'legacy_1');
+    expect(legacy.icon).toBe('brush');
   });
 });

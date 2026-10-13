@@ -18,7 +18,12 @@ jest.mock('expo-iap', () => {
   return {
     initConnection: jest.fn(async () => {}),
     endConnection: jest.fn(async () => {}),
-    fetchProducts: jest.fn(async () => {}),
+    fetchProducts: jest.fn(async () => [{
+      id: process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack',
+      productId: process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack',
+      displayPrice: 'NT$90',
+      type: 'in-app',
+    }]),
     requestPurchase: jest.fn(async () => {
       purchased = true;
       setTimeout(() => {
@@ -53,6 +58,11 @@ jest.mock('expo-constants', () => ({
 // Fonts are optional during tests
 jest.mock('expo-font', () => ({
   loadAsync: jest.fn(async () => {}),
+}));
+
+jest.mock('expo-haptics', () => ({
+  notificationAsync: jest.fn(async () => {}),
+  NotificationFeedbackType: { Success: 'success' },
 }));
 
 // Force simulate IAP in tests

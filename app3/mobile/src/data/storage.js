@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { migrateActivity } from './models';
 
 // Pluggable storage adapter, App Group-ready in the future.
 export class KeyValueStorage {
@@ -35,7 +36,10 @@ export async function loadState(storage = new KeyValueStorage()) {
     const data = JSON.parse(raw);
     if (!data || typeof data !== 'object') throw new Error('bad state');
     if (!Array.isArray(data.activities)) data.activities = [];
-    return { version: 1, activities: data.activities };
+    return {
+      version: 1,
+      activities: data.activities.map(migrateActivity),
+    };
   } catch {
     return { version: 1, activities: [] };
   }

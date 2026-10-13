@@ -1,5 +1,5 @@
 import React from 'react';
-import { createActivity, nowIso } from './models';
+import { createActivity, nowIso, migrateActivity } from './models';
 import { KeyValueStorage, loadState, saveState } from './storage';
 import { validateExport } from './schema';
 import { enforceReminderBudget } from '../notifications/reminders';
@@ -83,7 +83,21 @@ export async function updateActivity(id, changes) {
 
 export async function logActivityNow(id) {
   const ts = nowIso();
-  const next = state.activities.map(a => (a.id === id ? { ...a, lastDoneAt: ts, updatedAt: ts } : a));
+  let previousLastDoneAt = null;
+  const next = state.activities.map((a) => {
+    if (a.id !== id) return a;
+    previousLastDoneAt = a.lastDoneAt ?? null;
+    return { ...a, lastDoneAt: ts, updatedAt: ts };
+  });
+  await persist({ ...state, activities: next });
+  return { previousLastDoneAt, loggedAt: ts };
+}
+
+export async function undoLogActivity(id, previousLastDoneAt) {
+  const ts = nowIso();
+  const next = state.activities.map((a) => (
+    a.id === id ? { ...a, lastDoneAt: previousLastDoneAt ?? null, updatedAt: ts } : a
+  ));
   await persist({ ...state, activities: next });
 }
 
@@ -116,7 +130,7 @@ export async function importFromJson(data) {
   for (const a of valid.activities) {
     const existing = map.get(a.id);
     if (!existing || new Date(a.updatedAt) > new Date(existing.updatedAt)) {
-      map.set(a.id, a);
+      map.set(a.id, migrateActivity(a));
     }
   }
   let nextActivities = Array.from(map.values());

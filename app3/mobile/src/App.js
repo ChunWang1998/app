@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initializeI18n } from './i18n';
-import { initRepository, addActivity, logActivityNow } from './data/repository';
-import { ensureNotificationPermissions } from './notifications/reminders';
+import { initRepository, addActivity, updateActivity } from './data/repository';
 import AppNavigator from './navigation/AppNavigator';
 import * as Font from 'expo-font';
+import { StatusBar } from 'react-native';
 import { verifyProOnLaunch } from './lib/iap';
 
 export default function App() {
@@ -13,7 +15,6 @@ export default function App() {
     (async () => {
       try {
         initializeI18n();
-        // Load Naikai fonts if available; fall back gracefully
         try {
           await Font.loadAsync({
             'NaikaiSubset-Regular': require('../assets/fonts/naikai/NaikaiSubset-Regular.ttf'),
@@ -21,30 +22,31 @@ export default function App() {
             'NaikaiSubset-Bold': require('../assets/fonts/naikai/NaikaiSubset-Bold.ttf'),
           });
         } catch {
-          // fonts optional during dev/tests
+          // fonts optional during tests
         }
         await initRepository();
-        await ensureNotificationPermissions();
         await verifyProOnLaunch();
-        // Read web query for screenshots: ?screen=Home|Detail|Reminder|Edit|Settings|Paywall&scheme=dark&id=xxx
         try {
           if (typeof window !== 'undefined') {
             const url = new URL(window.location.href);
             if (url.searchParams.get('demo') === '1') {
-              // Seed demo data for screenshots
-              const a1 = await addActivity({ title: '換濾水器濾心', reminderDays: 60 });
-              const a2 = await addActivity({ title: '換隱形眼鏡', reminderDays: 14 });
-              await logActivityNow(a1.id);
-              await logActivityNow(a2.id);
-              // pass id for detail/reminder shots
-              if (!url.searchParams.get('id')) {
-                url.searchParams.set('id', a2.id);
-              }
+              const a1 = await addActivity({ title: '換濾水器濾心', icon: 'drop', reminderDays: 60 });
+              const a2 = await addActivity({ title: '換隱形眼鏡', icon: 'eye', reminderDays: 14 });
+              const a3 = await addActivity({ title: '剪頭髮', icon: 'scissors', reminderDays: null });
+              const past = (days, hours = 0) => new Date(Date.now() - days * 864e5 - hours * 36e5).toISOString();
+              await updateActivity(a1.id, { lastDoneAt: past(74) });
+              await updateActivity(a2.id, { lastDoneAt: past(19, 7) });
+              await updateActivity(a3.id, { lastDoneAt: past(44) });
+              if (!url.searchParams.get('id')) url.searchParams.set('id', a2.id);
             }
-            const scheme = url.searchParams.get('scheme');
-            if (scheme) window.__forceScheme = scheme;
             const screen = url.searchParams.get('screen');
-            if (screen) setInitial({ name: screen, params: screen === 'Detail' || screen === 'Reminder' || screen === 'Edit' ? { id: url.searchParams.get('id') } : {} });
+            const id = url.searchParams.get('id');
+            if (screen === 'Empty') {
+              setInitial({ name: 'Home', params: {} });
+            } else if (screen) {
+              const needsId = screen === 'Detail' || screen === 'Edit';
+              setInitial({ name: screen, params: needsId ? { id } : {} });
+            }
           }
         } catch {}
       } finally {
@@ -53,5 +55,12 @@ export default function App() {
     })();
   }, []);
   if (!ready) return null;
-  return <AppNavigator initial={initial} />;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar barStyle="dark-content" />
+        <AppNavigator initial={initial} />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
 }

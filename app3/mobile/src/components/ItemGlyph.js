@@ -1,7 +1,9 @@
 import React from 'react';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export function ItemGlyph({ kind = 'drop', color = '#3E9180', size = 20, strokeWidth = 1.8 }) {
+export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye'];
+
+export function ItemGlyph({ kind = 'brush', color = '#3E9180', size = 20, strokeWidth = 1.7 }) {
   const common = { stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' };
   if (kind === 'drop') {
     return (
@@ -14,7 +16,7 @@ export function ItemGlyph({ kind = 'drop', color = '#3E9180', size = 20, strokeW
     return (
       <Svg width={size} height={size} viewBox="0 0 22 20">
         <Path d="M1.5 10S5 3.8 11 3.8 20.5 10 20.5 10 17 16.2 11 16.2 1.5 10 1.5 10Z" {...common} />
-        <Circle cx="11" cy="10" r="3" stroke={color} />
+        <Circle cx="11" cy="10" r="3" stroke={color} strokeWidth={strokeWidth} fill="none" />
       </Svg>
     );
   }
@@ -44,16 +46,27 @@ export function ItemGlyph({ kind = 'drop', color = '#3E9180', size = 20, strokeW
   if (kind === 'scissors') {
     return (
       <Svg width={size} height={size} viewBox="0 0 20 20">
-        <Circle cx="5" cy="5.5" r="2.5" stroke={color} />
-        <Circle cx="5" cy="14.5" r="2.5" stroke={color} />
+        <Circle cx="5" cy="5.5" r="2.5" stroke={color} strokeWidth={strokeWidth} fill="none" />
+        <Circle cx="5" cy="14.5" r="2.5" stroke={color} strokeWidth={strokeWidth} fill="none" />
         <Path d="M7 7l10 8.5M7 13 17 4.5" {...common} />
       </Svg>
     );
   }
-  // default
+  if (kind === 'car') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 22 20">
+        <Path d="M3 13V10l2-4.5h12L19 10v3M3 13h16v2.5H3Z" {...common} />
+        <Circle cx="6.5" cy="13" r="1" stroke={color} strokeWidth={strokeWidth} fill="none" />
+        <Circle cx="15.5" cy="13" r="1" stroke={color} strokeWidth={strokeWidth} fill="none" />
+      </Svg>
+    );
+  }
+  // brush (default)
   return (
     <Svg width={size} height={size} viewBox="0 0 20 20">
-      <Path d="M2 10h16" {...common} />
+      <Path d="M3 17 13.5 6.5" {...common} />
+      <Rect x="12" y="1.8" width="5" height="7.5" rx="1.5" transform="rotate(45 14.5 5.5)" {...common} />
+      <Path d="M13 3.5l1 1M14.7 2l1 1" {...common} />
     </Svg>
   );
 }
