@@ -10,7 +10,7 @@ let state = { version: 1, activities: [] };
 let initialized = false;
 const listeners = new Set();
 
-export const FREE_ACTIVITY_LIMIT = Number(process.env.EXPO_PUBLIC_FREE_ACTIVITY_LIMIT || 5);
+export const FREE_ACTIVITY_LIMIT = Number(process.env.EXPO_PUBLIC_FREE_ACTIVITY_LIMIT || 3);
 
 function notify() {
   for (const l of listeners) l(state);
@@ -43,8 +43,17 @@ export function useActivities() {
   return { activities: snap.activities.filter(a => !a.deletedAt), ready: initialized, raw: snap.activities };
 }
 
+function isExpiredDeleted(activity, nowMs = Date.now()) {
+  if (!activity.deletedAt) return false;
+  const delMs = new Date(activity.deletedAt).getTime();
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  return delMs + THIRTY_DAYS < nowMs;
+}
+
 async function persist(nextState) {
-  state = nextState;
+  // Purge items soft-deleted over 30 days ago
+  const purgedActivities = (nextState.activities || []).filter((a) => !isExpiredDeleted(a));
+  state = { ...nextState, activities: purgedActivities };
   await saveState(state, storage);
   notify();
   await enforceReminderBudget(state.activities);
@@ -100,4 +109,8 @@ export async function exportToJson() {
 export async function importFromJson(data) {
   const valid = validateExport(data);
   await persist({ ...state, activities: valid.activities });
+}
+
+export function getRecentlyDeleted(nowMs = Date.now()) {
+  return state.activities.filter((a) => a.deletedAt && !isExpiredDeleted(a, nowMs));
 }

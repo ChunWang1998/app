@@ -31,6 +31,14 @@
           }
         }
       ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
+        }
+      ],
       "expo-notifications",
       "expo-iap"
     ],
