@@ -48,9 +48,9 @@ function Feature({ icon, title, sub }) {
 
 const styles = StyleSheet.create({
   pwblk: { borderBottomLeftRadius: 32, borderBottomRightRadius: 32, paddingBottom: 12 },
-  h1: { fontSize: 34, fontWeight: '700', marginTop: 8, fontFamily: 'Naikai-Bold' },
+  h1: { fontSize: 34, fontWeight: '700', marginTop: 8, fontFamily: 'NaikaiSubset-Bold' },
   f: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 14 },
   g: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   cta: { marginTop: 8, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-  ctaText: { fontSize: 18, fontWeight: '700', fontFamily: 'Naikai-SemiBold' }
+  ctaText: { fontSize: 18, fontWeight: '700', fontFamily: 'NaikaiSubset-SemiBold' }
 });

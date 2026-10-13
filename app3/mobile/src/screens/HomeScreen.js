@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   band: { borderBottomLeftRadius: 30, borderBottomRightRadius: 30, paddingBottom: 10, marginBottom: 8 },
   bandRow: { flexDirection: 'row', alignItems: 'flex-end', paddingRight: 16 },
-  lt: { fontSize: 36, fontWeight: '700', paddingHorizontal: 22, paddingBottom: 6, paddingTop: 2, fontFamily: 'Naikai-Bold' },
+  lt: { fontSize: 36, fontWeight: '700', paddingHorizontal: 22, paddingBottom: 6, paddingTop: 2, fontFamily: 'NaikaiSubset-Bold' },
   bandn: { fontSize: 14, marginBottom: 14, marginRight: 6 },
   listWrap: { flex: 1, paddingTop: 2 },
   it: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 18, paddingRight: 12, minHeight: 80, borderBottomWidth: StyleSheet.hairlineWidth },
@@ -161,6 +161,6 @@ const styles = StyleSheet.create({
   empty: { position: 'absolute', top: 250, left: 0, right: 0, alignItems: 'center' },
   emptyT1: { fontSize: 20, marginTop: 18 },
   cta: { height: 46, paddingHorizontal: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 24, marginTop: 22 },
-  ctaText: { fontWeight: '700', fontFamily: 'Naikai-SemiBold' },
+  ctaText: { fontWeight: '700', fontFamily: 'NaikaiSubset-SemiBold' },
   toast: { position: 'absolute', left: '50%', transform: [{ translateX: -100 }], bottom: 40, width: 200, borderRadius: 24, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1.5 }
 });

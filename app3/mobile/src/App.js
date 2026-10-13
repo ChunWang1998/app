@@ -16,9 +16,9 @@ export default function App() {
         // Load Naikai fonts if available; fall back gracefully
         try {
           await Font.loadAsync({
-            'Naikai-Regular': require('../assets/fonts/naikai/Naikai-Regular-subset.ttf'),
-            'Naikai-SemiBold': require('../assets/fonts/naikai/Naikai-SemiBold-subset.ttf'),
-            'Naikai-Bold': require('../assets/fonts/naikai/Naikai-Bold-subset.ttf'),
+            'NaikaiSubset-Regular': require('../assets/fonts/naikai/NaikaiSubset-Regular.ttf'),
+            'NaikaiSubset-SemiBold': require('../assets/fonts/naikai/NaikaiSubset-SemiBold.ttf'),
+            'NaikaiSubset-Bold': require('../assets/fonts/naikai/NaikaiSubset-Bold.ttf'),
           });
         } catch {
           // fonts optional during dev/tests

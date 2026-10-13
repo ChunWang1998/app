@@ -18,7 +18,10 @@ function notify() {
 
 export async function initRepository() {
   if (initialized) return;
-  state = await loadState(storage);
+  const loaded = await loadState(storage);
+  // Purge expired deleted on load
+  const purged = (loaded.activities || []).filter((a) => !isExpiredDeleted(a));
+  state = { ...loaded, activities: purged };
   initialized = true;
   notify();
 }
@@ -101,14 +104,33 @@ export async function exportToJson() {
     schema: 'been-ages/export',
     version: 1,
     exportedAt: nowIso(),
-    activities: state.activities,
+    activities: state.activities.filter((a) => !a.deletedAt),
   };
   return validateExport(blob);
 }
 
 export async function importFromJson(data) {
   const valid = validateExport(data);
-  await persist({ ...state, activities: valid.activities });
+  // de-dupe by id, keep latest updatedAt
+  const map = new Map();
+  for (const a of valid.activities) {
+    const existing = map.get(a.id);
+    if (!existing || new Date(a.updatedAt) > new Date(existing.updatedAt)) {
+      map.set(a.id, a);
+    }
+  }
+  let nextActivities = Array.from(map.values());
+  // Enforce free tier for non-pro: only keep up to FREE_ACTIVITY_LIMIT visible items
+  const pro = await isProUnlocked();
+  if (!pro) {
+    const visible = nextActivities.filter((a) => !a.deletedAt);
+    if (visible.length > FREE_ACTIVITY_LIMIT) {
+      const trimmedVisible = visible.slice(0, FREE_ACTIVITY_LIMIT);
+      const keepIds = new Set(trimmedVisible.map((a) => a.id));
+      nextActivities = nextActivities.filter((a) => a.deletedAt || keepIds.has(a.id));
+    }
+  }
+  await persist({ ...state, activities: nextActivities });
 }
 
 export function getRecentlyDeleted(nowMs = Date.now()) {

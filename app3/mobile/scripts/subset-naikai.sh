@@ -15,21 +15,21 @@ echo "Downloading Naikai release..."
 curl -L "$NAIKAI_RELEASE" -o "$TMP/naikai.zip"
 unzip -q "$TMP/naikai.zip" -d "$TMP/naikai"
 
-REG=$(ls "$TMP/naikai"/*Regular*.otf | head -n1)
-SEM=$(ls "$TMP/naikai"/*SemiBold*.otf | head -n1 || true)
-BOLD=$(ls "$TMP/naikai"/*Bold*.otf | head -n1)
+REG=$(ls "$TMP/naikai"/*Regular*.otf 2>/dev/null | head -n1)
+SEM=$(ls "$TMP/naikai"/*SemiBold*.otf 2>/dev/null | head -n1 || true)
+BOLD=$(ls "$TMP/naikai"/*Bold*.otf 2>/dev/null | head -n1)
 mkdir -p "$OUT"
 
 echo "Subsetting Regular..."
-pyftsubset "$REG" --text-file="$CHARLIST" --output-file="$OUT/Naikai-Regular-subset.ttf" --flavor=ttf --layout-features='*' --glyph-names --no-hinting
+pyftsubset "$REG" --text-file="$CHARLIST" --output-file="$OUT/NaikaiSubset-Regular.ttf" --flavor=ttf --layout-features='*' --glyph-names --no-hinting
 if [[ -n "${SEM:-}" && -f "$SEM" ]]; then
   echo "Subsetting SemiBold..."
-  pyftsubset "$SEM" --text-file="$CHARLIST" --output-file="$OUT/Naikai-SemiBold-subset.ttf" --flavor=ttf --layout-features='*' --glyph-names --no-hinting
+  pyftsubset "$SEM" --text-file="$CHARLIST" --output-file="$OUT/NaikaiSubset-SemiBold.ttf" --flavor=ttf --layout-features='*' --glyph-names --no-hinting
 else
   echo "SemiBold not found in release; copying Regular as fallback"
-  cp "$OUT/Naikai-Regular-subset.ttf" "$OUT/Naikai-SemiBold-subset.ttf"
+  cp "$OUT/NaikaiSubset-Regular.ttf" "$OUT/NaikaiSubset-SemiBold.ttf"
 fi
 echo "Subsetting Bold..."
-pyftsubset "$BOLD" --text-file="$CHARLIST" --output-file="$OUT/Naikai-Bold-subset.ttf" --flavor=ttf --layout-features='*' --glyph-names --no-hinting
+pyftsubset "$BOLD" --text-file="$CHARLIST" --output-file="$OUT/NaikaiSubset-Bold.ttf" --flavor=ttf --layout-features='*' --glyph-names --no-hinting
 
 echo "Done. Subsets at $OUT"

@@ -44,10 +44,10 @@ export default function ReminderScreen() {
 const styles = StyleSheet.create({
   bigblk: { marginHorizontal: 16, marginTop: 16, borderRadius: 26, paddingVertical: 16 },
   big: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 28, paddingVertical: 6 },
-  num: { fontSize: 76, fontWeight: '600', fontFamily: 'Naikai-SemiBold' },
+  num: { fontSize: 76, fontWeight: '600', fontFamily: 'NaikaiSubset-SemiBold' },
   rb: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingTop: 14, justifyContent: 'center' },
   chip: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 18 },
   cta: { marginHorizontal: 20, marginTop: 22, height: 54, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-  ctaText: { fontSize: 18, fontWeight: '700', fontFamily: 'Naikai-SemiBold' }
+  ctaText: { fontSize: 18, fontWeight: '700', fontFamily: 'NaikaiSubset-SemiBold' }
 });

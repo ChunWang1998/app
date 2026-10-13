@@ -223,17 +223,13 @@ export async function verifyProOnLaunch() {
     if (!iap?.initConnection || !iap?.getAvailablePurchases) return;
     await iap.initConnection();
     try {
-      if (typeof iap.restorePurchases === 'function') {
-        try {
-          await iap.restorePurchases();
-        } catch {
-          // continue
-        }
-      }
       const purchases = await iap.getAvailablePurchases();
       const mine = (purchases || []).some(purchaseMatches);
       if (mine) {
         await setProUnlocked(true);
+      } else {
+        // Revoke entitlement if no valid purchases (e.g., refunds)
+        await setProUnlocked(false);
       }
     } finally {
       try {

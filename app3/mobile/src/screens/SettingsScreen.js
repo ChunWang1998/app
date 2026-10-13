@@ -19,11 +19,16 @@ export default function SettingsScreen() {
   async function doExport() {
     const blob = await exportToJson();
     const path = `${FileSystem.cacheDirectory}been-ages-export-${Date.now()}.json`;
-    await FileSystem.writeAsStringAsync(path, JSON.stringify(blob, null, 2), { encoding: FileSystem.EncodingType.UTF8 });
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: 'Export Been Ages' });
-    } else {
-      Alert.alert('匯出完成', '已產生 JSON 檔案');
+    try {
+      await FileSystem.writeAsStringAsync(path, JSON.stringify(blob, null, 2), { encoding: FileSystem.EncodingType.UTF8 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: 'Export Been Ages' });
+      } else {
+        Alert.alert('匯出完成', '已產生 JSON 檔案');
+      }
+    } finally {
+      // Clean up
+      try { await FileSystem.deleteAsync(path, { idempotent: true }); } catch {}
     }
   }
 
@@ -32,6 +37,10 @@ export default function SettingsScreen() {
       const pick = await DocumentPicker.getDocumentAsync({ type: 'application/json', multiple: false, copyToCacheDirectory: true });
       if (pick.canceled) return;
       const file = pick.assets?.[0];
+      if (file?.size != null && Number(file.size) > 1024 * 1024) {
+        Alert.alert('匯入失敗', '檔案太大（超過 1MB）');
+        return;
+      }
       const raw = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.UTF8 });
       let data;
       try {
@@ -86,10 +95,10 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 14 }]}>
-          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('https://apps.apple.com/app/id000000')}>
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('itms-apps://itunes.apple.com/app/id6822311922?action=write-review')}>
             <Text style={[styles.rowTitle, { color: c.label }]}>給個評分</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:support@example.com')}>
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:tinytoolshedhq@gmail.com')}>
             <Text style={[styles.rowTitle, { color: c.label }]}>聯絡我們</Text>
           </TouchableOpacity>
         </View>
