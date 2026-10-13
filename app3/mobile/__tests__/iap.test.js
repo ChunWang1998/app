@@ -31,6 +31,7 @@ describe('iap', () => {
     expect(paywall).not.toMatch(/NT\$90/);
     expect(paywall).not.toMatch(/US\$2\.99/);
     expect(paywall).toMatch(/一次買斷/);
+    expect(paywall).toMatch(/無法取得價格/);
     expect(paywall).toMatch(/displayPrice|getProDisplayPrice/);
   });
 });

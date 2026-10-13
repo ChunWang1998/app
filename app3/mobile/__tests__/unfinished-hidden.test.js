@@ -7,9 +7,16 @@ describe('v1.0 hides unfinished entry points', () => {
   const home = fs.readFileSync(path.join(__dirname, '../src/screens/HomeScreen.js'), 'utf8');
   const appJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../app.json'), 'utf8'));
 
-  it('does not register Reminder or RecentlyDeleted screens', () => {
+  it('does not ship Reminder or RecentlyDeleted screens', () => {
     expect(nav).not.toMatch(/ReminderScreen/);
     expect(nav).not.toMatch(/RecentlyDeleted/);
+    expect(fs.existsSync(path.join(__dirname, '../src/screens/ReminderScreen.js'))).toBe(false);
+    expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(false);
+  });
+
+  it('does not load the expo-notifications plugin', () => {
+    const plugins = JSON.stringify(appJson.expo.plugins || []);
+    expect(plugins).not.toMatch(/expo-notifications/);
   });
 
   it('does not expose import/export in Settings', () => {
@@ -29,5 +36,12 @@ describe('v1.0 hides unfinished entry points', () => {
 
   it('locks UI to light', () => {
     expect(appJson.expo.userInterfaceStyle).toBe('light');
+  });
+
+  it('gates demo and screen query params behind __DEV__', () => {
+    const app = fs.readFileSync(path.join(__dirname, '../src/App.js'), 'utf8');
+    expect(app).toMatch(/__DEV__/);
+    expect(app).toMatch(/searchParams\.get\('demo'\)/);
+    expect(app).toMatch(/searchParams\.get\('screen'\)/);
   });
 });

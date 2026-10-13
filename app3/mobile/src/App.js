@@ -27,7 +27,7 @@ export default function App() {
         await initRepository();
         await verifyProOnLaunch();
         try {
-          if (typeof window !== 'undefined') {
+          if (typeof __DEV__ !== 'undefined' && __DEV__ && typeof window !== 'undefined') {
             const url = new URL(window.location.href);
             const demo = url.searchParams.get('demo');
             const screen = url.searchParams.get('screen');

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useActivities, addActivity, updateActivity, softDeleteActivity, FREE_ACTIVITY_LIMIT } from '../data/repository';
+import { useActivities, addActivity, updateActivity, hardDeleteActivity, FREE_ACTIVITY_LIMIT } from '../data/repository';
 import { useThemeColors } from '../theme/useTheme';
 import { itemPalette } from '../theme/colors';
 import { ItemGlyph } from '../components/ItemGlyph';
@@ -62,7 +62,7 @@ export default function EditScreen() {
         text: '刪除',
         style: 'destructive',
         onPress: async () => {
-          await softDeleteActivity(current.id);
+          await hardDeleteActivity(current.id);
           nav.reset({ index: 0, routes: [{ name: 'Home' }] });
         },
       },
