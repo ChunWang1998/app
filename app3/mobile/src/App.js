@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initializeI18n } from './i18n';
-import { initRepository, addActivity, updateActivity } from './data/repository';
+import { initRepository, resetRepositoryForTests, addActivity, updateActivity, logActivityNow } from './data/repository';
 import AppNavigator from './navigation/AppNavigator';
 import * as Font from 'expo-font';
 import { StatusBar } from 'react-native';
@@ -29,7 +29,13 @@ export default function App() {
         try {
           if (typeof window !== 'undefined') {
             const url = new URL(window.location.href);
-            if (url.searchParams.get('demo') === '1') {
+            const demo = url.searchParams.get('demo');
+            const screen = url.searchParams.get('screen');
+            if (demo || screen === 'Empty') {
+              await resetRepositoryForTests();
+            }
+            let id = url.searchParams.get('id');
+            if (demo === '1' || demo === 'logged') {
               const a1 = await addActivity({ title: '換濾水器濾心', icon: 'drop', reminderDays: 60 });
               const a2 = await addActivity({ title: '換隱形眼鏡', icon: 'eye', reminderDays: 14 });
               const a3 = await addActivity({ title: '剪頭髮', icon: 'scissors', reminderDays: null });
@@ -37,12 +43,13 @@ export default function App() {
               await updateActivity(a1.id, { lastDoneAt: past(74) });
               await updateActivity(a2.id, { lastDoneAt: past(19, 7) });
               await updateActivity(a3.id, { lastDoneAt: past(44) });
-              if (!url.searchParams.get('id')) url.searchParams.set('id', a2.id);
+              if (demo === 'logged') await logActivityNow(a3.id);
+              if (!id) id = a2.id;
             }
-            const screen = url.searchParams.get('screen');
-            const id = url.searchParams.get('id');
             if (screen === 'Empty') {
               setInitial({ name: 'Home', params: {} });
+            } else if (screen === 'EditNew') {
+              setInitial({ name: 'Edit', params: {} });
             } else if (screen) {
               const needsId = screen === 'Detail' || screen === 'Edit';
               setInitial({ name: screen, params: needsId ? { id } : {} });

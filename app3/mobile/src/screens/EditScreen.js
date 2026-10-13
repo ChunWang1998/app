@@ -8,7 +8,7 @@ import { itemPalette } from '../theme/colors';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { isProUnlocked } from '../lib/entitlements';
 
-const PICKER = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car'];
+const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car'];
 
 export default function EditScreen() {
   const nav = useNavigation();
@@ -93,7 +93,7 @@ export default function EditScreen() {
               onChangeText={setTitle}
               placeholder="要記的事"
               placeholderTextColor={c.l3}
-              style={[styles.input, { color: c.label }]}
+              style={[styles.input, { color: c.label }, Platform.OS === 'web' ? { outlineStyle: 'none' } : null]}
               autoFocus={isNew}
             />
           </View>
@@ -140,6 +140,6 @@ const styles = StyleSheet.create({
   grp: { marginHorizontal: 16, borderRadius: 18, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16 },
   input: { flex: 1, fontSize: 22, fontFamily: 'NaikaiSubset-SemiBold', paddingVertical: 14 },
-  icp: { flexDirection: 'row', gap: 10, paddingTop: 14, paddingHorizontal: 20, justifyContent: 'space-between' },
-  icBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  icp: { flexDirection: 'row', gap: 6, paddingTop: 14, paddingHorizontal: 16, justifyContent: 'space-between' },
+  icBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });

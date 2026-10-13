@@ -59,7 +59,11 @@ async function persist(nextState) {
   state = { ...nextState, activities: purgedActivities };
   await saveState(state, storage);
   notify();
-  await enforceReminderBudget(state.activities);
+  try {
+    await enforceReminderBudget(state.activities);
+  } catch {
+    // Persistence must not fail if the OS rejects a notification schedule (e.g. web).
+  }
 }
 
 export async function addActivity(input) {
