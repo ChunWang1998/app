@@ -1,0 +1,63 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useThemeColors } from '../theme/useTheme';
+import { exportToJson } from '../data/repository';
+import { restoreProUnlock } from '../lib/iap';
+import { isProUnlocked } from '../lib/entitlements';
+
+export default function SettingsScreen() {
+  const c = useThemeColors();
+  const nav = useNavigation();
+  const [pro, setPro] = React.useState(false);
+  React.useEffect(() => { isProUnlocked().then(setPro); }, []);
+
+  async function doExport() {
+    const blob = await exportToJson();
+    Alert.alert('匯出', '已匯出 JSON（請在開發工具查看輸出）');
+    console.log('__EXPORT__', JSON.stringify(blob, null, 2));
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: c.set }}>
+      <View style={{ padding: 20 }}>
+        <View style={[styles.grp, { backgroundColor: c.cell }]}>
+          <TouchableOpacity style={styles.row} onPress={() => nav.navigate('Paywall')}>
+            <Text style={[styles.rowTitle, { color: c.label }]}>{pro ? '完整版（已解鎖）' : '完整版'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={async () => { const r = await restoreProUnlock(); if (r.ok) setPro(true); }}>
+            <Text style={[styles.rowTitle, { color: c.label }]}>恢復購買</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 14 }]}>
+          <TouchableOpacity style={styles.row} onPress={doExport}>
+            <Text style={[styles.rowTitle, { color: c.label }]}>匯出</Text>
+            <Text style={{ marginLeft: 'auto', color: c.l2 }}>JSON</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={() => Alert.alert('匯入', 'JSON 匯入（未實作 UI，請之後在 UI 完成）')}>
+            <Text style={[styles.rowTitle, { color: c.label }]}>匯入</Text>
+            <Text style={{ marginLeft: 'auto', color: c.l2 }}>JSON</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={() => Alert.alert('最近刪除', '尚未實作頁面（邏輯已支援 30 天自動清除）')}>
+            <Text style={[styles.rowTitle, { color: c.label }]}>最近刪除</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 14 }]}>
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('https://apps.apple.com/app/id000000')}>
+            <Text style={[styles.rowTitle, { color: c.label }]}>給個評分</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.row} onPress={() => Linking.openURL('mailto:support@example.com')}>
+            <Text style={[styles.rowTitle, { color: c.label }]}>聯絡我們</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={{ textAlign: 'center', marginTop: 20, color: c.l2 }}>Been Ages 1.0</Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  grp: { borderRadius: 20, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(0,0,0,0.09)' },
+  rowTitle: { fontSize: 17 }
+});

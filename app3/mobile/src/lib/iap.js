@@ -211,3 +211,36 @@ export async function restoreProUnlock() {
     error: Platform.OS === 'ios' ? t('iap.nothingToRestore') : t('iap.cannotRestore')
   };
 }
+
+/**
+ * On launch, re-verify entitlement by checking available purchases.
+ * Grants local entitlement when a matching non-consumable is found.
+ * Swallows errors silently to avoid blocking app start.
+ */
+export async function verifyProOnLaunch() {
+  try {
+    const iap = require('expo-iap');
+    if (!iap?.initConnection || !iap?.getAvailablePurchases) return;
+    await iap.initConnection();
+    try {
+      if (typeof iap.restorePurchases === 'function') {
+        try {
+          await iap.restorePurchases();
+        } catch {
+          // continue
+        }
+      }
+      const purchases = await iap.getAvailablePurchases();
+      const mine = (purchases || []).some(purchaseMatches);
+      if (mine) {
+        await setProUnlocked(true);
+      }
+    } finally {
+      try {
+        await iap.endConnection?.();
+      } catch {}
+    }
+  } catch {
+    // ignore
+  }
+}
