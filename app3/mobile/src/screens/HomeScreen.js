@@ -1,78 +1,137 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
-import { useActivities, logActivityNow, addActivity, softDeleteActivity, undoDelete } from '../data/repository';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  useActivities,
+  logActivityNow,
+  undoLogActivity,
+  softDeleteActivity,
+  undoDelete,
+  hardDeleteActivity,
+  FREE_ACTIVITY_LIMIT,
+} from '../data/repository';
 import { useThemeColors } from '../theme/useTheme';
 import { itemPalette } from '../theme/colors';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { Mascot } from '../components/Mascot';
+import { GearIcon, PlusIcon, CheckIcon } from '../components/Icons';
+import { formatSpan, formatDateShort, dueInMs, progressRatio, elapsedMs, formatSpanParts } from '../lib/time';
 import * as Haptics from 'expo-haptics';
 import { isProUnlocked } from '../lib/entitlements';
 
-function formatSpan(ms) {
-  if (ms < 60e3) return '0 分';
-  const DAY = 864e5; const H = 36e5;
-  const d = Math.floor(ms / DAY); const h = Math.floor((ms % DAY) / H);
-  if (d >= 30) {
-    const mo = Math.floor(d / 30); const dd = d % 30;
-    return `${mo}\u2009個月${dd ? `\u2009${dd}\u2009天` : ''}`;
-  }
-  if (d >= 1) return `${d}\u2009天${h ? `\u2009${h}\u2009小時` : ''}`;
-  return `${Math.floor(ms / H)}\u2009小時`;
-}
-
-function nextDue(item) {
-  if (!item.reminderDays) return Infinity;
-  const last = item.lastDoneAt ? new Date(item.lastDoneAt).getTime() : (item.createdAt ? new Date(item.createdAt).getTime() : 0);
-  return last + item.reminderDays * 864e5 - Date.now();
-}
+const JUST_MS = 60e3;
 
 export default function HomeScreen() {
   const nav = useNavigation();
   const c = useThemeColors();
+  const insets = useSafeAreaInsets();
   const { activities, ready } = useActivities();
-  const [toast, setToast] = useState('');
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+  const pendingHardDelete = useRef(null);
 
   const data = useMemo(() => {
     return [...activities].map((a) => {
-      const due = nextDue(a);
-      const cls = due < 0 ? 'od' : due < 2 * 864e5 ? 'soon' : '';
-      return { ...a, _due: due, _cls: cls };
+      const due = dueInMs(a);
+      return { ...a, _due: due };
     }).sort((x, y) => (x._due === y._due ? 0 : x._due - y._due));
   }, [activities]);
   const overdueCount = data.filter((x) => x._due < 0).length;
 
-  async function handleCheck(a) {
-    await logActivityNow(a.id);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    setToast({ text: '已記錄', undo: null });
-    setTimeout(() => setToast(''), 1800);
+  function commitPendingDelete() {
+    const id = pendingHardDelete.current;
+    pendingHardDelete.current = null;
+    if (id) hardDeleteActivity(id).catch(() => {});
   }
 
-  async function handleAddSample() {
+  function showToast(next, { hardDeleteId } = {}) {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    if (pendingHardDelete.current && pendingHardDelete.current !== hardDeleteId) {
+      commitPendingDelete();
+    }
+    pendingHardDelete.current = hardDeleteId || null;
+    setToast(next);
+    toastTimer.current = setTimeout(() => {
+      commitPendingDelete();
+      setToast(null);
+    }, 5000);
+  }
+
+  async function handleCheck(a) {
+    const result = await logActivityNow(a.id);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    showToast({
+      text: '已記錄',
+      undo: async () => {
+        await undoLogActivity(a.id, result.previousLastDoneAt);
+      },
+    });
+  }
+
+  async function handleAdd() {
     const pro = await isProUnlocked();
-    const visible = activities.length;
-    if (!pro && visible >= 3) {
+    if (!pro && activities.length >= FREE_ACTIVITY_LIMIT) {
       nav.navigate('Paywall');
       return;
     }
-    await addActivity({ title: 'New item', reminderDays: 7 });
+    nav.navigate('Edit', {});
   }
+
   async function handleDelete(a) {
     await softDeleteActivity(a.id);
-    const id = a.id;
-    setToast({ text: '已刪除', undo: async () => { await undoDelete(id); } });
-    const timer = setTimeout(() => setToast(''), 5000);
-    return () => clearTimeout(timer);
+    showToast({
+      text: '已刪除',
+      undo: async () => {
+        pendingHardDelete.current = null;
+        try {
+          await undoDelete(a.id);
+          return true;
+        } catch (e) {
+          if (e?.code === 'FREE_LIMIT') {
+            pendingHardDelete.current = a.id;
+            nav.navigate('Paywall');
+            return false;
+          }
+          throw e;
+        }
+      },
+    }, { hardDeleteId: a.id });
   }
 
   return (
     <View style={[styles.root, { backgroundColor: c.bg }]}>
-      <View style={[styles.band, { backgroundColor: c.band }]}>
+      <View style={[styles.band, { backgroundColor: c.band, paddingTop: insets.top }]}>
+        <View style={styles.nav}>
+          <TouchableOpacity
+            onPress={() => nav.navigate('Settings')}
+            accessibilityLabel="設定"
+            style={styles.ib}
+            hitSlop={8}
+          >
+            <GearIcon color={c.brand} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleAdd}
+            accessibilityLabel="新增項目"
+            style={styles.ib}
+            hitSlop={8}
+          >
+            <PlusIcon color={c.brand} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.bandRow}>
           <Text style={[styles.lt, { color: c.label }]}>好久沒了</Text>
-          <Text style={[styles.bandn, { color: c.l2 }]}><Text style={{ color: c.red, fontWeight: '700', fontSize: 18 }}>{overdueCount}</Text> 件逾期</Text>
-          <Mascot size={36} mood={overdueCount > 0 ? 'worry' : 'idle'} />
+          {overdueCount > 0 ? (
+            <Text style={[styles.bandn, { color: c.l2 }]}>
+              <Text style={{ color: c.red, fontFamily: 'NaikaiSubset-Bold', fontSize: 18 }}>{overdueCount}</Text>
+              {' '}件逾期
+            </Text>
+          ) : null}
+          {data.length > 0 ? (
+            <Mascot size={70} mood={overdueCount > 0 ? 'worry' : 'idle'} />
+          ) : null}
         </View>
       </View>
       <View style={styles.listWrap}>
@@ -80,12 +139,21 @@ export default function HomeScreen() {
           <FlatList
             data={data}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <Row item={item} onCheck={() => handleCheck(item)} onOpen={() => nav.navigate('Detail', { id: item.id })} onDelete={() => handleDelete(item)} />}
+            contentContainerStyle={data.length === 0 ? styles.emptyContainer : undefined}
+            renderItem={({ item }) => (
+              <Row
+                item={item}
+                onCheck={() => handleCheck(item)}
+                onOpen={() => nav.navigate('Detail', { id: item.id })}
+                onDelete={() => handleDelete(item)}
+              />
+            )}
             ListEmptyComponent={
               <View style={styles.empty}>
-                <Mascot size={140} mood="sleepy" />
-                <Text style={[styles.emptyT1, { color: c.l2 }]}>還沒有要記的事</Text>
-                <TouchableOpacity onPress={handleAddSample} style={[styles.cta, { backgroundColor: c.brand }]}>
+                <Mascot size={150} mood="sleepy" />
+                <Text style={[styles.emptyT1, { color: c.label }]}>還沒有要記的事</Text>
+                <TouchableOpacity onPress={handleAdd} style={[styles.cta, { backgroundColor: c.brand }]}>
+                  <PlusIcon color={c.onbrand} size={18} />
                   <Text style={[styles.ctaText, { color: c.onbrand }]}>新增</Text>
                 </TouchableOpacity>
               </View>
@@ -94,12 +162,18 @@ export default function HomeScreen() {
         )}
       </View>
       {!!toast && (
-        <View style={[styles.toast, { backgroundColor: c.cell, borderColor: c.sep }]}>
-          <Mascot size={26} mood="happy" />
-          <Text style={{ fontWeight: '700', color: c.label }}>{toast.text}</Text>
+        <View style={[styles.toast, { backgroundColor: c.cell, borderColor: c.sep, bottom: 24 + insets.bottom }]}>
+          <Mascot size={38} mood="happy" />
+          <Text style={{ fontFamily: 'NaikaiSubset-SemiBold', color: c.label, fontSize: 15 }}>{toast.text}</Text>
           {toast.undo ? (
-            <TouchableOpacity onPress={async () => { await toast.undo(); setToast(''); }}>
-              <Text style={{ color: c.brand, fontWeight: '700' }}>復原</Text>
+            <TouchableOpacity
+              onPress={async () => {
+                const ok = await toast.undo();
+                if (ok !== false) setToast(null);
+              }}
+              hitSlop={8}
+            >
+              <Text style={{ color: c.brand, fontFamily: 'NaikaiSubset-SemiBold', fontSize: 15 }}>復原</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -110,57 +184,165 @@ export default function HomeScreen() {
 
 function Row({ item, onCheck, onOpen, onDelete }) {
   const c = useThemeColors();
-  const pal = itemPalette[item.icon || 'drop'] || itemPalette.drop;
-  const tone = (c.bg === '#1B1917' ? pal.dark : pal.light);
-  const ac = tone.ac, acf = tone.acf;
+  const pal = itemPalette[item.icon || 'brush'] || itemPalette.brush;
+  const tone = pal.light;
   const due = item._due;
   const soon = due < 2 * 864e5 && due >= 0;
   const od = due < 0;
-  const ratio = Math.max(0, Math.min(1, 1 - (due / (item.reminderDays ? (item.reminderDays * 864e5) : 1))));
+  const elapsed = elapsedMs(item);
+  const just = elapsed != null && elapsed < JUST_MS;
+  const ratio = progressRatio(item);
+  const hasReminder = !!item.reminderDays;
+
+  let status;
+  if (!item.lastDoneAt) status = '還沒記錄';
+  else if (!hasReminder) status = formatDateShort(item.lastDoneAt);
+  else if (od) status = `逾期\u2009${formatSpan(-due)}`;
+  else status = `還有\u2009${formatSpan(due)}`;
+
+  const renderRight = () => (
+    <TouchableOpacity
+      onPress={onDelete}
+      style={[styles.swipeDel, { backgroundColor: c.red }]}
+      accessibilityLabel={`刪除${item.title}`}
+    >
+      <Text style={styles.swipeDelText}>刪除</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <View style={[styles.it, { borderColor: c.sep }]}>
-      <View style={[styles.gl, { backgroundColor: od ? c.odtint : c.tint }]}>
-        <ItemGlyph kind={item.icon || 'drop'} color={acf} />
-      </View>
-      <TouchableOpacity style={styles.tx} onPress={onOpen} activeOpacity={0.7}>
-        <Text numberOfLines={1} style={[styles.nm, { color: c.label }]}>{item.title}</Text>
-        <Text style={[styles.st, { color: c.l2 }]}>
-          {item.lastDoneAt ? (due < 0 ? `逾期\u2009${formatSpan(-due)}` : `還有\u2009${formatSpan(due)}`) : '還沒記錄'}
-        </Text>
-        <View style={[styles.trk, { backgroundColor: c.track }]}>
-          <View style={[styles.trkI, { width: `${Math.floor(ratio * 100)}%`, backgroundColor: od ? c.red : soon ? c.orange : c.l3 }]} />
+    <Swipeable renderRightActions={renderRight} overshootRight={false} friction={2}>
+      <View style={[styles.it, { backgroundColor: c.bg }]}>
+        <View style={[styles.gl, { backgroundColor: od ? c.odtint : tone.ac }]}>
+          <ItemGlyph kind={item.icon || 'brush'} color={tone.acf} />
+          {od ? <View style={[styles.odDot, { backgroundColor: c.red, borderColor: c.bg }]} /> : null}
         </View>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={onCheck} style={styles.ck} activeOpacity={0.85}>
-        <View style={[styles.ckDot, { borderColor: c.brand }]} />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={onDelete} style={styles.del} activeOpacity={0.85}>
-        <Text style={{ color: c.red, fontWeight: '700' }}>刪</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity style={styles.tx} onPress={onOpen} activeOpacity={0.7}>
+          <Text numberOfLines={1} style={[styles.nm, { color: c.label }]}>{item.title}</Text>
+          <Text style={[styles.st, { color: od ? c.red : c.l2 }]}>{status}</Text>
+          {hasReminder ? (
+            <View style={[styles.trk, { backgroundColor: c.track }]}>
+              <View
+                style={[
+                  styles.trkI,
+                  {
+                    width: `${Math.max(Math.floor(ratio * 100), 2)}%`,
+                    backgroundColor: od ? c.red : soon ? c.orange : c.l3,
+                  },
+                ]}
+              />
+            </View>
+          ) : null}
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onOpen} style={styles.numWrap} activeOpacity={0.7}>
+          {elapsed == null ? (
+            <Text style={[styles.numSmall, { color: c.l2 }]}>—</Text>
+          ) : (
+            <Numeral ms={elapsed} just={just} color={c.label} dim={c.l2} />
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onCheck}
+          style={styles.ck}
+          activeOpacity={0.85}
+          accessibilityLabel={`記錄${item.title}，剛剛做了`}
+        >
+          <View style={[styles.ckDot, { borderColor: c.brand, backgroundColor: just ? c.brand : 'transparent' }]}>
+            {just ? <CheckIcon color={c.onbrand} size={16} /> : null}
+          </View>
+        </TouchableOpacity>
+      </View>
+    </Swipeable>
+  );
+}
+
+function Numeral({ ms, just, color, dim }) {
+  const parts = formatSpanParts(ms, just ? 1 : 2);
+  return (
+    <Text style={[styles.num, { color }]}>
+      {parts.map((p, i) => (
+        <Text key={i}>
+          {p.n}
+          <Text style={[styles.numSmall, { color: dim }]}>{p.unit}</Text>
+        </Text>
+      ))}
+    </Text>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  band: { borderBottomLeftRadius: 30, borderBottomRightRadius: 30, paddingBottom: 10, marginBottom: 8 },
+  band: { borderBottomLeftRadius: 30, borderBottomRightRadius: 30, paddingBottom: 14, marginBottom: 8 },
+  nav: {
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 16,
+    paddingRight: 12,
+  },
+  ib: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   bandRow: { flexDirection: 'row', alignItems: 'flex-end', paddingRight: 16 },
-  lt: { fontSize: 36, fontWeight: '700', paddingHorizontal: 22, paddingBottom: 6, paddingTop: 2, fontFamily: 'NaikaiSubset-Bold' },
+  lt: {
+    fontSize: 36,
+    letterSpacing: 1,
+    paddingHorizontal: 22,
+    paddingBottom: 6,
+    paddingTop: 2,
+    fontFamily: 'NaikaiSubset-Bold',
+    flex: 1,
+  },
   bandn: { fontSize: 14, marginBottom: 14, marginRight: 6 },
   listWrap: { flex: 1, paddingTop: 2 },
-  it: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 18, paddingRight: 12, minHeight: 80, borderBottomWidth: StyleSheet.hairlineWidth },
+  emptyContainer: { flexGrow: 1 },
+  it: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingLeft: 18,
+    paddingRight: 12,
+    minHeight: 80,
+    borderBottomWidth: 1.5,
+    borderBottomColor: 'rgba(46,41,37,0.09)',
+    borderStyle: 'dashed',
+  },
   gl: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  odDot: { position: 'absolute', top: 0, right: 0, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },
   tx: { flex: 1, paddingVertical: 14 },
-  nm: { fontSize: 18, fontWeight: '600' }, // system font for user text
-  st: { fontSize: 14, marginTop: 3 },
+  nm: { fontSize: 18, fontFamily: 'NaikaiSubset-SemiBold' },
+  st: { fontSize: 14, marginTop: 3, fontFamily: 'NaikaiSubset-Regular' },
   trk: { height: 5, borderRadius: 3, marginTop: 8, overflow: 'hidden' },
   trkI: { height: '100%', borderRadius: 3 },
+  numWrap: { width: 108, alignItems: 'flex-end' },
+  num: { fontSize: 30, fontFamily: 'NaikaiSubset-SemiBold', lineHeight: 34 },
+  numSmall: { fontSize: 13, fontFamily: 'NaikaiSubset-Regular' },
   ck: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  ckDot: { width: 32, height: 32, borderRadius: 16, borderWidth: 2.4 },
-  del: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
-  empty: { position: 'absolute', top: 250, left: 0, right: 0, alignItems: 'center' },
-  emptyT1: { fontSize: 20, marginTop: 18 },
-  cta: { height: 46, paddingHorizontal: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 24, marginTop: 22 },
-  ctaText: { fontWeight: '700', fontFamily: 'NaikaiSubset-SemiBold' },
-  toast: { position: 'absolute', left: '50%', transform: [{ translateX: -100 }], bottom: 40, width: 200, borderRadius: 24, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1.5 }
+  ckDot: { width: 32, height: 32, borderRadius: 16, borderWidth: 2.4, alignItems: 'center', justifyContent: 'center' },
+  swipeDel: { width: 88, alignItems: 'center', justifyContent: 'center' },
+  swipeDelText: { color: '#fff', fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
+  empty: { alignItems: 'center', paddingTop: 80 },
+  emptyT1: { fontSize: 20, marginTop: 18, fontFamily: 'NaikaiSubset-SemiBold' },
+  cta: {
+    height: 56,
+    paddingHorizontal: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 28,
+    marginTop: 22,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  ctaText: { fontSize: 18, fontFamily: 'NaikaiSubset-SemiBold' },
+  toast: {
+    position: 'absolute',
+    alignSelf: 'center',
+    borderRadius: 24,
+    paddingLeft: 10,
+    paddingRight: 8,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+  },
 });

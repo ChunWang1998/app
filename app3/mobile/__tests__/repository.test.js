@@ -1,14 +1,21 @@
-import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, softDeleteActivity, undoDelete, exportToJson, importFromJson, FREE_ACTIVITY_LIMIT, getRecentlyDeleted } from '../src/data/repository';
+import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, undoLogActivity, softDeleteActivity, undoDelete, hardDeleteActivity, exportToJson, importFromJson, FREE_ACTIVITY_LIMIT } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
 import React from 'react';
 import TestRenderer from 'react-test-renderer';
 
 describe('repository', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('initializes and adds, logs, deletes, undoes', async () => {
     await resetRepositoryForTests();
     const a = await addActivity({ title: 'Test A', reminderDays: 3 });
     expect(a.id).toBeTruthy();
 
+    const logged = await logActivityNow(a.id);
+    expect(logged.previousLastDoneAt).toBeNull();
+    await undoLogActivity(a.id, logged.previousLastDoneAt);
     await logActivityNow(a.id);
 
     await softDeleteActivity(a.id);
@@ -72,18 +79,53 @@ describe('repository', () => {
     expect(blob.activities.length).toBe(FREE_ACTIVITY_LIMIT);
   });
 
-  it('purges items soft-deleted over 30 days', async () => {
+  it('hard-deletes after the undo window', async () => {
     await resetRepositoryForTests();
     const a = await addActivity({ title: 'Old' });
     await softDeleteActivity(a.id);
-    // Manually set deletedAt to 31 days ago
-    const now = Date.now();
-    const thirtyOne = new Date(now - 31 * 24 * 60 * 60 * 1000).toISOString();
-    // Re-import state to simulate persisted data
-    const blob = await exportToJson();
-    const hacked = { ...blob, activities: blob.activities.map(x => x.id === a.id ? { ...x, deletedAt: thirtyOne } : x) };
-    await importFromJson(hacked);
+    await hardDeleteActivity(a.id);
     const after = await exportToJson();
     expect(after.activities.find(x => x.id === a.id)).toBeUndefined();
+  });
+
+  it('blocks undoDelete when restoring would exceed the free cap', async () => {
+    await resetRepositoryForTests();
+    jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(false);
+    const kept = [];
+    for (let i = 0; i < FREE_ACTIVITY_LIMIT; i++) {
+      kept.push(await addActivity({ title: `Cap${i}` }));
+    }
+    await softDeleteActivity(kept[0].id);
+    await addActivity({ title: 'Replacement' });
+    await expect(undoDelete(kept[0].id)).rejects.toHaveProperty('code', 'FREE_LIMIT');
+    const blob = await exportToJson();
+    expect(blob.activities.find((x) => x.id === kept[0].id)).toBeUndefined();
+    expect(blob.activities.length).toBe(FREE_ACTIVITY_LIMIT);
+  });
+
+  it('persists icon and migrates rows without one', async () => {
+    await resetRepositoryForTests();
+    const a = await addActivity({ title: '濾心', icon: 'drop' });
+    expect(a.icon).toBe('drop');
+    const blob = await exportToJson();
+    expect(blob.activities[0].icon).toBe('drop');
+    const ts = new Date().toISOString();
+    await importFromJson({
+      schema: 'been-ages/export',
+      version: 1,
+      exportedAt: ts,
+      activities: [{
+        id: 'legacy_1',
+        title: '舊項目',
+        lastDoneAt: null,
+        reminderDays: null,
+        createdAt: ts,
+        updatedAt: ts,
+        deletedAt: null,
+      }],
+    });
+    const after = await exportToJson();
+    const legacy = after.activities.find((x) => x.id === 'legacy_1');
+    expect(legacy.icon).toBe('brush');
   });
 });

@@ -1,24 +1,16 @@
 // Basic jest setup for non-UI logic tests
-jest.mock('expo-notifications', () => {
-  return {
-    getPermissionsAsync: jest.fn(async () => ({ status: 'granted', granted: true })),
-    requestPermissionsAsync: jest.fn(async () => ({ status: 'granted', granted: true })),
-    getAllScheduledNotificationsAsync: jest.fn(async () => []),
-    cancelAllScheduledNotificationsAsync: jest.fn(async () => {}),
-    scheduleNotificationAsync: jest.fn(async (req) => {
-      return `mock-${Date.now()}`;
-    }),
-    setNotificationChannelAsync: jest.fn(async () => {}),
-  };
-});
-
 jest.mock('expo-iap', () => {
   let purchased = false;
   let onUpdate = null;
   return {
     initConnection: jest.fn(async () => {}),
     endConnection: jest.fn(async () => {}),
-    fetchProducts: jest.fn(async () => {}),
+    fetchProducts: jest.fn(async () => [{
+      id: process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack',
+      productId: process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack',
+      displayPrice: 'NT$90',
+      type: 'in-app',
+    }]),
     requestPurchase: jest.fn(async () => {
       purchased = true;
       setTimeout(() => {
@@ -53,6 +45,11 @@ jest.mock('expo-constants', () => ({
 // Fonts are optional during tests
 jest.mock('expo-font', () => ({
   loadAsync: jest.fn(async () => {}),
+}));
+
+jest.mock('expo-haptics', () => ({
+  notificationAsync: jest.fn(async () => {}),
+  NotificationFeedbackType: { Success: 'success' },
 }));
 
 // Force simulate IAP in tests
