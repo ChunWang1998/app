@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useActivities, addActivity, updateActivity } from '../data/repository';
+import { softDeleteActivity } from '../data/repository';
 import { useThemeColors } from '../theme/useTheme';
 import { itemPalette } from '../theme/colors';
 import { ItemGlyph } from '../components/ItemGlyph';
@@ -24,6 +25,12 @@ export default function EditScreen() {
     } else {
       await addActivity({ title, reminderDays: reminderDays || null });
     }
+    nav.goBack();
+  }
+
+  async function del() {
+    if (!current) return nav.goBack();
+    await softDeleteActivity(current.id);
     nav.goBack();
   }
 
@@ -58,6 +65,13 @@ export default function EditScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      {!!current && (
+        <View style={{ paddingHorizontal: 16 }}>
+          <TouchableOpacity onPress={del} style={{ marginTop: 20, alignItems: 'center' }}>
+            <Text style={{ color: '#B42318', fontWeight: '700' }}>刪除</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

@@ -50,6 +50,11 @@ jest.mock('expo-constants', () => ({
   },
 }));
 
+// Fonts are optional during tests
+jest.mock('expo-font', () => ({
+  loadAsync: jest.fn(async () => {}),
+}));
+
 // Force simulate IAP in tests
 process.env.EXPO_PUBLIC_IAP_SIMULATE = '1';
 

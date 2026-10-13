@@ -1,0 +1,26 @@
+name: app3 mobile CI
+
+on:
+  pull_request:
+    paths:
+      - 'app3/mobile/**'
+      - '.github/workflows/app3-ci.yml'
+
+jobs:
+  build-test-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app3/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app3/mobile/package-lock.json
+      - run: npm ci
+      - run: npm test --silent
+      - name: Audit high severity (prod deps)
+        run: npm audit --omit=dev --audit-level=high

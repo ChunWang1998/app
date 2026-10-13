@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useActivities, logActivityNow, addActivity } from '../data/repository';
+import { useActivities, logActivityNow, addActivity, softDeleteActivity, undoDelete } from '../data/repository';
 import { useThemeColors } from '../theme/useTheme';
 import { itemPalette } from '../theme/colors';
 import { ItemGlyph } from '../components/ItemGlyph';
@@ -45,7 +45,8 @@ export default function HomeScreen() {
   async function handleCheck(a) {
     await logActivityNow(a.id);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    setToast('已記錄'); setTimeout(() => setToast(''), 1800);
+    setToast({ text: '已記錄', undo: null });
+    setTimeout(() => setToast(''), 1800);
   }
 
   async function handleAddSample() {
@@ -56,6 +57,13 @@ export default function HomeScreen() {
       return;
     }
     await addActivity({ title: 'New item', reminderDays: 7 });
+  }
+  async function handleDelete(a) {
+    await softDeleteActivity(a.id);
+    const id = a.id;
+    setToast({ text: '已刪除', undo: async () => { await undoDelete(id); } });
+    const timer = setTimeout(() => setToast(''), 5000);
+    return () => clearTimeout(timer);
   }
 
   return (
@@ -72,7 +80,7 @@ export default function HomeScreen() {
           <FlatList
             data={data}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <Row item={item} onCheck={() => handleCheck(item)} onOpen={() => nav.navigate('Detail', { id: item.id })} />}
+            renderItem={({ item }) => <Row item={item} onCheck={() => handleCheck(item)} onOpen={() => nav.navigate('Detail', { id: item.id })} onDelete={() => handleDelete(item)} />}
             ListEmptyComponent={
               <View style={styles.empty}>
                 <Mascot size={140} mood="sleepy" />
@@ -88,17 +96,19 @@ export default function HomeScreen() {
       {!!toast && (
         <View style={[styles.toast, { backgroundColor: c.cell, borderColor: c.sep }]}>
           <Mascot size={26} mood="happy" />
-          <Text style={{ fontWeight: '700', color: c.label }}>{toast}</Text>
-          <TouchableOpacity onPress={() => Alert.alert('', '', [{ text: '復原', onPress: () => {} }])}>
-            <Text style={{ color: c.brand, fontWeight: '700' }}>復原</Text>
-          </TouchableOpacity>
+          <Text style={{ fontWeight: '700', color: c.label }}>{toast.text}</Text>
+          {toast.undo ? (
+            <TouchableOpacity onPress={async () => { await toast.undo(); setToast(''); }}>
+              <Text style={{ color: c.brand, fontWeight: '700' }}>復原</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       )}
     </View>
   );
 }
 
-function Row({ item, onCheck, onOpen }) {
+function Row({ item, onCheck, onOpen, onDelete }) {
   const c = useThemeColors();
   const pal = itemPalette[item.icon || 'drop'] || itemPalette.drop;
   const tone = (c.bg === '#1B1917' ? pal.dark : pal.light);
@@ -124,6 +134,9 @@ function Row({ item, onCheck, onOpen }) {
       <TouchableOpacity onPress={onCheck} style={styles.ck} activeOpacity={0.85}>
         <View style={[styles.ckDot, { borderColor: c.brand }]} />
       </TouchableOpacity>
+      <TouchableOpacity onPress={onDelete} style={styles.del} activeOpacity={0.85}>
+        <Text style={{ color: c.red, fontWeight: '700' }}>刪</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -144,6 +157,7 @@ const styles = StyleSheet.create({
   trkI: { height: '100%', borderRadius: 3 },
   ck: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   ckDot: { width: 32, height: 32, borderRadius: 16, borderWidth: 2.4 },
+  del: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
   empty: { position: 'absolute', top: 250, left: 0, right: 0, alignItems: 'center' },
   emptyT1: { fontSize: 20, marginTop: 18 },
   cta: { height: 46, paddingHorizontal: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 24, marginTop: 22 },

@@ -5,6 +5,10 @@ import { useThemeColors } from '../theme/useTheme';
 import { exportToJson } from '../data/repository';
 import { restoreProUnlock } from '../lib/iap';
 import { isProUnlocked } from '../lib/entitlements';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+import * as DocumentPicker from 'expo-document-picker';
+import { importFromJson } from '../data/repository';
 
 export default function SettingsScreen() {
   const c = useThemeColors();
@@ -14,8 +18,47 @@ export default function SettingsScreen() {
 
   async function doExport() {
     const blob = await exportToJson();
-    Alert.alert('匯出', '已匯出 JSON（請在開發工具查看輸出）');
-    console.log('__EXPORT__', JSON.stringify(blob, null, 2));
+    const path = `${FileSystem.cacheDirectory}been-ages-export-${Date.now()}.json`;
+    await FileSystem.writeAsStringAsync(path, JSON.stringify(blob, null, 2), { encoding: FileSystem.EncodingType.UTF8 });
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: 'Export Been Ages' });
+    } else {
+      Alert.alert('匯出完成', '已產生 JSON 檔案');
+    }
+  }
+
+  async function doImport() {
+    try {
+      const pick = await DocumentPicker.getDocumentAsync({ type: 'application/json', multiple: false, copyToCacheDirectory: true });
+      if (pick.canceled) return;
+      const file = pick.assets?.[0];
+      const raw = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.UTF8 });
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        Alert.alert('匯入失敗', '不是合法的 JSON 檔');
+        return;
+      }
+      // Confirm
+      Alert.alert('匯入', '將以檔案內容覆蓋目前資料，是否繼續？', [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '匯入',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await importFromJson(data); // has validation inside
+              Alert.alert('完成', '已匯入資料');
+            } catch (e) {
+              Alert.alert('匯入失敗', String(e?.message || e));
+            }
+          },
+        },
+      ]);
+    } catch (e) {
+      Alert.alert('匯入失敗', String(e?.message || e));
+    }
   }
 
   return (
@@ -34,11 +77,11 @@ export default function SettingsScreen() {
             <Text style={[styles.rowTitle, { color: c.label }]}>匯出</Text>
             <Text style={{ marginLeft: 'auto', color: c.l2 }}>JSON</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.row} onPress={() => Alert.alert('匯入', 'JSON 匯入（未實作 UI，請之後在 UI 完成）')}>
+          <TouchableOpacity style={styles.row} onPress={doImport}>
             <Text style={[styles.rowTitle, { color: c.label }]}>匯入</Text>
             <Text style={{ marginLeft: 'auto', color: c.l2 }}>JSON</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.row} onPress={() => Alert.alert('最近刪除', '尚未實作頁面（邏輯已支援 30 天自動清除）')}>
+          <TouchableOpacity style={styles.row} onPress={() => nav.navigate('RecentlyDeleted')}>
             <Text style={[styles.rowTitle, { color: c.label }]}>最近刪除</Text>
           </TouchableOpacity>
         </View>
