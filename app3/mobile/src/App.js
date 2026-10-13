@@ -27,7 +27,7 @@ export default function App() {
         <Button title={t('actions.refreshReminders')} onPress={() => refreshAllReminders()} />
         <Button title={t('actions.export')} onPress={async () => {
           const blob = await exportToJson();
-          console.log('Export:', JSON.stringify(blob, null, 2));
+          // Do not log user data in production; placeholder action only
           alert(t('actions.exportedToConsole'));
         }} />
         <Button title={t('actions.restore')} onPress={() => restoreProUnlock()} />
