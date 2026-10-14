@@ -92,7 +92,7 @@ export default function PaywallScreen() {
         </View>
       </View>
       <View style={styles.pw}>
-        <Text style={[styles.h1, { color: c.label }]}>{t('paywall.headline')}</Text>
+        <Text style={[styles.h1, { color: c.label }]}>{t('paywall.headline', { n: FREE_ACTIVITY_LIMIT })}</Text>
         <View style={{ marginTop: 32 }}>
           <Feature
             icon={<InfinityIcon color={c.brand} size={22} />}

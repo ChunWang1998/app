@@ -92,7 +92,7 @@ export function capActivities(activities, proUnlocked, freeLimit) {
   const visible = (activities || []).filter((a) => a && !a.deletedAt);
   const rows = visible.map(activityToSnapshotRow).filter(Boolean);
   if (proUnlocked) return rows;
-  const limit = Number.isFinite(freeLimit) && freeLimit > 0 ? freeLimit : 3;
+  const limit = Number.isFinite(freeLimit) && freeLimit > 0 ? freeLimit : 10;
   return rows.slice(0, limit);
 }
 

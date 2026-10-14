@@ -8,7 +8,7 @@ let state = { version: 1, activities: [] };
 let initialized = false;
 const listeners = new Set();
 
-export const FREE_ACTIVITY_LIMIT = Number(process.env.EXPO_PUBLIC_FREE_ACTIVITY_LIMIT || 3);
+export const FREE_ACTIVITY_LIMIT = Number(process.env.EXPO_PUBLIC_FREE_ACTIVITY_LIMIT || 10);
 
 function notify() {
   for (const l of listeners) l(state);
