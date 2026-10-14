@@ -8,17 +8,20 @@ import { ItemGlyph } from '../components/ItemGlyph';
 import { ChevronRightIcon } from '../components/Icons';
 import { isProUnlocked } from '../lib/entitlements';
 import { DateChips } from '../components/DateChips';
+import { CategoryPicker } from '../components/CategoryPicker';
+import { CategoryGlyph } from '../components/CategoryGlyph';
+import { OTHER_ID, OTHER_ICON, matchCategory, categoryName } from '../lib/categories';
 import { ReminderChips } from '../components/ReminderChips';
 import { suggestReminderDays } from '../lib/suggestReminder';
 import { suggestIcon, monogramLetter } from '../lib/suggestIcon';
 import { t } from '../i18n';
 
-const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car', 'paw'];
+const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car', 'paw', 'plug'];
 
 export default function EditScreen() {
   const nav = useNavigation();
   const { params } = useRoute();
-  const { activities } = useActivities();
+  const { activities, categories } = useActivities();
   const current = activities.find((a) => a.id === params?.id);
   const c = useThemeColors();
   const { reminderTime: defaultTime } = useTheme();
@@ -31,7 +34,12 @@ export default function EditScreen() {
   const [lastDoneAt, setLastDoneAt] = useState(() => (isNew ? new Date().toISOString() : current?.lastDoneAt || null));
   const [reminderDays, setReminderDays] = useState(null);
   const [reminderManual, setReminderManual] = useState(false);
+  const [categoryId, setCategoryId] = useState(current?.categoryId || null);
+  const [picker, setPicker] = useState(false);
   const [busy, setBusy] = useState(false);
+  // New items: auto-match from the name until the user picks one.
+  const shownCategory = categoryId || (title.trim() ? matchCategory(title, categories) : null);
+  const catObj = shownCategory === OTHER_ID ? { id: OTHER_ID, icon: OTHER_ICON } : categories.find((x) => x.id === shownCategory);
 
   const remLabel = current?.reminderDays ? t('detail.everyDays', { n: current.reminderDays }) : t('detail.noReminder');
   const tone = useItemTone(icon, title);
@@ -49,7 +57,7 @@ export default function EditScreen() {
     setBusy(true);
     try {
       if (current) {
-        const patch = { title: trimmed, icon, notes };
+        const patch = { title: trimmed, icon, notes, ...(categoryId ? { categoryId } : {}) };
         if (lastDoneAt !== current.lastDoneAt) {
           const rest = (current.history || []).filter((e) => e.at !== current.lastDoneAt);
           patch.history = lastDoneAt ? [{ at: lastDoneAt }, ...rest] : rest;
@@ -69,6 +77,7 @@ export default function EditScreen() {
             lastDoneAt,
             reminderDays,
             reminderTime: defaultTime,
+            categoryId: shownCategory || OTHER_ID,
           });
           if (reminderDays) {
             try {
@@ -142,6 +151,22 @@ export default function EditScreen() {
             />
           </View>
         </View>
+        {catObj ? (
+          <View style={styles.catRow}>
+            {!categoryId ? <Text style={[styles.auto, { color: c.l3 }]}>{t('category.auto')}</Text> : null}
+            <TouchableOpacity testID="cat-pill" onPress={() => setPicker(true)} style={[styles.catPill, { backgroundColor: c.cell }]}>
+              <CategoryGlyph icon={catObj.icon} name={categoryName(catObj, t)} size={22} glyph={13} />
+              <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular', fontSize: 15 }}>{categoryName(catObj, t)}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+        <CategoryPicker
+          visible={picker}
+          categories={categories}
+          value={shownCategory}
+          onPick={(id) => { setCategoryId(id); setPicker(false); }}
+          onClose={() => setPicker(false)}
+        />
         <View style={styles.icp}>
           {PICKER.map((k) => (
             <IconBtn key={k} k={k} on={icon === k} onPress={() => { setIconManual(true); setIcon(k); }} idle={c.cell} dim={c.l2} />
@@ -227,6 +252,9 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 22, fontFamily: 'NaikaiSubset-SemiBold', paddingVertical: 14 },
   lab: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', minWidth: 44 },
   secLab: { paddingHorizontal: 16 },
+  catRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 16, paddingTop: 10 },
+  auto: { fontSize: 13, fontFamily: 'NaikaiSubset-Regular' },
+  catPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingLeft: 4, paddingRight: 12, borderRadius: 16 },
   notes: {
     minHeight: 96,
     paddingHorizontal: 16,

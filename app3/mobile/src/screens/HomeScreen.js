@@ -18,6 +18,9 @@ import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort } from '../lib/time';
 import { monogramLetter } from '../lib/suggestIcon';
 import { splitToday, homeMood, dueStatus } from '../lib/today';
+import { CategoryChips } from '../components/CategoryChips';
+import { countByCategory } from '../data/repository';
+import { filterByCategory } from '../lib/categories';
 import * as Haptics from 'expo-haptics';
 import { isProUnlocked } from '../lib/entitlements';
 import { getLocale, t } from '../i18n';
@@ -29,7 +32,9 @@ export default function HomeScreen() {
   const c = useThemeColors();
   const { sort, setSort, preciseTime } = useTheme();
   const insets = useSafeAreaInsets();
-  const { activities, ready } = useActivities();
+  const { activities, categories, ready } = useActivities();
+  // Category filter. Adding an item never switches it (stays on All).
+  const [filter, setFilter] = useState('all');
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
 
@@ -48,7 +53,10 @@ export default function HomeScreen() {
     return mapped.sort((x, y) => (x._due === y._due ? 0 : x._due - y._due));
   }, [activities, sort]);
   const overdueCount = data.filter((x) => dueStatus(x._due) === 'overdue').length;
-  const { today, rest } = useMemo(() => splitToday(data), [data]);
+  const counts = useMemo(() => countByCategory(activities), [activities]);
+  const activeFilter = filter !== 'all' && counts[filter] ? filter : 'all';
+  const visible = useMemo(() => filterByCategory(data, activeFilter), [data, activeFilter]);
+  const { today, rest } = useMemo(() => splitToday(visible), [visible]);
   const mood = overdueCount > 0 ? 'worry' : homeMood(data);
 
   function showToast(next) {
@@ -140,6 +148,9 @@ export default function HomeScreen() {
           ) : null}
         </View>
       </View>
+      {data.length > 0 ? (
+        <CategoryChips categories={categories} counts={counts} total={data.length} value={activeFilter} onChange={setFilter} />
+      ) : null}
       <View style={styles.listWrap}>
         {!ready ? null : (
           <FlatList
@@ -174,7 +185,7 @@ export default function HomeScreen() {
                 preciseTime={preciseTime}
               />
             )}
-            ListEmptyComponent={
+            ListEmptyComponent={data.length === 0 ? (
               <View style={styles.empty}>
                 <Mascot size={150} mood="sleepy" />
                 <Text style={[styles.emptyT1, { color: c.label }]}>{t('home.empty')}</Text>
@@ -182,7 +193,7 @@ export default function HomeScreen() {
                   <Text style={[styles.ctaText, { color: c.onbrand }]}>{t('home.add')}</Text>
                 </TouchableOpacity>
               </View>
-            }
+            ) : null}
           />
         )}
       </View>
