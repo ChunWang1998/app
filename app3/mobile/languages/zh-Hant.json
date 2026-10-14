@@ -201,5 +201,24 @@
     "weekAgo": "1 週前",
     "monthAgo": "1 個月前",
     "unknown": "不記得"
+  },
+  "category": {
+    "title": "清單",
+    "all": "全",
+    "other": "未分",
+    "newCategory": "新清單",
+    "name": "名稱",
+    "keywords": "名稱含",
+    "deleteMoved": "{n} 件到未分",
+    "auto": "自動",
+    "defaults": {
+      "clean": "清洗",
+      "care": "外表",
+      "pet": "動物",
+      "plant": "植物",
+      "car": "交通",
+      "health": "補給",
+      "appl": "機器"
+    }
   }
 }
