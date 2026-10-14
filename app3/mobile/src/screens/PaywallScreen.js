@@ -97,7 +97,7 @@ export default function PaywallScreen() {
           <Feature
             icon={<GridIcon color={c.brand} size={20} />}
             title="桌面小工具"
-            sub="v1.1"
+            sub="鎖定畫面也能記"
           />
           <Feature
             icon={<CloudIcon color={c.brand} size={20} />}

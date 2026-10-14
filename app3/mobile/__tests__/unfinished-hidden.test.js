@@ -8,12 +8,14 @@ describe('v1.1 hides unfinished entry points', () => {
   const app = fs.readFileSync(path.join(__dirname, '../src/App.js'), 'utf8');
   const appJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../app.json'), 'utf8'));
 
-  it('ships Reminder and ShareCard, not RecentlyDeleted', () => {
+  it('ships Reminder, ShareCard and WidgetPicker, not RecentlyDeleted', () => {
     expect(nav).toMatch(/ReminderScreen/);
     expect(nav).toMatch(/ShareCardScreen/);
+    expect(nav).toMatch(/WidgetPickerScreen/);
     expect(nav).not.toMatch(/RecentlyDeleted/);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/ReminderScreen.js'))).toBe(true);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/ShareCardScreen.js'))).toBe(true);
+    expect(fs.existsSync(path.join(__dirname, '../src/screens/WidgetPickerScreen.js'))).toBe(true);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(false);
   });
 
@@ -30,6 +32,7 @@ describe('v1.1 hides unfinished entry points', () => {
     expect(settings).not.toMatch(/匯入/);
     expect(settings).not.toMatch(/最近刪除/);
     expect(settings).toMatch(/恢復購買/);
+    expect(settings).toMatch(/小工具/);
     expect(settings).toMatch(/顯示/);
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/privacy.html');
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/support.html');
