@@ -1,3 +1,5 @@
+import { sanitizeSnoozeDays } from './snooze';
+
 export const ICON_DEFAULT = 'brush';
 export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye'];
 
@@ -63,7 +65,7 @@ export function createActivity(input) {
     reminderDays: input.reminderDays ?? null,
     reminderTime: input.reminderTime || '09:00',
     snoozeEnabled: input.snoozeEnabled !== false,
-    snoozeDays: Number.isFinite(input.snoozeDays) ? input.snoozeDays : 3,
+    snoozeDays: sanitizeSnoozeDays(input.snoozeDays),
     createdAt: ts,
     updatedAt: ts,
     deletedAt: null,
@@ -84,7 +86,7 @@ export function migrateActivity(raw) {
     reminderDays: raw.reminderDays ?? null,
     reminderTime: raw.reminderTime || '09:00',
     snoozeEnabled: raw.snoozeEnabled !== false,
-    snoozeDays: Number.isFinite(raw.snoozeDays) ? raw.snoozeDays : 3,
+    snoozeDays: sanitizeSnoozeDays(raw.snoozeDays),
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
     deletedAt: raw.deletedAt ?? null,

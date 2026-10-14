@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { sanitizeSnoozeDays } from './snooze';
 
 const iconSchema = z.enum(['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye']);
 
@@ -16,7 +17,10 @@ export const activitySchema = z.object({
   reminderDays: z.number().int().positive().max(3650).nullable(),
   reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
   snoozeEnabled: z.boolean().optional(),
-  snoozeDays: z.number().int().positive().max(365).optional(),
+  snoozeDays: z.preprocess(
+    (v) => (v === undefined ? undefined : sanitizeSnoozeDays(v)),
+    z.number().int().min(1).max(365).optional(),
+  ),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   deletedAt: z.string().datetime().nullable(),

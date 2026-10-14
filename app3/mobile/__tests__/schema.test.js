@@ -33,3 +33,13 @@ describe('reminderTime HH:MM', () => {
     expect(blob.activities[0].reminderTime).toBeUndefined();
   });
 });
+
+describe('snoozeDays 1–365', () => {
+  it('clamps fractional, huge, zero and negative values', () => {
+    expect(activitySchema.parse({ ...base, snoozeDays: 0.5 }).snoozeDays).toBe(1);
+    expect(activitySchema.parse({ ...base, snoozeDays: 1e10 }).snoozeDays).toBe(365);
+    expect(activitySchema.parse({ ...base, snoozeDays: 0 }).snoozeDays).toBe(1);
+    expect(activitySchema.parse({ ...base, snoozeDays: -3 }).snoozeDays).toBe(1);
+    expect(activitySchema.parse({ ...base, snoozeDays: 3 }).snoozeDays).toBe(3);
+  });
+});

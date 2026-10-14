@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { getPrefs } from '../data/prefs';
+import { sanitizeSnoozeDays } from '../data/snooze';
 
 const MAX_IOS_PENDING = 64;
 const CHANNEL_ID = 'default';
@@ -28,12 +29,13 @@ export function nextTriggerDate(activity, now = Date.now()) {
   due.setHours(h, min, 0, 0);
   if (due.getTime() > now) return due;
   if (activity.snoozeEnabled !== false) {
-    const days = Number.isFinite(activity.snoozeDays) && activity.snoozeDays > 0
-      ? activity.snoozeDays
-      : 3;
+    const days = sanitizeSnoozeDays(activity.snoozeDays);
+    const stepMs = days * 864e5;
+    let k = Math.ceil((now - due.getTime()) / stepMs);
+    if (!Number.isFinite(k) || k < 1) k = 1;
     const when = new Date(due);
-    when.setDate(when.getDate() + days);
-    while (when.getTime() <= now) {
+    when.setDate(when.getDate() + k * days);
+    for (let i = 0; i < 2 && when.getTime() <= now; i += 1) {
       when.setDate(when.getDate() + days);
     }
     return when;
