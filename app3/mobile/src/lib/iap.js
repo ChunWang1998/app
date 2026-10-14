@@ -52,19 +52,23 @@ async function endIapIfEphemeral(iap) {
   } catch {}
 }
 
-/** StoreKit 2 / expo-iap transaction check; product-id match is required first. */
+function isRevoked(purchase) {
+  const d = purchase?.revocationDate ?? purchase?.revocationDateIOS;
+  return d != null && d !== '';
+}
+
+/** StoreKit 2 / expo-iap transaction check. Fail closed. */
 async function transactionVerified(iap, purchase) {
   if (!purchaseMatches(purchase)) return false;
-  if (Platform.OS === 'ios' && typeof iap.isTransactionVerifiedIOS === 'function') {
-    try {
-      const sku = purchase.productId || purchase.id || purchase.sku || PRO_PRODUCT_ID;
-      const ok = await iap.isTransactionVerifiedIOS(sku);
-      if (ok === false) return false;
-    } catch {
-      // helper missing or failed: product-id match still stands
-    }
+  if (isRevoked(purchase)) return false;
+  if (typeof iap?.isTransactionVerifiedIOS !== 'function') return false;
+  try {
+    const sku = purchase.productId || purchase.id || purchase.sku || PRO_PRODUCT_ID;
+    const ok = await iap.isTransactionVerifiedIOS(sku);
+    return ok === true;
+  } catch {
+    return false;
   }
-  return true;
 }
 
 export async function grantFullpackPurchase(purchase) {
@@ -185,7 +189,8 @@ async function tryNativePurchase() {
 
     const result = await pending;
     if (!result.ok) return result;
-    await grantFullpackPurchase(result.purchase);
+    const granted = await grantFullpackPurchase(result.purchase);
+    if (!granted) return { ok: false };
     return { ok: true };
   } finally {
     await endIapIfEphemeral(iap);

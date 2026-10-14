@@ -113,13 +113,55 @@ describe('iap', () => {
     expect(iap.finishTransaction).not.toHaveBeenCalled();
   });
 
-  it('handles listener errors quietly', async () => {
+  it('fails closed when isTransactionVerifiedIOS throws', async () => {
     const iap = require('expo-iap');
     iap.isTransactionVerifiedIOS.mockRejectedValue(new Error('storekit'));
-    iap.finishTransaction.mockRejectedValue(new Error('finish'));
-    await startPurchaseUpdates();
-    await expect(grantFullpackPurchase({ productId: FULLPACK })).resolves.toBe(true);
-    expect(await isProUnlocked()).toBe(true);
+    expect(await grantFullpackPurchase({ productId: FULLPACK })).toBe(false);
+    expect(await isProUnlocked()).toBe(false);
+    expect(iap.finishTransaction).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when isTransactionVerifiedIOS returns undefined or null', async () => {
+    const iap = require('expo-iap');
+    iap.isTransactionVerifiedIOS.mockResolvedValue(undefined);
+    expect(await grantFullpackPurchase({ productId: FULLPACK })).toBe(false);
+    iap.isTransactionVerifiedIOS.mockResolvedValue(null);
+    expect(await grantFullpackPurchase({ productId: FULLPACK })).toBe(false);
+    expect(await isProUnlocked()).toBe(false);
+    expect(iap.finishTransaction).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when isTransactionVerifiedIOS is missing', async () => {
+    const iap = require('expo-iap');
+    const orig = iap.isTransactionVerifiedIOS;
+    iap.isTransactionVerifiedIOS = undefined;
+    try {
+      expect(await grantFullpackPurchase({ productId: FULLPACK })).toBe(false);
+      expect(await isProUnlocked()).toBe(false);
+      expect(iap.finishTransaction).not.toHaveBeenCalled();
+    } finally {
+      iap.isTransactionVerifiedIOS = orig;
+    }
+  });
+
+  it('rejects a transaction with revocationDate and does not finish it', async () => {
+    const iap = require('expo-iap');
+    expect(await grantFullpackPurchase({
+      productId: FULLPACK,
+      revocationDate: '2026-10-01T00:00:00.000Z',
+    })).toBe(false);
+    expect(await isProUnlocked()).toBe(false);
+    expect(iap.finishTransaction).not.toHaveBeenCalled();
+    expect(iap.isTransactionVerifiedIOS).not.toHaveBeenCalled();
+  });
+
+  it('does not report purchase success unless grantFullpackPurchase unlocks Pro', async () => {
+    const iap = require('expo-iap');
+    iap.isTransactionVerifiedIOS.mockResolvedValue(false);
+    const result = await purchaseProUnlock();
+    expect(result.ok).toBe(false);
+    expect(await isProUnlocked()).toBe(false);
+    expect(iap.finishTransaction).not.toHaveBeenCalled();
   });
 
   it('shows Redeem Code next to Restore on iOS only', () => {
