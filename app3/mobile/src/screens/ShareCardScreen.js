@@ -100,7 +100,7 @@ export default function ShareCardScreen() {
               icon={item.icon}
               width={size.width}
               height={size.height}
-              locale={getLocale() === 'en' ? 'en' : 'zh'}
+              locale={getLocale()}
             />
           </View>
         </View>

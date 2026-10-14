@@ -36,7 +36,7 @@ jest.mock('expo-iap', () => {
 
 jest.mock('expo-localization', () => ({
   locale: 'en',
-  getLocales: () => [{ languageTag: 'en' }],
+  getLocales: jest.fn(() => [{ languageTag: 'en' }]),
 }));
 
 jest.mock('expo-constants', () => ({

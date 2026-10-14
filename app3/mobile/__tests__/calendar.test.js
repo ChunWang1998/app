@@ -21,6 +21,9 @@ describe('add to calendar', () => {
     expect(eventTitle({ title: '換牙刷' }, 'zh', true)).toBe('好久沒了');
     expect(eventTitle({ title: 'Brush' }, 'en', true)).toBe('Been Ages');
     expect(eventPayload(item, 'zh', true).title).toBe('好久沒了');
+    expect(eventTitle({ title: 'ハブラシ' }, 'ja')).toBe('ハブラシ｜久しぶり');
+    expect(eventTitle({ title: 'ハブラシ' }, 'ja', true)).toBe('久しぶり');
+    expect(calendarNote('ja')).toBe('久しぶりから追加');
   });
 
   it('hides the action when there is no interval', () => {
@@ -91,11 +94,15 @@ describe('add to calendar', () => {
     expect(merged.NSRemindersUsageDescription).toMatch(/Reminders app/i);
     expect(merged.NSRemindersFullAccessUsageDescription).toMatch(/Reminders app/i);
     expect(merged.NSPhotoLibraryAddUsageDescription).toMatch(/Photos/i);
+    expect(appJson.expo.ios.infoPlist.CFBundleDevelopmentRegion).toBe('en');
+    expect(appJson.expo.ios.infoPlist.CFBundleLocalizations).toEqual(['en', 'zh-Hant', 'ja']);
     const locales = appJson.expo.locales;
     expect(locales.en).toBe('./languages/ios/en.json');
     expect(locales['zh-Hant']).toBe('./languages/ios/zh-Hant.json');
+    expect(locales.ja).toBe('./languages/ios/ja.json');
     const zh = require('../languages/ios/zh-Hant.json');
     const en = require('../languages/ios/en.json');
+    const ja = require('../languages/ios/ja.json');
     const plistKeys = [
       'CFBundleDisplayName',
       'NSCalendarsUsageDescription',
@@ -107,14 +114,20 @@ describe('add to calendar', () => {
     ];
     expect(Object.keys(en).sort()).toEqual(plistKeys.slice().sort());
     expect(Object.keys(zh).sort()).toEqual(plistKeys.slice().sort());
+    expect(Object.keys(ja).sort()).toEqual(plistKeys.slice().sort());
     expect(Object.values(en).every((v) => typeof v === 'string')).toBe(true);
     expect(Object.values(zh).every((v) => typeof v === 'string')).toBe(true);
+    expect(Object.values(ja).every((v) => typeof v === 'string')).toBe(true);
     expect(zh.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/項目的下次該做日子/);
     expect(en.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/item's next due date/i);
     expect(zh.NSCalendarsUsageDescription).toMatch(/加到行事曆/);
     expect(en.NSCalendarsUsageDescription).toMatch(/Add to Calendar/i);
     expect(zh.NSRemindersUsageDescription).toMatch(/「好久沒了」不使用「提醒事項」/);
     expect(en.NSRemindersUsageDescription).toMatch(/Reminders app/i);
+    expect(ja.CFBundleDisplayName).toBe('久しぶり');
+    expect(ja.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/次の予定日/);
+    expect(ja.NSCalendarsUsageDescription).toMatch(/カレンダーに追加/);
+    expect(ja.NSRemindersUsageDescription).toMatch(/リマインダー/);
     const src = require('fs').readFileSync(require('path').join(__dirname, '../src/lib/calendar.js'), 'utf8');
     expect(src).toMatch(/requestCalendarPermissions\(true\)/);
     expect(src).not.toMatch(/getCalendars\(/);

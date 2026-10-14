@@ -137,7 +137,7 @@ export default function DetailScreen() {
           {hasReminder ? (
             <TouchableOpacity
               onPress={async () => {
-                const loc = getLocale() === 'en' ? 'en' : 'zh';
+                const loc = getLocale();
                 const r = await addNextDueToCalendar(item, { locale: loc });
                 if (r.status === 'added') {
                   Alert.alert(t('detail.calendarAdded'), t('detail.calendarAddedBody'));

@@ -25,6 +25,7 @@ import {
   writeSnapshot,
 } from '../data/appGroupStore';
 import { KeyValueStorage } from '../data/storage';
+import { resolveLocale } from '../i18n';
 import { buildWidgetProps, timelineForProps } from './pick';
 
 let store = null;
@@ -35,7 +36,7 @@ let interactionSub = null;
 let appStateSub = null;
 let lastIconUris = {};
 let lastLogoUri = null;
-let lastLocale = 'zh';
+let lastLocale = 'en';
 const recentLogs = new Map();
 
 function fallbackStore() {
@@ -143,7 +144,7 @@ export function setWidgetAssetUris({ iconUris, logoUri } = {}) {
 }
 
 export function setWidgetLocale(locale) {
-  lastLocale = locale === 'en' ? 'en' : 'zh';
+  lastLocale = resolveLocale(locale);
 }
 
 export async function saveWidgetSelection(selection) {

@@ -57,10 +57,10 @@ export function dueClassOf(item, now = Date.now()) {
   return '';
 }
 
-export function formatWidgetDays(item, now = Date.now()) {
+export function formatWidgetDays(item, now = Date.now(), locale) {
   const ms = elapsedMs(item, now);
   if (ms == null) return { daysNum: null, daysUnit: '', daysText: '—' };
-  const part = formatSpanParts(ms, 1)[0];
+  const part = formatSpanParts(ms, 1, locale)[0];
   return {
     daysNum: part.n,
     daysUnit: part.unit,
@@ -68,8 +68,8 @@ export function formatWidgetDays(item, now = Date.now()) {
   };
 }
 
-export function toWidgetItem(activity, { now = Date.now(), iconUris = {} } = {}) {
-  const days = formatWidgetDays(activity, now);
+export function toWidgetItem(activity, { now = Date.now(), iconUris = {}, locale } = {}) {
+  const days = formatWidgetDays(activity, now, locale);
   return {
     id: activity.id,
     title: activity.title,
@@ -119,7 +119,7 @@ export function buildWidgetProps(snapshot, {
   return {
     isPro: true,
     locale,
-    items: (snapshot.activities || []).map((a) => toWidgetItem(a, { now, iconUris })),
+    items: (snapshot.activities || []).map((a) => toWidgetItem(a, { now, iconUris, locale })),
     selectedSmall: selectedIds.small || 'auto',
     selectedMedium: selectedIds.medium || [],
     hideLockNames,

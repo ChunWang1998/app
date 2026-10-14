@@ -17,6 +17,12 @@
         ]
       },
       "infoPlist": {
+        "CFBundleDevelopmentRegion": "en",
+        "CFBundleLocalizations": [
+          "en",
+          "zh-Hant",
+          "ja"
+        ],
         "CFBundleAllowMixedLocalizations": true,
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryAddUsageDescription": "Saves a share card image to your Photos.",
@@ -41,13 +47,15 @@
           "supportedLocales": {
             "ios": [
               "en",
-              "zh-Hant"
+              "zh-Hant",
+              "ja"
             ],
             "android": [
               "en",
               "zh-Hant",
               "zh-TW",
-              "zh-HK"
+              "zh-HK",
+              "ja"
             ]
           }
         }
@@ -140,7 +148,8 @@
       "en": "./languages/ios/en.json",
       "zh-Hant": "./languages/ios/zh-Hant.json",
       "zh-TW": "./languages/ios/zh-Hant.json",
-      "zh-HK": "./languages/ios/zh-Hant.json"
+      "zh-HK": "./languages/ios/zh-Hant.json",
+      "ja": "./languages/ios/ja.json"
     },
     "extra": {
       "eas": {
