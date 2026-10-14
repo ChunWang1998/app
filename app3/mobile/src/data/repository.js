@@ -54,6 +54,10 @@ export function useActivities() {
   return { activities: snap.activities.filter(a => !a.deletedAt), ready: initialized, raw: snap.activities };
 }
 
+export function getVisibleActivities() {
+  return (state.activities || []).filter((a) => !a.deletedAt);
+}
+
 export async function refreshReminders() {
   try {
     const { enforceReminderBudget } = require('../notifications/reminders');
@@ -67,6 +71,14 @@ async function persist(nextState) {
   state = { ...nextState, activities: nextState.activities || [] };
   await saveState(state, storage);
   notify();
+  if (typeof process === 'undefined' || !process.env.JEST_WORKER_ID) {
+    try {
+      const { scheduleWidgetSync } = require('../widgets/sync');
+      scheduleWidgetSync();
+    } catch {
+      // widgets optional in tests / web
+    }
+  }
   await refreshReminders();
 }
 
@@ -94,8 +106,8 @@ export async function updateActivity(id, changes) {
   await persist({ ...state, activities: next });
 }
 
-export async function logActivityNow(id) {
-  const ts = nowIso();
+export async function logActivityAt(id, atIso) {
+  const ts = atIso || nowIso();
   let previousLastDoneAt = null;
   let previousHistory = [];
   const next = state.activities.map((a) => {
@@ -103,10 +115,14 @@ export async function logActivityNow(id) {
     previousLastDoneAt = a.lastDoneAt ?? null;
     previousHistory = Array.isArray(a.history) ? a.history : [];
     const history = normalizeHistory([{ at: ts }, ...previousHistory]);
-    return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: ts };
+    return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: nowIso() };
   });
   await persist({ ...state, activities: next });
   return { previousLastDoneAt, previousHistory, loggedAt: ts };
+}
+
+export async function logActivityNow(id) {
+  return logActivityAt(id, nowIso());
 }
 
 export async function undoLogActivity(id, previousLastDoneAt, previousHistory) {
