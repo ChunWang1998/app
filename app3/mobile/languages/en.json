@@ -209,6 +209,7 @@
     "newCategory": "New category",
     "name": "Name",
     "keywords": "Keywords",
+    "addKeyword": "+ Keyword",
     "deleteMoved": "{n} moved to Other",
     "limit": "Up to {n}",
     "duplicate": "Name already used",

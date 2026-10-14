@@ -1,7 +1,8 @@
-import ICON_TABLE from './iconKeywords.json';
+import DEFAULT_KEYWORDS from './categoryKeywords.json';
 import { hasKey } from './suggestIcon';
 import { ICON_KINDS } from '../data/models';
 import { categorySchema } from '../data/schema';
+import { resolveLocale } from '../i18n';
 import en from '../../languages/en.json';
 import zhHant from '../../languages/zh-Hant.json';
 import ja from '../../languages/ja.json';
@@ -54,31 +55,54 @@ export const DEFAULT_CATEGORIES = [
   { id: 'appl', key: 'appl', icon: 'plug' },
 ];
 
-/** iconKeywords icon → default category. */
-const ICON_TO_CATEGORY = {
-  brush: 'clean',
-  bed: 'clean',
-  drop: 'appl',
-  scissors: 'care',
-  eye: 'care',
-  paw: 'pet',
-  leaf: 'plant',
-  car: 'car',
-  pill: 'health',
-};
+export { DEFAULT_KEYWORDS };
 
-/** iconKeywords rows that use a cleaning glyph but are personal care. */
-const CARE_ROWS = new Set(['toothbrush', 'toothpaste', 'dental floss', 'mouthwash', 'razor']);
+const KEYWORD_LOCALES = ['en', 'zh-Hant', 'ja'];
 
+/**
+ * Defaults are an explicit per-locale keyword table, not derived from icons.
+ * Item glyphs are suggested separately. Mapping the water-drop glyph to
+ * appliances used to put trash titles in appliances because they share that
+ * glyph with filters. Matching still uses every language (flattened lists).
+ *
+ * Existing installs already migrated to CATEGORIES_STATE_VERSION (2). Launch
+ * migration never reseeds stored categories or reclassifies valid categoryIds,
+ * so this table applies to new installs (and new items on those installs) only.
+ */
 export function seedKeywords() {
-  const out = Object.fromEntries(DEFAULT_CATEGORIES.map((c) => [c.id, []]));
-  for (const row of ICON_TABLE) {
-    const keys = (row.keys || []).map(String);
-    const cat = CARE_ROWS.has(keys[0]) ? 'care' : ICON_TO_CATEGORY[row.icon];
-    if (!cat) continue;
-    for (const k of keys) if (!out[cat].includes(k)) out[cat].push(k);
+  const out = {};
+  for (const c of DEFAULT_CATEGORIES) {
+    const table = DEFAULT_KEYWORDS[c.id] || {};
+    const all = [];
+    for (const loc of KEYWORD_LOCALES) {
+      for (const raw of table[loc] || []) {
+        const k = String(raw);
+        if (k && !all.some((x) => x.toLowerCase() === k.toLowerCase())) all.push(k);
+      }
+    }
+    out[c.id] = all;
   }
   return out;
+}
+
+/**
+ * Built-in edit screens show the current system language plus user-added chips.
+ * Other-locale defaults stay in storage so matching still uses every language.
+ * Custom categories (no default key) show the full list.
+ */
+export function keywordsForLocale(keywords, { key, locale } = {}) {
+  const list = Array.isArray(keywords) ? keywords : [];
+  const table = key ? DEFAULT_KEYWORDS[key] : null;
+  if (!table) return list;
+  const loc = resolveLocale(locale);
+  const fold = (s) => String(s).toLowerCase();
+  const current = new Set((table[loc] || []).map(fold));
+  const other = new Set();
+  for (const [lang, keys] of Object.entries(table)) {
+    if (lang === loc) continue;
+    for (const k of keys || []) other.add(fold(k));
+  }
+  return list.filter((k) => current.has(fold(k)) || !other.has(fold(k)));
 }
 
 export function seedCategories() {
@@ -132,6 +156,8 @@ export function categoryExists(id, categories) {
 /**
  * Load-time migration: seed categories once; classify items with no (or a stale) category.
  * Items that already have a valid category are never reclassified.
+ * If `state.categories` is already an array (v2 installs), keywords are only
+ * normalized — default keyword fixes do not rewrite stored lists.
  */
 export function migrateCategories(state) {
   const hadCategories = Array.isArray(state?.categories);

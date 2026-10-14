@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
-"""Fail if any non-ASCII char in languages/*.json is missing from a Naikai subset weight's cmap."""
+"""Fail if any non-ASCII char in UI copy or keyword tables is missing from a subset weight's cmap."""
 import glob, json, os, sys
 from fontTools.ttLib import TTFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SOURCES = [
+    ('en', os.path.join(ROOT, 'languages', 'en.json')),
+    ('zh-Hant', os.path.join(ROOT, 'languages', 'zh-Hant.json')),
+    ('ja', os.path.join(ROOT, 'languages', 'ja.json')),
+    ('categoryKeywords', os.path.join(ROOT, 'src', 'lib', 'categoryKeywords.json')),
+    ('iconKeywords', os.path.join(ROOT, 'src', 'lib', 'iconKeywords.json')),
+    ('reminderKeywords', os.path.join(ROOT, 'src', 'lib', 'reminderKeywords.json')),
+]
 
 def strings(o):
     if isinstance(o, dict):
-        for v in o.values():
+        for k, v in o.items():
+            if k == '_meta':
+                continue
             yield from strings(v)
     elif isinstance(o, list):
         for v in o:
@@ -20,11 +30,11 @@ RESERVED = 'naikaifont'
 for font in sorted(glob.glob(os.path.join(ROOT, 'assets/fonts/naikai/*.ttf'))):
     tt = TTFont(font)
     cmap = set(tt.getBestCmap())
-    for lang in ('en', 'zh-Hant', 'ja'):
-        with open(os.path.join(ROOT, 'languages', f'{lang}.json'), encoding='utf-8') as f:
+    for label, path in SOURCES:
+        with open(path, encoding='utf-8') as f:
             text = ''.join(strings(json.load(f)))
         miss = sorted({c for c in text if ord(c) > 127 and ord(c) not in cmap})
-        print(f'{os.path.basename(font)} {lang}: {"OK" if not miss else "missing " + "".join(miss)}')
+        print(f'{os.path.basename(font)} {label}: {"OK" if not miss else "missing " + "".join(miss)}')
         bad += len(miss)
     for rec in tt['name'].names:
         if rec.nameID not in (1, 2, 3, 4, 6, 7, 16, 21):

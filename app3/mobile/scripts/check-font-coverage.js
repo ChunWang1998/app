@@ -15,6 +15,9 @@ function collectStrings() {
     'languages/ios/en.json',
     'languages/ios/zh-Hant.json',
     'languages/ios/ja.json',
+    'src/lib/categoryKeywords.json',
+    'src/lib/iconKeywords.json',
+    'src/lib/reminderKeywords.json',
   ];
   const texts = [];
   for (const rel of langs) {
