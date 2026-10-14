@@ -120,3 +120,43 @@ describe('strings', () => {
     expect(zh.date.unknown).toBe('不記得');
   });
 });
+
+describe('due status (PR #20 preview fixes)', () => {
+  const { dueStatus } = require('../src/lib/today');
+  const H = 36e5;
+  const noon = new Date(2026, 9, 14, 12).getTime();
+  it('exactly due or hours late is today, not overdue', () => {
+    expect(dueStatus(0, noon)).toBe('today');
+    expect(dueStatus(-5 * H, noon)).toBe('today');
+    expect(dueStatus(-23.9 * H, noon)).toBe('today');
+    expect(dueStatus(3 * H, noon)).toBe('today');
+  });
+  it('overdue only from a full day late', () => {
+    expect(dueStatus(-24 * H, noon)).toBe('overdue');
+    expect(dueStatus(-3 * 24 * H, noon)).toBe('overdue');
+  });
+  it('after tonight is upcoming; no reminder is none', () => {
+    expect(dueStatus(13 * H, noon)).toBe('upcoming');
+    expect(dueStatus(Infinity, noon)).toBe('none');
+  });
+  it('home row shows Today, not overdue 0 min', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../src/screens/HomeScreen.js'), 'utf8');
+    expect(src).toMatch(/ds === 'today'\) status = t\('common\.today'\)/);
+    expect(src).not.toMatch(/const od = due < 0/);
+  });
+  it('icon picker wraps instead of clipping', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../src/screens/EditScreen.js'), 'utf8');
+    expect(src).toMatch(/flexWrap: 'wrap'/);
+    expect(src).toMatch(/icCell: \{ width: '20%'/);
+  });
+});
+
+describe('backfill later than last done (intended)', () => {
+  it('moves last done forward', async () => {
+    const repo = require('../src/data/repository');
+    await repo.resetRepositoryForTests();
+    const a = await repo.addActivity({ title: 'B', lastDoneAt: '2026-09-01T00:00:00.000Z' });
+    await repo.backfillHistory(a.id, '2026-10-01T00:00:00.000Z');
+    expect(repo.getVisibleActivities().find((x) => x.id === a.id).lastDoneAt).toBe('2026-10-01T00:00:00.000Z');
+  });
+});
