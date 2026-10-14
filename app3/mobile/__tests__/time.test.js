@@ -12,13 +12,31 @@ describe('time helpers', () => {
     expect(parts[1]).toEqual({ n: 7, unit: '小時' });
   });
 
-  it('computes due and elapsed from real lastDoneAt', () => {
-    const now = Date.parse('2026-10-13T14:50:00.000Z');
-    const last = new Date(now - 5 * 864e5).toISOString();
-    const item = { lastDoneAt: last, reminderDays: 3, createdAt: last };
-    expect(dueInMs(item, now)).toBe(-2 * 864e5);
-    expect(elapsedMs(item, now)).toBe(5 * 864e5);
-    expect(progressRatio({ lastDoneAt: last, reminderDays: 10 }, now)).toBeCloseTo(0.5);
+  it('computes due at reminderTime, not last-done clock time', () => {
+    const last = new Date(2026, 9, 9, 23, 28, 0);
+    const now = new Date(2026, 9, 14, 12, 0, 0).getTime();
+    const item = {
+      lastDoneAt: last.toISOString(),
+      reminderDays: 3,
+      reminderTime: '09:00',
+      createdAt: last.toISOString(),
+    };
+    const dueAt = now + dueInMs(item, now);
+    const due = new Date(dueAt);
+    expect(due.getFullYear()).toBe(2026);
+    expect(due.getMonth()).toBe(9);
+    expect(due.getDate()).toBe(12);
+    expect(due.getHours()).toBe(9);
+    expect(due.getMinutes()).toBe(0);
+    expect(dueAt).not.toBe(last.getTime() + 3 * 864e5);
+    expect(elapsedMs(item, now)).toBe(now - last.getTime());
+    const start = new Date(2026, 9, 4, 9, 0, 0);
+    const mid = new Date(2026, 9, 9, 9, 0, 0).getTime();
+    expect(progressRatio({
+      lastDoneAt: start.toISOString(),
+      reminderDays: 10,
+      reminderTime: '09:00',
+    }, mid)).toBeCloseTo(0.5);
   });
 
   it('hides due when reminder is off', () => {

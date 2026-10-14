@@ -24,6 +24,23 @@ describe('add to calendar', () => {
     expect(calendarNote('ja')).toBe('久しぶりから追加');
   });
 
+  it('keeps the calendar day when last-done is late in the evening', () => {
+    const start = new Date(2026, 9, 1, 23, 28, 0);
+    const item = {
+      id: 'a1',
+      title: '換牙刷',
+      lastDoneAt: start.toISOString(),
+      reminderDays: 90,
+      reminderTime: '09:00',
+      createdAt: start.toISOString(),
+    };
+    const due = nextDueDate(item);
+    expect(due.getFullYear()).toBe(2026);
+    expect(due.getMonth()).toBe(11);
+    expect(due.getDate()).toBe(30);
+    expect(due.getHours()).toBe(0);
+  });
+
   it('hides the action when there is no interval', () => {
     expect(nextDueDate({ reminderDays: null, lastDoneAt: ts })).toBeNull();
     expect(eventPayload({ reminderDays: null, lastDoneAt: ts })).toBeNull();

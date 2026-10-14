@@ -22,6 +22,7 @@ import {
   INTERVAL_DAY_CHIPS,
   reminderConfigFromActivity,
   reminderFieldsFromConfig,
+  ensureReminderEnabled,
   formatClockFromTime,
   formatHm,
   parseHm,
@@ -67,11 +68,12 @@ export default function ReminderScreen() {
   const insets = useSafeAreaInsets();
   const { reminderTime: defaultTime } = useTheme();
   const tone = useItemTone(item?.icon, item?.title);
-  const seed = reminderConfigFromActivity({
+  const seedRaw = reminderConfigFromActivity({
     ...item,
     reminderTime: item?.reminderTime || defaultTime || '09:00',
     ...(params?.value || {}),
   });
+  const seed = isDraft ? ensureReminderEnabled(seedRaw) : seedRaw;
   const [cfg, setCfg] = useState(seed);
   const [timeOpen, setTimeOpen] = useState(false);
   const uses24h = uses24HourClock();

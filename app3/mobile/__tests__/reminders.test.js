@@ -31,6 +31,22 @@ describe('nextTriggerDate', () => {
     expect(when.getMinutes()).toBe(0);
   });
 
+  it('uses reminderTime for day intervals even when last-done is 23:28', () => {
+    const last = new Date(2026, 9, 14, 23, 28, 0);
+    const when = nextTriggerDate({
+      reminderDays: 90,
+      reminderTime: '09:00',
+      lastDoneAt: last.toISOString(),
+      snoozeEnabled: true,
+    }, last.getTime());
+    expect(when.getFullYear()).toBe(2027);
+    expect(when.getMonth()).toBe(0);
+    expect(when.getDate()).toBe(12);
+    expect(when.getHours()).toBe(9);
+    expect(when.getMinutes()).toBe(0);
+    expect(when.getTime()).not.toBe(last.getTime() + 90 * 864e5);
+  });
+
   it('snoozes overdue items from due + snoozeDays, stable across later writes', () => {
     const last = new Date(now - 20 * 864e5).toISOString();
     const activity = {

@@ -6,8 +6,9 @@ import { t } from '../i18n';
 const ITEM = 36;
 const PAD = 90;
 const HEIGHT = 216;
+export const WHEEL_SETTLE_MS = 120;
 
-function snapIndex(y, max) {
+export function snapIndex(y, max) {
   const idx = Math.round(y / ITEM);
   return Math.min(max, Math.max(0, idx));
 }
@@ -16,7 +17,13 @@ function WheelColumn({ values, selected, onChange, width = 88, testID }) {
   const c = useThemeColors();
   const ref = useRef(null);
   const ready = useRef(false);
+  const settleTimer = useRef(null);
+  const committed = useRef(selected);
   const selectedIndex = Math.max(0, values.findIndex((v) => v.value === selected));
+
+  useEffect(() => {
+    committed.current = selected;
+  }, [selected]);
 
   useEffect(() => {
     const y = selectedIndex * ITEM;
@@ -28,11 +35,23 @@ function WheelColumn({ values, selected, onChange, width = 88, testID }) {
     });
   }, [selectedIndex]);
 
+  useEffect(() => () => {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+  }, []);
+
   function commit(y) {
     const idx = snapIndex(y, values.length - 1);
     const next = values[idx];
-    if (next && next.value !== selected) onChange(next.value);
+    if (next && next.value !== committed.current) {
+      committed.current = next.value;
+      onChange(next.value);
+    }
     ref.current?.scrollTo({ y: idx * ITEM, animated: true });
+  }
+
+  function scheduleCommit(y) {
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => commit(y), WHEEL_SETTLE_MS);
   }
 
   return (
@@ -46,11 +65,13 @@ function WheelColumn({ values, selected, onChange, width = 88, testID }) {
       snapToAlignment="start"
       decelerationRate="fast"
       nestedScrollEnabled
-      onMomentumScrollEnd={(e) => commit(e.nativeEvent.contentOffset.y)}
-      onScrollEndDrag={(e) => {
-        const y = e.nativeEvent.contentOffset.y;
-        setTimeout(() => commit(y), 80);
+      scrollEventThrottle={16}
+      onScroll={(e) => scheduleCommit(e.nativeEvent.contentOffset.y)}
+      onMomentumScrollEnd={(e) => {
+        if (settleTimer.current) clearTimeout(settleTimer.current);
+        commit(e.nativeEvent.contentOffset.y);
       }}
+      onScrollEndDrag={(e) => scheduleCommit(e.nativeEvent.contentOffset.y)}
     >
       {values.map((v) => {
         const on = v.value === selected;
