@@ -78,6 +78,24 @@ describe('migration of reminderDays', () => {
     expect(a.reminderN).toBe(7);
     expect(a.reminderDays).toBe(7);
   });
+
+  it.each([400, 3650])('keeps legacy reminderDays of %i unchanged (schema max 3650, not 365)', (days) => {
+    const migrated = migrateActivity({
+      id: 'a',
+      title: 'Long',
+      lastDoneAt: null,
+      reminderDays: days,
+      createdAt: '2026-10-13T00:00:00.000Z',
+      updatedAt: '2026-10-13T00:00:00.000Z',
+      deletedAt: null,
+    });
+    expect(migrated.reminderMode).toBe(MODE_INTERVAL);
+    expect(migrated.reminderUnit).toBe('d');
+    expect(migrated.reminderN).toBe(days);
+    expect(migrated.reminderDays).toBe(days);
+    expect(reminderConfigFromActivity({ reminderDays: days }).n).toBe(days);
+    expect(reminderConfigFromActivity(migrated).n).toBe(days);
+  });
 });
 
 describe('weekly scheduling after 剛剛做了', () => {
@@ -288,5 +306,129 @@ describe('natural copy en / zh-Hant / ja', () => {
     expect(formatReminderLabel({ reminderDays: 90 }, 'en')).toBe('3 months');
     expect(formatReminderLabel({ reminderDays: 90 }, 'zh-Hant')).toBe('3 個月');
     expect(formatReminderLabel({ reminderDays: 7 }, 'ja')).toBe('毎週');
+  });
+});
+
+describe('long-overdue next occurrence from last-done + k periods', () => {
+  // Wednesday 2026-10-14. Last done Monday 2000-01-03.
+  const nowDate = at(2026, 9, 14, 12);
+  const now = nowDate.getTime();
+  const lastMon = at(2000, 0, 3, 10);
+
+  it('every 7 days from Monday 2000-01-03 stays on Monday (not a clamped Thursday)', () => {
+    expect(lastMon.getDay()).toBe(1);
+    expect(nowDate.getDay()).toBe(3);
+    const a = item({
+      reminderDays: 7,
+      lastDoneAt: lastMon.toISOString(),
+      reminderTime: '09:00',
+      snoozeEnabled: true,
+      snoozeDays: 365,
+    });
+    const cfg = reminderConfigFromActivity(a);
+    const next = nextRegularAfter(a, cfg, nowDate);
+    expect(next.getDay()).toBe(1);
+    expect(next.getFullYear()).toBe(2026);
+    expect(next.getMonth()).toBe(9);
+    expect(next.getDate()).toBe(19);
+    expect(next.getHours()).toBe(9);
+    expect(next.getTime()).toBeGreaterThan(now);
+    const fire = nextFireDate(a, now);
+    expect(fire.getDay()).toBe(1);
+    expect(fire.getDate()).toBe(19);
+  });
+
+  it('interval weeks from Monday 2000-01-03 stay on Monday', () => {
+    const a = item({
+      reminderMode: MODE_INTERVAL,
+      reminderUnit: 'w',
+      reminderN: 1,
+      lastDoneAt: lastMon.toISOString(),
+      reminderTime: '09:00',
+    });
+    const next = nextRegularAfter(a, reminderConfigFromActivity(a), nowDate);
+    expect(next.getDay()).toBe(1);
+    expect(next.getDate()).toBe(19);
+    expect(next.getHours()).toBe(9);
+  });
+
+  it('interval months keep the same calendar day', () => {
+    const a = item({
+      reminderMode: MODE_INTERVAL,
+      reminderUnit: 'm',
+      reminderN: 1,
+      lastDoneAt: at(2000, 0, 15, 10).toISOString(),
+      reminderTime: '09:00',
+    });
+    const next = nextRegularAfter(a, reminderConfigFromActivity(a), nowDate);
+    expect(next.getFullYear()).toBe(2026);
+    expect(next.getMonth()).toBe(9);
+    expect(next.getDate()).toBe(15);
+    expect(next.getHours()).toBe(9);
+    expect(next.getTime()).toBeGreaterThan(now);
+  });
+
+  it('interval years keep the same calendar day', () => {
+    const a = item({
+      reminderMode: MODE_INTERVAL,
+      reminderUnit: 'y',
+      reminderN: 1,
+      lastDoneAt: lastMon.toISOString(),
+      reminderTime: '09:00',
+    });
+    const next = nextRegularAfter(a, reminderConfigFromActivity(a), nowDate);
+    expect(next.getFullYear()).toBe(2027);
+    expect(next.getMonth()).toBe(0);
+    expect(next.getDate()).toBe(3);
+    expect(next.getHours()).toBe(9);
+  });
+
+  it('weekly Mondays jump to the next Monday after now', () => {
+    const a = item({
+      reminderMode: MODE_WEEK,
+      reminderWeekdays: [1],
+      lastDoneAt: lastMon.toISOString(),
+      reminderTime: '09:00',
+      snoozeEnabled: true,
+      snoozeDays: 365,
+    });
+    const fire = nextFireDate(a, now);
+    expect(fire.getDay()).toBe(1);
+    expect(fire.getDate()).toBe(19);
+    expect(fire.getHours()).toBe(9);
+  });
+
+  it('monthly on the 15th jumps to this month if that day is still upcoming', () => {
+    const a = item({
+      reminderMode: MODE_MONTH,
+      reminderMonthDay: 15,
+      lastDoneAt: at(2000, 0, 15, 10).toISOString(),
+      reminderTime: '09:00',
+      snoozeEnabled: true,
+      snoozeDays: 365,
+    });
+    const fire = nextFireDate(a, now);
+    expect(fire.getFullYear()).toBe(2026);
+    expect(fire.getMonth()).toBe(9);
+    expect(fire.getDate()).toBe(15);
+    expect(fire.getHours()).toBe(9);
+  });
+
+  it('keeps the weekday across a US DST fall-back', () => {
+    // US DST ends 2026-11-01. Last done is the Monday before; now is the Wednesday after.
+    const last = at(2026, 9, 26, 10); // Monday Oct 26
+    const afterDst = at(2026, 10, 4, 12); // Wednesday Nov 4
+    expect(last.getDay()).toBe(1);
+    expect(afterDst.getDay()).toBe(3);
+    const a = item({
+      reminderDays: 7,
+      lastDoneAt: last.toISOString(),
+      reminderTime: '09:00',
+    });
+    const next = nextRegularAfter(a, reminderConfigFromActivity(a), afterDst);
+    expect(next.getDay()).toBe(1);
+    expect(next.getMonth()).toBe(10);
+    expect(next.getDate()).toBe(9);
+    expect(next.getHours()).toBe(9);
   });
 });

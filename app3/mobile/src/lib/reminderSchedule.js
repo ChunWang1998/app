@@ -16,6 +16,8 @@ export const MONTH_DAY_CHIPS = [1, 5, 10, 15, 20, 25, 28];
 export const INTERVAL_DAY_CHIPS = [1, 7, 14, 30, 90];
 
 export const UNIT_MAX = { d: 365, w: 52, m: 52, y: 10 };
+/** Schema / persistence cap. Legacy reminderDays allowed 1–3650. */
+export const UNIT_STORE_MAX = { d: 3650, w: 52, m: 52, y: 10 };
 export const UNIT_DEFAULT_N = { d: 14, w: 1, m: 1, y: 1 };
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -56,14 +58,14 @@ export function clampMonthDay(year, monthIndex, day) {
 }
 
 export function clampN(n, unit) {
-  const max = unit === UNIT_DAY ? 3650 : (UNIT_MAX[unit] || UNIT_MAX.d);
+  const max = UNIT_STORE_MAX[unit] || UNIT_STORE_MAX.d;
   const v = Math.floor(Number(n));
   if (!Number.isFinite(v)) return UNIT_DEFAULT_N[unit] || 1;
   return Math.min(max, Math.max(1, v));
 }
 
 export function clampNUi(n, unit) {
-  const max = UNIT_MAX[unit] || UNIT_MAX.d;
+  const max = unit === UNIT_DAY ? UNIT_STORE_MAX.d : (UNIT_MAX[unit] || UNIT_MAX.d);
   const v = Math.floor(Number(n));
   if (!Number.isFinite(v)) return UNIT_DEFAULT_N[unit] || 1;
   return Math.min(max, Math.max(1, v));
@@ -100,6 +102,23 @@ export function lastAnchor(item) {
   return Number.isFinite(t) ? new Date(t) : null;
 }
 
+/** Add n local calendar days. DST-safe (uses Y/M/D, not 864e5). */
+export function addCalendarDays(date, n) {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate() + n,
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds(),
+    date.getMilliseconds(),
+  );
+}
+
+function localElapsedDays(from, to) {
+  return Math.round((startOfLocalDay(to).getTime() - startOfLocalDay(from).getTime()) / 864e5);
+}
+
 /** Add n calendar months, keeping the original day-of-month (clamped per target month). */
 export function addCalendarMonths(date, n, keepDay = date.getDate()) {
   const targetMonth = date.getMonth() + n;
@@ -119,14 +138,12 @@ export function addCalendarYears(date, n, keepDay = date.getDate()) {
 
 export function addInterval(from, n, unit) {
   const d = new Date(from);
-  const count = clampN(n, unit);
-  if (unit === UNIT_WEEK) {
-    const x = new Date(d);
-    x.setDate(x.getDate() + count * 7);
-    return x;
-  }
+  const count = Math.trunc(Number(n));
+  if (!Number.isFinite(count)) return d;
+  if (unit === UNIT_WEEK) return addCalendarDays(d, count * 7);
   if (unit === UNIT_MONTH) return addCalendarMonths(d, count, d.getDate());
   if (unit === UNIT_YEAR) return addCalendarYears(d, count, d.getDate());
+  // Interval-days keep last-done time of day so due-status matches historical last+N*864e5.
   return new Date(d.getTime() + count * 864e5);
 }
 
@@ -204,11 +221,12 @@ export function reminderConfigFromActivity(item) {
   }
   if (item.reminderDays) {
     const days = Math.floor(Number(item.reminderDays));
+    const valid = Number.isInteger(days) && days > 0;
     return {
       ...base,
-      enabled: Number.isInteger(days) && days > 0,
+      enabled: valid,
       mode: MODE_INTERVAL,
-      n: Number.isInteger(days) && days > 0 ? Math.min(UNIT_MAX.d, days) : 14,
+      n: valid ? clampN(days, UNIT_DAY) : 14,
       unit: UNIT_DAY,
       weekdays,
       monthDay,
@@ -306,38 +324,53 @@ function nextMonthlyAfter(fromExclusive, day, time) {
   return candidate;
 }
 
+/** Next matching weekday strictly after `afterDate`, including today if the time is still upcoming. */
+function nextWeeklyOnOrAfter(afterDate, weekdays, time) {
+  const same = applyTime(afterDate, time);
+  const days = normalizeWeekdays(weekdays);
+  if (days.includes(new Date(afterDate).getDay()) && same.getTime() > afterDate.getTime()) return same;
+  return nextWeeklyAfter(afterDate, days, time);
+}
+
+/** Next month-day strictly after `afterDate`, including this month if the time is still upcoming. */
+function nextMonthlyOnOrAfter(afterDate, day, time) {
+  const from = new Date(afterDate);
+  const candidate = monthlyOn(from.getFullYear(), from.getMonth(), day, time);
+  if (candidate.getTime() > afterDate.getTime()) return candidate;
+  return nextMonthlyAfter(afterDate, day, time);
+}
+
 function nextIntervalAfter(anchor, n, unit, time, afterDate) {
   const after = afterDate.getTime();
+  const period = Math.max(1, Math.trunc(Number(n)) || 1);
   const keepDay = anchor.getDate();
   if (unit === UNIT_DAY || unit === UNIT_WEEK) {
-    const stepDays = unit === UNIT_WEEK ? n * 7 : n;
-    const first = applyTime(addInterval(anchor, n, unit), time);
-    if (first.getTime() > after) return first;
-    const steps = Math.floor((after - first.getTime()) / (stepDays * 864e5)) + 1;
-    let occ = applyTime(addInterval(anchor, n * (1 + Math.max(0, steps)), unit), time);
-    while (occ.getTime() <= after) {
-      occ = applyTime(new Date(occ.getTime() + stepDays * 864e5), time);
-    }
-    return occ;
+    const periodDays = unit === UNIT_WEEK ? period * 7 : period;
+    const elapsed = localElapsedDays(anchor, afterDate);
+    let k = Math.floor(elapsed / periodDays);
+    if (k < 1) k = 1;
+    const occAt = (kk) => applyTime(addCalendarDays(anchor, kk * periodDays), time);
+    while (occAt(k).getTime() <= after) k += 1;
+    while (k > 1 && occAt(k - 1).getTime() > after) k -= 1;
+    return occAt(k);
   }
   if (unit === UNIT_YEAR) {
-    let years = Math.max(n, Math.ceil((new Date(after).getFullYear() - anchor.getFullYear()) / n) * n);
-    let occ = applyTime(addCalendarYears(anchor, years, keepDay), time);
-    while (occ.getTime() <= after) {
-      years += n;
-      occ = applyTime(addCalendarYears(anchor, years, keepDay), time);
-    }
-    return occ;
+    const afterDt = new Date(after);
+    let k = Math.floor((afterDt.getFullYear() - anchor.getFullYear()) / period);
+    if (k < 1) k = 1;
+    const occAt = (kk) => applyTime(addCalendarYears(anchor, kk * period, keepDay), time);
+    while (occAt(k).getTime() <= after) k += 1;
+    while (k > 1 && occAt(k - 1).getTime() > after) k -= 1;
+    return occAt(k);
   }
   const afterDt = new Date(after);
-  let months = (afterDt.getFullYear() - anchor.getFullYear()) * 12 + (afterDt.getMonth() - anchor.getMonth());
-  months = Math.max(n, Math.ceil(months / n) * n);
-  let occ = applyTime(addCalendarMonths(anchor, months, keepDay), time);
-  while (occ.getTime() <= after) {
-    months += n;
-    occ = applyTime(addCalendarMonths(anchor, months, keepDay), time);
-  }
-  return occ;
+  const elapsedMonths = (afterDt.getFullYear() - anchor.getFullYear()) * 12 + (afterDt.getMonth() - anchor.getMonth());
+  let k = Math.floor(elapsedMonths / period);
+  if (k < 1) k = 1;
+  const occAt = (kk) => applyTime(addCalendarMonths(anchor, kk * period, keepDay), time);
+  while (occAt(k).getTime() <= after) k += 1;
+  while (k > 1 && occAt(k - 1).getTime() > after) k -= 1;
+  return occAt(k);
 }
 
 /**
@@ -415,13 +448,15 @@ export function nextFireDate(item, now = Date.now(), cfg = reminderConfigFromAct
     ? applyTime(statusDue, cfg.time)
     : statusDue;
   if (due.getTime() > now) return due;
-  let cap = nextRegularAfter(item, cfg, due);
-  if (cfg.mode === MODE_INTERVAL && cap && cap.getTime() <= now) {
-    cap = nextRegularAfter(item, cfg, new Date(now));
+  const nowDate = new Date(now);
+  let cap = null;
+  if (cfg.mode === MODE_WEEK) {
+    cap = nextWeeklyOnOrAfter(nowDate, cfg.weekdays, cfg.time);
+  } else if (cfg.mode === MODE_MONTH) {
+    cap = nextMonthlyOnOrAfter(nowDate, cfg.monthDay, cfg.time);
   } else {
-    for (let i = 0; i < 4000 && cap && cap.getTime() <= now; i += 1) {
-      cap = nextRegularAfter(item, cfg, cap);
-    }
+    const anchor = lastAnchor(item);
+    cap = anchor ? nextIntervalAfter(anchor, cfg.n, cfg.unit, cfg.time, nowDate) : null;
   }
   const { h, min } = parseHm(cfg.time);
   if (cfg.snoozeEnabled !== false) {
