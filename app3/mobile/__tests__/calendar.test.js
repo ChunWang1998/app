@@ -52,13 +52,45 @@ describe('add to calendar', () => {
     expect(r.dateKey).toBe('2026-12-30');
   });
 
-  it('plugin requests write-only access only', () => {
+  it('plugin keeps usage strings so expo-calendar does not strip Info.plist keys', () => {
     const appJson = require('../app.json');
     const plugin = (appJson.expo.plugins || []).find((p) => Array.isArray(p) && p[0] === 'expo-calendar');
     expect(plugin[1].writeOnlyAccess).toBe(true);
-    expect(plugin[1].calendarPermission).toBe(false);
-    expect(plugin[1].remindersPermission).toBe(false);
+    expect(plugin[1].calendarPermission).toMatch(/Add to Calendar/i);
+    expect(plugin[1].remindersPermission).toMatch(/Reminders app/i);
     expect(plugin[1].writeOnlyCalendarPermission).toMatch(/item's next due date/i);
+    const plist = appJson.expo.ios.infoPlist;
+    for (const key of [
+      'NSCalendarsUsageDescription',
+      'NSCalendarsFullAccessUsageDescription',
+      'NSCalendarsWriteOnlyAccessUsageDescription',
+      'NSRemindersUsageDescription',
+      'NSRemindersFullAccessUsageDescription',
+      'NSPhotoLibraryAddUsageDescription',
+    ]) {
+      expect(typeof plist[key]).toBe('string');
+      expect(plist[key].length).toBeGreaterThan(8);
+    }
+    const { applyPermissions } = require('@expo/config-plugins/build/ios/Permissions');
+    const defaults = {
+      NSCalendarsUsageDescription: 'default cal',
+      NSRemindersUsageDescription: 'default rem',
+      NSRemindersFullAccessUsageDescription: 'default rem',
+      NSCalendarsWriteOnlyAccessUsageDescription: 'default write',
+    };
+    const custom = {
+      NSCalendarsUsageDescription: plugin[1].calendarPermission,
+      NSRemindersUsageDescription: plugin[1].remindersPermission,
+      NSRemindersFullAccessUsageDescription: plugin[1].remindersPermission,
+      NSCalendarsWriteOnlyAccessUsageDescription: plugin[1].writeOnlyCalendarPermission,
+    };
+    const merged = applyPermissions(defaults, custom, { ...plist });
+    expect(merged.NSCalendarsUsageDescription).toMatch(/Add to Calendar/i);
+    expect(merged.NSCalendarsFullAccessUsageDescription).toMatch(/Add to Calendar/i);
+    expect(merged.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/item's next due date/i);
+    expect(merged.NSRemindersUsageDescription).toMatch(/Reminders app/i);
+    expect(merged.NSRemindersFullAccessUsageDescription).toMatch(/Reminders app/i);
+    expect(merged.NSPhotoLibraryAddUsageDescription).toMatch(/Photos/i);
     const zh = require('../languages/zh-Hant.json');
     const en = require('../languages/en.json');
     expect(zh.ios.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/項目的下次該做日子/);
@@ -67,8 +99,6 @@ describe('add to calendar', () => {
     expect(en.ios.NSCalendarsUsageDescription).toMatch(/Add to Calendar/i);
     expect(zh.ios.NSRemindersUsageDescription).toMatch(/「好久沒了」不使用「提醒事項」/);
     expect(en.ios.NSRemindersUsageDescription).toMatch(/Reminders app/i);
-    expect(appJson.expo.ios.infoPlist.NSCalendarsUsageDescription).toMatch(/Add to Calendar/i);
-    expect(appJson.expo.ios.infoPlist.NSRemindersUsageDescription).toMatch(/Reminders app/i);
     const src = require('fs').readFileSync(require('path').join(__dirname, '../src/lib/calendar.js'), 'utf8');
     expect(src).toMatch(/requestCalendarPermissions\(true\)/);
     expect(src).not.toMatch(/getCalendars\(/);

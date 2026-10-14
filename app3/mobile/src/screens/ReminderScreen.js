@@ -110,7 +110,7 @@ export default function ReminderScreen() {
               <Text style={{ textAlign: 'center', color: c.l2, marginTop: 6, fontFamily: 'NaikaiSubset-Regular' }}>{t('reminder.everyNDays')}</Text>
             </View>
             <TouchableOpacity onPress={() => changeDays(days + 1)} style={[styles.rb, { backgroundColor: c.cell }]}>
-              <Text style={{ color: c.label, fontSize: 24, fontFamily: 'NaikaiSubset-Regular' }}>＋</Text>
+              <Text style={{ color: c.label, fontSize: 24, fontFamily: 'NaikaiSubset-Regular' }}>+</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.chips}>

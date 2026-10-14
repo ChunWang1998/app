@@ -47,7 +47,7 @@ export default function DetailScreen() {
   const just = elapsed != null && elapsed < 60e3;
   const hasReminder = !!item.reminderDays;
   const lastWhen = item.lastDoneAt
-    ? `${formatDate(item.lastDoneAt)}${preciseTime ? `　${formatTime(item.lastDoneAt)}` : ''}`
+        ? `${formatDate(item.lastDoneAt)}${preciseTime ? ` ${formatTime(item.lastDoneAt)}` : ''}`
     : '';
   const parts = elapsed == null ? null : formatSpanParts(elapsed, preciseTime ? 2 : 1);
   const mood = just ? 'happy' : od ? 'worry' : 'idle';
