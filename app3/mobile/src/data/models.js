@@ -2,7 +2,7 @@ import { isoYearInRange } from './schema';
 import { sanitizeSnoozeDays } from './snooze';
 
 export const ICON_DEFAULT = 'brush';
-export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'mono'];
+export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'mono'];
 
 export function nowIso() {
   return new Date().toISOString();
