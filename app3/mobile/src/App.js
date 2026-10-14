@@ -10,6 +10,9 @@ import { StatusBar } from 'react-native';
 import { verifyProOnLaunch } from './lib/iap';
 import { ThemeProvider, useForcedScheme } from './theme/useTheme';
 import { setProUnlocked } from './lib/entitlements';
+import { initWidgets } from './widgets/sync';
+import './widgets/BeenAgesHome';
+import './widgets/BeenAgesLock';
 
 function AppStatusBar() {
   const scheme = useForcedScheme();
@@ -35,6 +38,7 @@ export default function App() {
         await initPrefs();
         await initRepository();
         await verifyProOnLaunch();
+        try { await initWidgets(); } catch {}
         try {
           if (typeof __DEV__ !== 'undefined' && __DEV__ && typeof window !== 'undefined') {
             const url = new URL(window.location.href);

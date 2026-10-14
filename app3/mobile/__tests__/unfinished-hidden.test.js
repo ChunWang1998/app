@@ -8,11 +8,13 @@ describe('v1.1 ships finished entry points only', () => {
   const app = fs.readFileSync(path.join(__dirname, '../src/App.js'), 'utf8');
   const appJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../app.json'), 'utf8'));
 
-  it('ships Reminder and RecentlyDeleted', () => {
+  it('ships Reminder, RecentlyDeleted, and WidgetPicker', () => {
     expect(nav).toMatch(/ReminderScreen/);
     expect(nav).toMatch(/RecentlyDeleted/);
+    expect(nav).toMatch(/WidgetPickerScreen/);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/ReminderScreen.js'))).toBe(true);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(true);
+    expect(fs.existsSync(path.join(__dirname, '../src/screens/WidgetPickerScreen.js'))).toBe(true);
   });
 
   it('schedules reminders with expo-notifications', () => {
@@ -29,10 +31,11 @@ describe('v1.1 ships finished entry points only', () => {
     expect(reminders).not.toMatch(/enforceReminderBudget[\s\S]*requestPermissionsAsync/);
   });
 
-  it('exposes import/export and recently deleted in Settings', () => {
+  it('exposes import/export, recently deleted, and widgets in Settings', () => {
     expect(settings).toMatch(/匯出/);
     expect(settings).toMatch(/匯入/);
     expect(settings).toMatch(/最近刪除/);
+    expect(settings).toMatch(/小工具/);
     expect(settings).toMatch(/顯示/);
     expect(settings).toMatch(/恢復購買/);
     expect(settings).toMatch(/通知含名稱/);

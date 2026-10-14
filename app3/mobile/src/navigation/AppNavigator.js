@@ -8,7 +8,9 @@ import SettingsScreen from '../screens/SettingsScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import ReminderScreen from '../screens/ReminderScreen';
 import RecentlyDeletedScreen from '../screens/RecentlyDeletedScreen';
+import WidgetPickerScreen from '../screens/WidgetPickerScreen';
 import { useTheme } from '../theme/useTheme';
+import { subscribePaywallLink } from '../lib/deepLink';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,6 +37,11 @@ export default function AppNavigator({ initial }) {
     }, 80);
     return () => clearTimeout(id);
   }, [initial]);
+  React.useEffect(() => {
+    return subscribePaywallLink((name, params) => {
+      try { navRef.current?.navigate?.(name, params || {}); } catch {}
+    });
+  }, []);
   return (
     <NavigationContainer ref={navRef} theme={theme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -49,6 +56,7 @@ export default function AppNavigator({ initial }) {
         <Stack.Screen name="Paywall" component={PaywallScreen} />
         <Stack.Screen name="Reminder" component={ReminderScreen} />
         <Stack.Screen name="RecentlyDeleted" component={RecentlyDeletedScreen} />
+        <Stack.Screen name="WidgetPicker" component={WidgetPickerScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

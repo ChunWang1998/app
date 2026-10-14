@@ -8,7 +8,7 @@ import { isProUnlocked } from '../lib/entitlements';
 import { exportToJson, exportToCsv, importFromJson, getRecentlyDeleted, subscribe, refreshReminders } from '../data/repository';
 import { exportFileName } from '../data/csv';
 import { finiteSize, importSizeError, utf8ByteLength } from '../data/importLimit';
-import { ChevronLeftIcon, ChevronRightIcon, CheckIcon, RestoreIcon, MailIcon, LockIcon, PaintIcon, ClockIcon, BellIcon } from '../components/Icons';
+import { ChevronLeftIcon, ChevronRightIcon, CheckIcon, RestoreIcon, MailIcon, LockIcon, GridIcon, PaintIcon, ClockIcon, BellIcon } from '../components/Icons';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
@@ -178,6 +178,13 @@ export default function SettingsScreen() {
             icon={<Sq bg="#8E8E93"><RestoreIcon color="#fff" size={15} /></Sq>}
             title="恢復購買"
             onPress={restore}
+            c={c}
+          />
+          <Row
+            icon={<Sq bg="#5DBB7A"><GridIcon color="#fff" size={15} /></Sq>}
+            title="小工具"
+            onPress={() => nav.navigate('WidgetPicker')}
+            chev
             c={c}
             last
           />

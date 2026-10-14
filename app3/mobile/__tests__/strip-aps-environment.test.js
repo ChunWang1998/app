@@ -16,6 +16,8 @@ describe('strip aps-environment plugin', () => {
     const src = fs.readFileSync(pluginPath, 'utf8');
     expect(src).toMatch(/withEntitlementsPlist/);
     expect(src).toMatch(/withBaseMod/);
+    expect(src).toMatch(/withFinalizedMod/);
+    expect(src).toMatch(/\.entitlements/);
     expect(src).toMatch(/delete\s+\w+\.modResults\['aps-environment'\]/);
   });
 
@@ -43,6 +45,7 @@ describe('strip aps-environment plugin', () => {
           });
           return cfg;
         },
+        withFinalizedMod: (cfg) => cfg,
       }));
       const plugin = require(pluginPath);
       expect(typeof plugin).toBe('function');

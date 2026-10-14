@@ -9,6 +9,12 @@ v1.1 core UI (this slice):
 - Local reminders are scheduled with expo-notifications (one per item, iOS 64 cap, snooze)
 - Recently Deleted (30 days) + JSON/CSV export and JSON import
 
+v1.1 widgets (this slice):
+- App Group `group.com.beenages.app` snapshot + check-in queue
+- Widget extension `com.beenages.app.widget` via `expo-widgets`
+- Home small/medium (✓ + 5s undo) and Lock circular/rectangular
+- Pro-gated; free 3-item cap cannot be bypassed from the widget
+
 Security review notes
 - Pro entitlement storage is local-only (AsyncStorage) and unverified. On app launch, re-verify past purchases via expo-iap (e.g., getAvailablePurchases/restorePurchases) to re-grant entitlement if needed — mirror the pattern in app2. This is planned before shipping UI polish.
 - Keep EXPO_PUBLIC_IAP_SIMULATE enabled only in preview builds. Production profile MUST NOT set it.
