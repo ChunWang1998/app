@@ -1,4 +1,4 @@
-import { activitySchema, validateExport } from '../src/data/schema';
+import { activitySchema } from '../src/data/schema';
 
 const base = {
   id: 'act_test',
@@ -21,16 +21,6 @@ describe('reminderTime HH:MM', () => {
     for (const reminderTime of ['24:00', '09:60', '9:00', '9:0', '25:00', 'ab:cd', '09:00:00', '']) {
       expect(() => activitySchema.parse({ ...base, reminderTime })).toThrow();
     }
-  });
-
-  it('allows omitting reminderTime on export rows', () => {
-    const blob = validateExport({
-      schema: 'been-ages/export',
-      version: 1,
-      exportedAt: '2026-10-13T00:00:00.000Z',
-      activities: [base],
-    });
-    expect(blob.activities[0].reminderTime).toBeUndefined();
   });
 });
 
@@ -57,11 +47,12 @@ describe('dates 2000–2100', () => {
   it('rejects years outside 2000–2100', () => {
     expect(() => activitySchema.parse({ ...base, lastDoneAt: '1999-12-31T23:59:59.000Z' })).toThrow();
     expect(() => activitySchema.parse({ ...base, createdAt: '2101-01-01T00:00:00.000Z' })).toThrow();
-    expect(() => validateExport({
-      schema: 'been-ages/export',
-      version: 1,
-      exportedAt: '1999-01-01T00:00:00.000Z',
-      activities: [base],
-    })).toThrow();
+  });
+});
+
+describe('icon', () => {
+  it('accepts built-in kinds including mono', () => {
+    expect(activitySchema.parse({ ...base, icon: 'drop' }).icon).toBe('drop');
+    expect(activitySchema.parse({ ...base, icon: 'mono' }).icon).toBe('mono');
   });
 });

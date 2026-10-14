@@ -103,11 +103,6 @@
                       "title": "Item",
                       "type": "string",
                       "default": "auto"
-                    },
-                    "hideNames": {
-                      "title": "Hide names",
-                      "type": "boolean",
-                      "default": false
                     }
                   }
                 }
@@ -129,11 +124,6 @@
                       "title": "Item",
                       "type": "string",
                       "default": "auto"
-                    },
-                    "hideNames": {
-                      "title": "Hide names",
-                      "type": "boolean",
-                      "default": false
                     }
                   }
                 }

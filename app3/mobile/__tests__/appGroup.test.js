@@ -61,8 +61,6 @@ describe('App Group contract', () => {
     expect(snap.selectedIds).toEqual({
       small: 'a2',
       medium: ['a1'],
-      hideLockNames: false,
-      hideHomeNames: false,
     });
     expect(snap.activities[0].deletedAt).toBeUndefined();
   });

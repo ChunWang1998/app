@@ -1,4 +1,4 @@
-import { t, tLocale } from '../i18n';
+import { getLocale, resolveLocale, t, tLocale } from '../i18n';
 
 function unitLabel(key, locale) {
   return locale ? tLocale(locale, key) : t(key);
@@ -69,6 +69,50 @@ export function formatDateShort(ts) {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return '';
   return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}`;
+}
+
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+export function formatLastDoneDate(ts, locale) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '';
+  const tag = resolveLocale(locale || getLocale());
+  if (tag === 'en') return `${MONTHS_EN[d.getMonth()]} ${d.getDate()}`;
+  return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}`;
+}
+
+export function formatLastDoneRelative(ts, now = Date.now(), locale) {
+  if (!ts) return '';
+  const t0 = new Date(ts).getTime();
+  if (Number.isNaN(t0)) return '';
+  const a = new Date(t0);
+  const b = new Date(now);
+  const startA = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+  const startB = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  // Calendar days between local midnights; round absorbs DST 23h/25h days.
+  const days = Math.max(0, Math.round((startB - startA) / DAY));
+  const loc = locale || getLocale();
+  if (days <= 0) return tLocale(loc, 'common.today');
+  if (days === 1) return tLocale(loc, 'common.yesterday');
+  return tLocale(loc, 'common.daysAgo', { n: days });
+}
+
+/** One-line list subtitle, e.g. "3 days ago · Oct 11" / "3 天前 · 10/11". */
+export function formatLastDoneShort(ts, now = Date.now(), locale) {
+  if (!ts) return '';
+  const loc = locale || getLocale();
+  return `${formatLastDoneRelative(ts, now, loc)} \u00b7 ${formatLastDoneDate(ts, loc)}`;
+}
+
+/** e.g. "3 days ago · Last done Oct 11" */
+export function formatLastDoneLine(ts, now = Date.now(), locale) {
+  if (!ts) return '';
+  const loc = locale || getLocale();
+  return tLocale(loc, 'time.lastDoneLine', {
+    relative: formatLastDoneRelative(ts, now, loc),
+    date: formatLastDoneDate(ts, loc),
+  });
 }
 
 export function dueInMs(item, now = Date.now()) {

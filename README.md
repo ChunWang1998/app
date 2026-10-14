@@ -61,7 +61,7 @@ cd app2/mobile && npm install && npm start
 
 ## app3 — Been Ages
 
-「上次做這件事是多久以前？」生活記錄器。v1.0 為可送審的淺色介面（清單、新增／編輯、記錄、付費牆）；提醒、匯入匯出與最近刪除延到後續版本。
+「上次做這件事是多久以前？」生活記錄器。v1.1：清單、新增／編輯、記錄、提醒、小工具、分享卡片、行事曆、最近刪除與付費牆。
 
 ```bash
 cd app3/mobile && npm install && npm start

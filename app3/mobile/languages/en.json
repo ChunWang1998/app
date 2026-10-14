@@ -17,8 +17,6 @@
     "logNow": "Log now",
     "delete": "Delete",
     "undo": "Undo",
-    "export": "Export",
-    "exportedToConsole": "Export printed to console",
     "restore": "Restore purchases"
   },
   "iap": {
@@ -58,7 +56,7 @@
     "deleted": "Deleted",
     "neverLogged": "Not yet",
     "overdue": "Overdue",
-    "remaining": "in",
+    "remaining": "In",
     "a11ySettings": "Settings",
     "a11ySort": "Sort",
     "a11yAdd": "Add item",
@@ -98,7 +96,7 @@
     "edit": "Edit",
     "add": "Add",
     "placeholder": "What to track",
-    "last": "Last",
+    "last": "Last done",
     "reminder": "Reminder",
     "reminderNew": "Add the item first, then set a reminder in details.",
     "notes": "Notes"
@@ -110,10 +108,6 @@
     "redeem": "Redeem Code",
     "widgets": "Widgets",
     "data": "Data",
-    "export": "Export",
-    "import": "Import",
-    "exportFormats": "JSON · CSV",
-    "importFormat": "JSON",
     "recentlyDeleted": "Recently deleted",
     "display": "Display",
     "appearance": "Appearance",
@@ -123,22 +117,8 @@
     "preciseTime": "Exact time",
     "reminderTime": "Reminder time",
     "notifyWithName": "Names in alerts",
-    "hideName": "Hide names",
     "rate": "Rate the app",
-    "contact": "Contact us",
-    "support": "Support",
-    "privacy": "Privacy policy",
-    "exportPick": "Choose a format",
-    "exportDone": "Exported",
-    "exportCsv": "CSV ready",
-    "exportJson": "JSON ready",
-    "importFail": "Import failed",
-    "importNoFile": "No file found",
-    "importBadJson": "Not valid JSON",
-    "importConfirm": "This replaces your current data. Continue?",
-    "importOk": "Imported",
-    "importOkTruncated": "Imported. Free plan keeps 3 items.",
-    "importDone": "Done"
+    "privacy": "Privacy policy"
   },
   "paywall": {
     "headline": "More than 3 items",
@@ -158,19 +138,13 @@
     "empty": "No items",
     "logged": "Logged",
     "title": "Widgets",
-    "hint": "You can also pick items by long-pressing a Home or Lock Screen widget. If none is picked, the most due item is shown.",
+    "hint": "Blank widgets show the most due item.",
     "small": "Small",
     "medium": "Medium (up to 3)",
-    "mostDue": "Most due",
-    "home": "Home Screen",
-    "lock": "Lock Screen",
-    "hideName": "Hide names",
-    "a11yHideHome": "Hide names on Home Screen widgets",
-    "a11yHideLock": "Hide names on Lock Screen widgets"
+    "mostDue": "Most due"
   },
   "share": {
     "title": "Share card",
-    "hideName": "Hide name",
     "styles": "Style",
     "prefix": "Been ages",
     "notYet": "Not yet",
@@ -182,7 +156,6 @@
   },
   "calendar": {
     "note": "Added from Been Ages",
-    "titleHidden": "Been Ages",
     "titleNamed": "{name} | Been Ages",
     "itemFallback": "Item"
   },
@@ -196,7 +169,8 @@
     "minute": "min",
     "hour": "h",
     "day": "d",
-    "month": "mo"
+    "month": "mo",
+    "lastDoneLine": "{relative} · Last done {date}"
   },
   "reminder": {
     "title": "Reminder",
@@ -214,10 +188,6 @@
     "empty": "No items",
     "restore": "Restore",
     "purge": "Permanently deleted after 30 days"
-  },
-  "import": {
-    "sizeUnknown": "Could not confirm file size",
-    "tooLarge": "File too large"
   },
   "demo": {
     "filter": "Change water filter",

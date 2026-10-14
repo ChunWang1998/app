@@ -1,9 +1,29 @@
 import React from 'react';
+import { Text } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye'];
+export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'mono'];
 
-export function ItemGlyph({ kind = 'brush', color = '#3E9180', size = 20, strokeWidth = 1.7 }) {
+export function ItemGlyph({ kind = 'brush', color = '#3E9180', size = 20, strokeWidth = 1.7, letter = '' }) {
+  if (kind === 'mono') {
+    const ch = String(letter || '').trim().slice(0, 2);
+    const glyph = ch ? [...ch][0] : '·';
+    return (
+      <Text
+        style={{
+          fontSize: Math.round(size * 0.62),
+          lineHeight: size,
+          height: size,
+          width: size,
+          textAlign: 'center',
+          fontFamily: 'NaikaiSubset-Bold',
+          color,
+        }}
+      >
+        {glyph}
+      </Text>
+    );
+  }
   const common = { stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' };
   if (kind === 'drop') {
     return (
@@ -32,6 +52,17 @@ export function ItemGlyph({ kind = 'brush', color = '#3E9180', size = 20, stroke
     return (
       <Svg width={size} height={size} viewBox="0 0 22 20">
         <Path d="M2 5v12M2 13h18v4M2 10h18v3M6 10V8a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 12 8v2" {...common} />
+      </Svg>
+    );
+  }
+  if (kind === 'paw') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 20 20">
+        <Path d="M10 10.5c-2.6 0-5 2.6-5 4.7 0 1.4 1.1 2.1 2.4 2.1 1 0 1.7-.5 2.6-.5s1.6.5 2.6.5c1.3 0 2.4-.7 2.4-2.1 0-2.1-2.4-4.7-5-4.7Z" {...common} />
+        <Circle cx="4" cy="8.2" r="1.6" stroke={color} strokeWidth={strokeWidth} fill="none" />
+        <Circle cx="7.6" cy="4.6" r="1.7" stroke={color} strokeWidth={strokeWidth} fill="none" />
+        <Circle cx="12.4" cy="4.6" r="1.7" stroke={color} strokeWidth={strokeWidth} fill="none" />
+        <Circle cx="16" cy="8.2" r="1.6" stroke={color} strokeWidth={strokeWidth} fill="none" />
       </Svg>
     );
   }

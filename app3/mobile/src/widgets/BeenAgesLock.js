@@ -8,10 +8,6 @@ const BeenAgesLock = (props, environment) => {
   const family = environment.widgetFamily;
   const config = environment.configuration || {};
   const configId = config.itemId ? config.itemId : 'auto';
-  const hideNames = config.hideNames === true
-    || config.hideNames === 'true'
-    || !!(props && props.hideLockNames);
-
   if (!props || !props.isPro) {
     if (family === 'accessoryCircular') {
       return (
@@ -63,16 +59,18 @@ const BeenAgesLock = (props, environment) => {
 
   return (
     <HStack spacing={6} modifiers={[padding({ all: 4 })]}>
-      {item.iconUri ? (
+      {item.monoLetter ? (
+        <Text modifiers={[font({ size: 13, weight: 'bold' }), foregroundStyle(LABEL)]}>
+          {item.monoLetter}
+        </Text>
+      ) : item.iconUri ? (
         <Image uiImage={item.iconUri} size={14} />
       ) : (
         <Image systemName={item.sfSymbol || 'paintbrush.pointed'} size={14} color={LABEL} />
       )}
-      {hideNames ? null : (
-        <Text modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(LABEL)]}>
-          {item.title}
-        </Text>
-      )}
+      <Text modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(LABEL)]}>
+        {item.title}
+      </Text>
       <Text modifiers={[font({ size: 16, weight: 'bold' }), foregroundStyle(LABEL)]}>
         {item.daysText || num}
       </Text>

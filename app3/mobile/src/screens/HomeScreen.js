@@ -15,10 +15,11 @@ import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { Mascot } from '../components/Mascot';
 import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
-import { formatSpan, formatDateShort, dueInMs, progressRatio, elapsedMs, formatSpanParts } from '../lib/time';
+import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort } from '../lib/time';
+import { monogramLetter } from '../lib/suggestIcon';
 import * as Haptics from 'expo-haptics';
 import { isProUnlocked } from '../lib/entitlements';
-import { t } from '../i18n';
+import { getLocale, t } from '../i18n';
 
 const JUST_MS = 60e3;
 
@@ -186,7 +187,7 @@ export default function HomeScreen() {
 
 function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
   const c = useThemeColors();
-  const tone = useItemTone(item.icon);
+  const tone = useItemTone(item.icon, item.title);
   const due = item._due;
   const soon = due < 2 * 864e5 && due >= 0;
   const od = due < 0;
@@ -197,7 +198,7 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
 
   let status;
   if (!item.lastDoneAt) status = t('home.neverLogged');
-  else if (!hasReminder) status = formatDateShort(item.lastDoneAt);
+  else if (!hasReminder) status = formatLastDoneShort(item.lastDoneAt, Date.now(), getLocale());
   else if (od) status = `${t('home.overdue')}\u2009${formatSpan(-due)}`;
   else status = `${t('home.remaining')}\u2009${formatSpan(due)}`;
 
@@ -215,12 +216,12 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
     <Swipeable renderRightActions={renderRight} overshootRight={false} friction={2}>
       <View style={[styles.it, { backgroundColor: c.bg, borderBottomColor: c.sep }]}>
         <View style={[styles.gl, { backgroundColor: od ? c.odtint : tone.ac }]}>
-          <ItemGlyph kind={item.icon || 'brush'} color={tone.acf} />
+          <ItemGlyph kind={item.icon || 'brush'} color={tone.acf} letter={monogramLetter(item.title)} />
           {od ? <View style={[styles.odDot, { backgroundColor: c.red, borderColor: c.bg }]} /> : null}
         </View>
         <TouchableOpacity style={styles.tx} onPress={onOpen} activeOpacity={0.7}>
           <Text numberOfLines={1} style={[styles.nm, { color: c.label }]}>{item.title}</Text>
-          <Text style={[styles.st, { color: od ? c.red : c.l2 }]}>{status}</Text>
+          <Text numberOfLines={1} style={[styles.st, { color: od ? c.red : c.l2 }]}>{status}</Text>
           {hasReminder ? (
             <View style={[styles.trk, { backgroundColor: c.track }]}>
               <View

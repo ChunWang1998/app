@@ -22,22 +22,14 @@ describe('expo-widgets config', () => {
     const lock = plugin[1].widgets[1];
     expect(home.ios.supportedFamilies).toEqual(['systemSmall', 'systemMedium']);
     expect(lock.ios.supportedFamilies).toEqual(['accessoryCircular', 'accessoryRectangular']);
-    expect(home.ios.configuration.parameters.hideNames).toMatchObject({
-      title: 'Hide names',
-      type: 'boolean',
-      default: false,
-    });
-    expect(lock.ios.configuration.parameters.hideNames).toMatchObject({
-      title: 'Hide names',
-      type: 'boolean',
-      default: false,
-    });
+    expect(home.ios.configuration.parameters.hideNames).toBeUndefined();
+    expect(lock.ios.configuration.parameters.hideNames).toBeUndefined();
     const homeSrc = fs.readFileSync(path.join(__dirname, '../src/widgets/BeenAgesHome.js'), 'utf8');
     const lockSrc = fs.readFileSync(path.join(__dirname, '../src/widgets/BeenAgesLock.js'), 'utf8');
-    expect(homeSrc).toMatch(/hideNames/);
-    expect(homeSrc).toMatch(/hideHomeNames/);
-    expect(lockSrc).toMatch(/hideNames/);
-    expect(lockSrc).toMatch(/hideLockNames/);
+    expect(homeSrc).not.toMatch(/hideNames/);
+    expect(lockSrc).not.toMatch(/hideNames/);
+    expect(homeSrc).toMatch(/item\.title/);
+    expect(lockSrc).toMatch(/item\.title/);
   });
 
   it('does not depend on Meta / IG Stories in this slice', () => {

@@ -20,8 +20,6 @@
     "logNow": "今記録",
     "delete": "削除",
     "undo": "取り消す",
-    "export": "書き出し",
-    "exportedToConsole": "書き出しをコンソールに表示しました",
     "restore": "購入を復元"
   },
   "iap": {
@@ -113,10 +111,6 @@
     "redeem": "コードを引き換え",
     "widgets": "ウィジェット",
     "data": "データ",
-    "export": "書き出し",
-    "import": "読み込み",
-    "exportFormats": "JSON · CSV",
-    "importFormat": "JSON",
     "recentlyDeleted": "最近削除した項目",
     "display": "表示",
     "appearance": "外観",
@@ -126,22 +120,8 @@
     "preciseTime": "正確な時刻",
     "reminderTime": "通知時刻",
     "notifyWithName": "通知に名前を含める",
-    "hideName": "名前を隠す",
     "rate": "評価する",
-    "contact": "お問い合わせ",
-    "support": "サポート",
-    "privacy": "プライバシー",
-    "exportPick": "形式を選択",
-    "exportDone": "書き出しました",
-    "exportCsv": "CSVを作成しました",
-    "exportJson": "JSONを作成しました",
-    "importFail": "読み込みに失敗",
-    "importNoFile": "ファイルがありません",
-    "importBadJson": "正しいJSONではありません",
-    "importConfirm": "現在のデータを上書きします。続けますか？",
-    "importOk": "読み込みました",
-    "importOkTruncated": "読み込みました。無料版は3件までです。",
-    "importDone": "完了"
+    "privacy": "プライバシー"
   },
   "paywall": {
     "headline": "3件以上",
@@ -161,19 +141,13 @@
     "empty": "項目がありません",
     "logged": "記録しました",
     "title": "ウィジェット",
-    "hint": "ホーム／ロック画面のウィジェットを長押ししても選べます。未選択なら最も期限が近い項目を表示します。",
+    "hint": "未選択なら最も期限が近い項目。",
     "small": "小",
     "medium": "中（最大3件）",
-    "mostDue": "最も期限が近い",
-    "home": "ホーム画面",
-    "lock": "ロック画面",
-    "hideName": "名前を隠す",
-    "a11yHideHome": "ホーム画面ウィジェットで名前を隠す",
-    "a11yHideLock": "ロック画面ウィジェットで名前を隠す"
+    "mostDue": "最も期限が近い"
   },
   "share": {
     "title": "シェアカード",
-    "hideName": "名前を隠す",
     "styles": "デザイン",
     "prefix": "久しぶり",
     "notYet": "未記録",
@@ -185,7 +159,6 @@
   },
   "calendar": {
     "note": "久しぶりから追加",
-    "titleHidden": "久しぶり",
     "titleNamed": "{name}｜久しぶり",
     "itemFallback": "項目"
   },
@@ -199,7 +172,8 @@
     "minute": "分",
     "hour": "時間",
     "day": "日",
-    "month": "か月"
+    "month": "か月",
+    "lastDoneLine": "{relative} · 前回 {date}"
   },
   "reminder": {
     "title": "リマインダー",
@@ -217,10 +191,6 @@
     "empty": "項目がありません",
     "restore": "復元",
     "purge": "30日後に完全削除"
-  },
-  "import": {
-    "sizeUnknown": "ファイルサイズを確認できません",
-    "tooLarge": "ファイルが大きすぎます"
   },
   "demo": {
     "filter": "浄水器のカートリッジ交換",

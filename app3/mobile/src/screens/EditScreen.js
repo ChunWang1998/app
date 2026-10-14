@@ -8,9 +8,10 @@ import { ItemGlyph } from '../components/ItemGlyph';
 import { ChevronRightIcon } from '../components/Icons';
 import { isProUnlocked } from '../lib/entitlements';
 import { formatDate, formatTime } from '../lib/time';
+import { suggestIcon, monogramLetter } from '../lib/suggestIcon';
 import { t } from '../i18n';
 
-const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car'];
+const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car', 'paw'];
 
 export default function EditScreen() {
   const nav = useNavigation();
@@ -22,12 +23,19 @@ export default function EditScreen() {
   const insets = useSafeAreaInsets();
   const isNew = !current;
   const [title, setTitle] = useState(current?.title || '');
-  const [icon, setIcon] = useState(current?.icon || 'brush');
+  const [icon, setIcon] = useState(current?.icon || (isNew ? 'mono' : 'brush'));
+  const [iconManual, setIconManual] = useState(!isNew);
   const [notes, setNotes] = useState(current?.notes || '');
-  const [lastDoneAt, setLastDoneAt] = useState(current?.lastDoneAt || null);
+  const [lastDoneAt, setLastDoneAt] = useState(() => (isNew ? new Date().toISOString() : current?.lastDoneAt || null));
   const [busy, setBusy] = useState(false);
 
   const remLabel = current?.reminderDays ? t('detail.everyDays', { n: current.reminderDays }) : t('detail.noReminder');
+  const tone = useItemTone(icon, title);
+
+  function onTitle(text) {
+    setTitle(text);
+    if (!iconManual) setIcon(suggestIcon(text));
+  }
 
   async function save() {
     if (busy) return;
@@ -121,19 +129,23 @@ export default function EditScreen() {
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
           <View style={styles.row}>
+            <View style={[styles.preview, { backgroundColor: tone.ac }]}>
+              <ItemGlyph kind={icon} color={tone.acf} letter={monogramLetter(title) || title} />
+            </View>
             <TextInput
               value={title}
-              onChangeText={setTitle}
+              onChangeText={onTitle}
               placeholder={t('edit.placeholder')}
               placeholderTextColor={c.l3}
               style={[styles.input, { color: c.label }, Platform.OS === 'web' ? { outlineStyle: 'none' } : null]}
               autoFocus={isNew}
+              testID="edit-title"
             />
           </View>
         </View>
         <View style={styles.icp}>
           {PICKER.map((k) => (
-            <IconBtn key={k} k={k} on={icon === k} onPress={() => setIcon(k)} idle={c.cell} dim={c.l2} />
+            <IconBtn key={k} k={k} on={icon === k} onPress={() => { setIconManual(true); setIcon(k); }} idle={c.cell} dim={c.l2} />
           ))}
         </View>
 
@@ -142,12 +154,12 @@ export default function EditScreen() {
             <Text style={[styles.lab, { color: c.label }]}>{t('edit.last')}</Text>
             <TouchableOpacity onPress={setLastToday} style={[styles.pill, { backgroundColor: c.fill }]}>
               <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular' }}>
-                {lastDoneAt ? formatDate(lastDoneAt) : t('common.today')}
+                {lastDoneAt ? formatDate(lastDoneAt) : t('home.neverLogged')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={setLastNowTime} style={[styles.pill, { backgroundColor: c.fill }]}>
               <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular' }}>
-                {lastDoneAt ? formatTime(lastDoneAt) : formatTime(new Date().toISOString())}
+                {lastDoneAt ? formatTime(lastDoneAt) : '—'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -227,6 +239,7 @@ const styles = StyleSheet.create({
     fontFamily: 'NaikaiSubset-Regular',
     textAlignVertical: 'top',
   },
+  preview: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   icp: { flexDirection: 'row', gap: 6, paddingTop: 14, paddingHorizontal: 16, justifyContent: 'space-between' },
   icBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });
