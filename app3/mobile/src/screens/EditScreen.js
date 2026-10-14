@@ -198,13 +198,15 @@ export default function EditScreen() {
 function IconBtn({ k, on, onPress, idle, dim }) {
   const tone = useItemTone(k);
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[styles.icBtn, { backgroundColor: on ? tone.ac : idle }]}
-      accessibilityLabel={k}
-    >
-      <ItemGlyph kind={k} color={on ? tone.acf : dim} />
-    </TouchableOpacity>
+    <View style={styles.icCell}>
+      <TouchableOpacity
+        onPress={onPress}
+        style={[styles.icBtn, { backgroundColor: on ? tone.ac : idle }]}
+        accessibilityLabel={k}
+      >
+        <ItemGlyph kind={k} color={on ? tone.acf : dim} />
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -234,6 +236,8 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   preview: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  icp: { flexDirection: 'row', gap: 6, paddingTop: 14, paddingHorizontal: 16, justifyContent: 'space-between' },
+  // 5 per row, wraps: never clips on narrow screens.
+  icp: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 10, paddingTop: 14, paddingHorizontal: 16 },
+  icCell: { width: '20%', alignItems: 'center' },
   icBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });

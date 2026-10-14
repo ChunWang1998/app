@@ -2,6 +2,7 @@ import { dueInMs, elapsedMs, formatSpanParts } from '../lib/time';
 import { sfSymbolForIcon } from '../data/appGroup';
 import { tLocale } from '../i18n';
 import { monogramLetter } from '../lib/suggestIcon';
+import { dueStatus } from '../lib/today';
 
 const LOCK_FAMILIES = new Set(['accessoryCircular', 'accessoryRectangular', 'accessoryInline']);
 
@@ -53,7 +54,9 @@ export function pickWidgetItems(activities, {
 
 export function dueClassOf(item, now = Date.now()) {
   const due = dueInMs(item, now);
-  if (due < 0) return 'od';
+  const st = dueStatus(due, now);
+  if (st === 'overdue') return 'od';
+  if (st === 'today') return 'soon';
   if (due < 2 * 864e5) return 'soon';
   return '';
 }

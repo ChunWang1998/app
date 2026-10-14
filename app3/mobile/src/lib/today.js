@@ -18,6 +18,18 @@ function startOfDay(now) {
   return d.getTime();
 }
 
+/**
+ * Local calendar days: due before today's 00:00 is 'overdue', due any time today is 'today'.
+ * `due` is ms until due (negative = late), as from dueInMs. DST-safe (uses local midnights).
+ */
+export function dueStatus(due, now = Date.now()) {
+  if (!Number.isFinite(due)) return 'none';
+  const at = now + due;
+  if (at < startOfDay(now)) return 'overdue';
+  if (at <= endOfDay(now)) return 'today';
+  return 'upcoming';
+}
+
 /** Has a reminder and is due by the end of today (includes overdue). */
 export function isDueToday(item, now = Date.now()) {
   if (!item?.reminderDays) return false;

@@ -120,3 +120,63 @@ describe('strings', () => {
     expect(zh.date.unknown).toBe('不記得');
   });
 });
+
+describe('due status (PR #20 preview fixes)', () => {
+  const { dueStatus } = require('../src/lib/today');
+  const { dueClassOf } = require('../src/widgets/pick');
+  const H = 36e5;
+  const at = (y, mo, d, h, mi = 0) => new Date(y, mo, d, h, mi).getTime();
+  const status = (dueAt, now) => dueStatus(dueAt - now, now);
+  it('due any time today is today, even if hours late', () => {
+    const noon = at(2026, 9, 14, 12);
+    expect(dueStatus(0, noon)).toBe('today');
+    expect(status(at(2026, 9, 14, 0, 0), noon)).toBe('today');
+    expect(status(at(2026, 9, 14, 23, 59), noon)).toBe('today');
+  });
+  it('due before local midnight is overdue (crosses midnight)', () => {
+    expect(status(at(2026, 9, 13, 23), at(2026, 9, 14, 22))).toBe('overdue');
+    expect(status(at(2026, 9, 13, 23, 59), at(2026, 9, 14, 0, 1))).toBe('overdue');
+    expect(status(at(2026, 9, 15, 0, 0), at(2026, 9, 14, 23, 59))).toBe('upcoming');
+    expect(dueStatus(Infinity, at(2026, 9, 14, 12))).toBe('none');
+  });
+  it('uses local calendar days across DST (America/New_York fall back / spring forward)', () => {
+    // Runs in any TZ; these are local wall-clock times, so 23h/25h days must not shift the boundary.
+    expect(status(at(2026, 10, 1, 0, 30), at(2026, 10, 1, 23, 30))).toBe('today'); // Nov 1 2026: 25h day
+    expect(status(at(2026, 9, 31, 23, 30), at(2026, 10, 1, 0, 30))).toBe('overdue');
+    expect(status(at(2026, 2, 8, 0, 30), at(2026, 2, 8, 23, 30))).toBe('today'); // Mar 8 2026: 23h day
+    expect(status(at(2026, 2, 9, 0, 0), at(2026, 2, 8, 23, 59))).toBe('upcoming');
+  });
+  it('app and widget classify the same due value the same way', () => {
+    const now = at(2026, 9, 14, 22);
+    const DAY = 864e5;
+    const mk = (dueAt, days) => ({ id: 'x', reminderDays: days, lastDoneAt: new Date(dueAt - days * DAY).toISOString() });
+    const map = { overdue: 'od', today: 'soon' };
+    for (const dueAt of [at(2026, 9, 13, 23), at(2026, 9, 14, 0, 0), at(2026, 9, 14, 23), at(2026, 9, 20, 12)]) {
+      const item = mk(dueAt, 7);
+      const app = dueStatus(dueAt - now, now);
+      const w = dueClassOf(item, now);
+      if (map[app]) expect(w).toBe(map[app]);
+      else expect(w).not.toBe('od');
+    }
+  });
+  it('home row shows Today, not overdue 0 min', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../src/screens/HomeScreen.js'), 'utf8');
+    expect(src).toMatch(/ds === 'today'\) status = t\('common\.today'\)/);
+    expect(src).not.toMatch(/const od = due < 0/);
+  });
+  it('icon picker wraps instead of clipping', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../src/screens/EditScreen.js'), 'utf8');
+    expect(src).toMatch(/flexWrap: 'wrap'/);
+    expect(src).toMatch(/icCell: \{ width: '20%'/);
+  });
+});
+
+describe('backfill later than last done (intended)', () => {
+  it('moves last done forward', async () => {
+    const repo = require('../src/data/repository');
+    await repo.resetRepositoryForTests();
+    const a = await repo.addActivity({ title: 'B', lastDoneAt: '2026-09-01T00:00:00.000Z' });
+    await repo.backfillHistory(a.id, '2026-10-01T00:00:00.000Z');
+    expect(repo.getVisibleActivities().find((x) => x.id === a.id).lastDoneAt).toBe('2026-10-01T00:00:00.000Z');
+  });
+});

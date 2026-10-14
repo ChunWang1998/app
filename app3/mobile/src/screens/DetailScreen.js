@@ -10,6 +10,7 @@ import { addNextDueToCalendar, openSystemSettings } from '../lib/calendar';
 import { formatDate, formatTime, formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneLine } from '../lib/time';
 import { historyStats } from '../lib/historyStats';
 import { DateChips } from '../components/DateChips';
+import { dueStatus } from '../lib/today';
 import * as Haptics from 'expo-haptics';
 import { getLocale, t } from '../i18n';
 
@@ -37,7 +38,7 @@ export default function DetailScreen() {
 
   const tone = useItemTone(item.icon, item.title);
   const due = dueInMs(item);
-  const od = due < 0;
+  const od = dueStatus(due) === 'overdue';
   const elapsed = elapsedMs(item);
   const just = elapsed != null && elapsed < 60e3;
   const hasReminder = !!item.reminderDays;
