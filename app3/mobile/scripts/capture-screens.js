@@ -41,9 +41,11 @@ async function shot(page, name, url) {
   await shot(page, 'v11-paywall-zh', '/?demo=1&screen=Paywall&lang=zh-Hant&mode=light');
 
   await shot(page, 'v11-add-auto-icon-zh', '/?demo=1&screen=EditNew&lang=zh-Hant&mode=light');
+  const keywords = require('../src/lib/iconKeywords.json');
+  const autoTitle = keywords.find((r) => r.keys.includes('toothbrush')).keys.find((k) => [...k].some((ch) => ch.charCodeAt(0) > 127));
   const titleBox = page.locator('input, textarea').first();
   await titleBox.waitFor({ timeout: 15000 });
-  await titleBox.fill('牙刷');
+  await titleBox.fill(autoTitle);
   await page.waitForTimeout(800);
   await page.screenshot({ path: path.join(OUT, 'v11-add-auto-icon-zh.png'), type: 'png' });
   console.log('wrote', path.join(OUT, 'v11-add-auto-icon-zh.png'));
