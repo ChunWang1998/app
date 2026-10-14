@@ -7,7 +7,9 @@ import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { ChevronRightIcon } from '../components/Icons';
 import { isProUnlocked } from '../lib/entitlements';
-import { formatDate, formatTime } from '../lib/time';
+import { DateChips } from '../components/DateChips';
+import { ReminderChips } from '../components/ReminderChips';
+import { suggestReminderDays } from '../lib/suggestReminder';
 import { suggestIcon, monogramLetter } from '../lib/suggestIcon';
 import { t } from '../i18n';
 
@@ -27,6 +29,8 @@ export default function EditScreen() {
   const [iconManual, setIconManual] = useState(!isNew);
   const [notes, setNotes] = useState(current?.notes || '');
   const [lastDoneAt, setLastDoneAt] = useState(() => (isNew ? new Date().toISOString() : current?.lastDoneAt || null));
+  const [reminderDays, setReminderDays] = useState(null);
+  const [reminderManual, setReminderManual] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const remLabel = current?.reminderDays ? t('detail.everyDays', { n: current.reminderDays }) : t('detail.noReminder');
@@ -35,6 +39,7 @@ export default function EditScreen() {
   function onTitle(text) {
     setTitle(text);
     if (!iconManual) setIcon(suggestIcon(text));
+    if (isNew && !reminderManual) setReminderDays(suggestReminderDays(text));
   }
 
   async function save() {
@@ -62,9 +67,17 @@ export default function EditScreen() {
             icon,
             notes,
             lastDoneAt,
-            reminderDays: null,
+            reminderDays,
             reminderTime: defaultTime,
           });
+          if (reminderDays) {
+            try {
+              const { requestNotificationPermissions } = require('../notifications/reminders');
+              await requestNotificationPermissions();
+            } catch {
+              // web / denied: the setting is saved; scheduling skips without permission
+            }
+          }
         } catch (e) {
           if (e?.code === 'FREE_LIMIT') {
             nav.replace('Paywall');
@@ -94,20 +107,6 @@ export default function EditScreen() {
         },
       },
     ]);
-  }
-
-  function setLastToday() {
-    const d = lastDoneAt ? new Date(lastDoneAt) : new Date();
-    const n = new Date();
-    n.setHours(d.getHours(), d.getMinutes(), 0, 0);
-    setLastDoneAt(n.toISOString());
-  }
-
-  function setLastNowTime() {
-    const d = lastDoneAt ? new Date(lastDoneAt) : new Date();
-    const n = new Date();
-    d.setHours(n.getHours(), n.getMinutes(), 0, 0);
-    setLastDoneAt(d.toISOString());
   }
 
   return (
@@ -150,32 +149,27 @@ export default function EditScreen() {
         </View>
 
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 18 }]}>
-          <View style={[styles.row, styles.rowLine]}>
-            <Text style={[styles.lab, { color: c.label }]}>{t('edit.last')}</Text>
-            <TouchableOpacity onPress={setLastToday} style={[styles.pill, { backgroundColor: c.fill }]}>
-              <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular' }}>
-                {lastDoneAt ? formatDate(lastDoneAt) : t('home.neverLogged')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={setLastNowTime} style={[styles.pill, { backgroundColor: c.fill }]}>
-              <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular' }}>
-                {lastDoneAt ? formatTime(lastDoneAt) : '—'}
-              </Text>
-            </TouchableOpacity>
+          <View style={[styles.rowLine, { paddingTop: 12 }]}>
+            <Text style={[styles.lab, styles.secLab, { color: c.label }]}>{t('edit.last')}</Text>
+            <DateChips value={lastDoneAt} onChange={setLastDoneAt} />
           </View>
-          <TouchableOpacity
-            style={styles.row}
-            onPress={() => {
-              if (current) nav.navigate('Reminder', { id: current.id });
-              else Alert.alert(t('edit.reminder'), t('edit.reminderNew'));
-            }}
-          >
-            <Text style={[styles.lab, { color: c.label }]}>{t('edit.reminder')}</Text>
-            <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular', marginLeft: 'auto', marginRight: 6 }}>
-              {remLabel}
-            </Text>
-            <ChevronRightIcon color={c.l3} />
-          </TouchableOpacity>
+          {isNew ? (
+            <View style={{ paddingTop: 12 }}>
+              <Text style={[styles.lab, styles.secLab, { color: c.label }]}>{t('edit.reminder')}</Text>
+              <ReminderChips
+                value={reminderDays}
+                onChange={(d) => { setReminderManual(true); setReminderDays(d); }}
+              />
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.row} onPress={() => nav.navigate('Reminder', { id: current.id })}>
+              <Text style={[styles.lab, { color: c.label }]}>{t('edit.reminder')}</Text>
+              <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular', marginLeft: 'auto', marginRight: 6 }}>
+                {remLabel}
+              </Text>
+              <ChevronRightIcon color={c.l3} />
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 18, minHeight: 96 }]}>
@@ -230,7 +224,7 @@ const styles = StyleSheet.create({
   rowLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(46,41,37,0.09)' },
   input: { flex: 1, fontSize: 22, fontFamily: 'NaikaiSubset-SemiBold', paddingVertical: 14 },
   lab: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', minWidth: 44 },
-  pill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  secLab: { paddingHorizontal: 16 },
   notes: {
     minHeight: 96,
     paddingHorizontal: 16,

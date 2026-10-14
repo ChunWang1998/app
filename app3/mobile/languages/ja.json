@@ -64,7 +64,8 @@
     "a11ySort": "並び替え",
     "a11yAdd": "項目を追加",
     "a11yDelete": "{title}を削除",
-    "a11yLog": "{title}を今記録"
+    "a11yLog": "{title}を今記録",
+    "dueToday": "今日やること"
   },
   "detail": {
     "edit": "編集",
@@ -101,7 +102,6 @@
     "placeholder": "記録する内容",
     "last": "前回",
     "reminder": "リマインダー",
-    "reminderNew": "先に追加し、詳細でリマインダーを設定。",
     "notes": "メモ"
   },
   "settings": {
@@ -124,7 +124,7 @@
     "privacy": "プライバシー"
   },
   "paywall": {
-    "headline": "3件以上",
+    "headline": "{n}件以上",
     "unlimited": "項目数無制限",
     "unlimitedSub": "無料は{n}件",
     "widgets": "ホーム画面ウィジェット",
@@ -199,5 +199,10 @@
     "sheets": "シーツを洗う",
     "plant": "水やり",
     "hair": "散髪"
+  },
+  "date": {
+    "weekAgo": "1週間前",
+    "monthAgo": "1か月前",
+    "unknown": "わからない"
   }
 }

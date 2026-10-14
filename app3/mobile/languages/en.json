@@ -61,7 +61,8 @@
     "a11ySort": "Sort",
     "a11yAdd": "Add item",
     "a11yDelete": "Delete {title}",
-    "a11yLog": "Log {title}, just did it"
+    "a11yLog": "Log {title}, just did it",
+    "dueToday": "Due today"
   },
   "detail": {
     "edit": "Edit",
@@ -98,7 +99,6 @@
     "placeholder": "What to track",
     "last": "Last done",
     "reminder": "Reminder",
-    "reminderNew": "Add the item first, then set a reminder in details.",
     "notes": "Notes"
   },
   "settings": {
@@ -121,7 +121,7 @@
     "privacy": "Privacy policy"
   },
   "paywall": {
-    "headline": "More than 3 items",
+    "headline": "More than {n} items",
     "unlimited": "Unlimited items",
     "unlimitedSub": "Free plan: {n}",
     "widgets": "Home screen widgets",
@@ -196,5 +196,10 @@
     "sheets": "Wash sheets",
     "plant": "Water the plants",
     "hair": "Get a haircut"
+  },
+  "date": {
+    "weekAgo": "1 week ago",
+    "monthAgo": "1 month ago",
+    "unknown": "Not sure"
   }
 }
