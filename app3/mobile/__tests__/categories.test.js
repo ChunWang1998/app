@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import {
-  OTHER_ID, MAX_CATEGORIES, CATEGORIES_STATE_VERSION, seedCategories, seedKeywords, matchCategory, migrateCategories,
-  normalizeCategory, normalizeKeywords, categoryName, filterByCategory,
+  OTHER_ID, MAX_CATEGORIES, CATEGORIES_STATE_VERSION, DEFAULT_KEYWORDS, seedCategories, seedKeywords, matchCategory,
+  migrateCategories, normalizeCategory, normalizeKeywords, categoryName, filterByCategory, keywordsForLocale,
 } from '../src/lib/categories';
 import * as repo from '../src/data/repository';
 import { STATE_KEY } from '../src/data/storage';
@@ -22,16 +22,25 @@ const row = (id, title, extra = {}) => ({
 });
 
 describe('default categories', () => {
-  it('seeds 7 defaults with keywords from iconKeywords', () => {
+  it('seeds 7 defaults from explicit per-locale lists, not from icons', () => {
     const cats = seedCategories();
     expect(cats.map((c) => c.id)).toEqual(['clean', 'care', 'pet', 'plant', 'car', 'health', 'appl']);
+    const src = read('../src/lib/categories.js');
+    expect(src).not.toMatch(/ICON_TO_CATEGORY|iconKeywords/);
     const kw = seedKeywords();
     expect(kw.pet).toContain('貓砂');
     expect(kw.plant).toContain('澆花');
     expect(kw.care).toContain('牙刷');
     expect(kw.clean).not.toContain('牙刷');
+    expect(kw.clean).toContain('倒垃圾');
+    expect(kw.appl).not.toContain('倒垃圾');
     expect(kw.appl).toContain('濾水器');
     expect(cats.find((c) => c.id === 'appl').icon).toBe('plug');
+    for (const id of cats.map((c) => c.id)) {
+      for (const loc of ['en', 'zh-Hant', 'ja']) {
+        expect(DEFAULT_KEYWORDS[id][loc].length).toBeGreaterThan(0);
+      }
+    }
   });
   it('names follow the system language until renamed', () => {
     const t = (k) => k.split('.').reduce((o, p) => o?.[p], zh);
@@ -39,6 +48,18 @@ describe('default categories', () => {
     expect(categoryName(pet, t)).toBe(zh.category.defaults.pet);
     expect(categoryName({ ...pet, name: 'Cats' }, t)).toBe('Cats');
     expect(categoryName({ id: OTHER_ID }, t)).toBe(zh.category.other);
+  });
+  it('does not put the same keyword in two defaults', () => {
+    const seen = new Map();
+    for (const [id, table] of Object.entries(DEFAULT_KEYWORDS)) {
+      for (const loc of Object.keys(table)) {
+        for (const k of table[loc]) {
+          const fold = k.toLowerCase();
+          expect(seen.has(fold) ? seen.get(fold) : id).toBe(id);
+          seen.set(fold, id);
+        }
+      }
+    }
   });
 });
 
@@ -63,6 +84,17 @@ describe('matching', () => {
   });
   it('normalizes keywords (trim, dedupe case-insensitively)', () => {
     expect(normalizeKeywords([' Cat ', 'cat', '', '貓'])).toEqual(['Cat', '貓']);
+  });
+  it('classifies representative titles from the explicit defaults', () => {
+    const cats = seedCategories();
+    expect(matchCategory('倒垃圾', cats)).toBe('clean');
+    expect(matchCategory('take out trash', cats)).toBe('clean');
+    expect(matchCategory('ゴミ出し', cats)).toBe('clean');
+    expect(matchCategory('toothbrush', cats)).toBe('care');
+    expect(matchCategory('litter box', cats)).toBe('pet');
+    expect(matchCategory('watering plants', cats)).toBe('plant');
+    expect(matchCategory('filter', cats)).toBe('appl');
+    expect(matchCategory('cabin filter', cats)).toBe('car');
   });
 });
 
@@ -94,6 +126,16 @@ describe('migration', () => {
     expect(saved.activities[0].categoryId).toBe('pet');
     for (const a of saved.activities) expect(() => activitySchema.parse(a)).not.toThrow();
     for (const c of saved.categories) expect(() => categorySchema.parse(c)).not.toThrow();
+  });
+  it('does not rewrite stored v2 keywords or reclassify valid ids', () => {
+    const cats = [{ id: 'appl', key: 'appl', name: null, icon: 'plug', keywords: ['倒垃圾', '濾水器'] }];
+    const out = migrateCategories({
+      version: 2,
+      categories: cats,
+      activities: [row('1', '倒垃圾', { categoryId: 'appl' })],
+    });
+    expect(out.categories[0].keywords).toEqual(['倒垃圾', '濾水器']);
+    expect(out.activities[0].categoryId).toBe('appl');
   });
   it('filters invalid categories out of storage', async () => {
     expect(normalizeCategory(null)).toBeNull();
@@ -194,6 +236,41 @@ describe('repository categories (free)', () => {
     expect(src).toMatch(/category\.limit/);
     expect(src).toMatch(/category\.duplicate/);
   });
+  it('edit screen uses a dashed add-keyword chip that becomes an input', () => {
+    const src = read('../src/screens/CategoryEditScreen.js');
+    expect(src).toMatch(/keywordsForLocale/);
+    expect(src).toMatch(/category\.addKeyword/);
+    expect(src).toMatch(/testID="cat-kw-add"/);
+    expect(src).toMatch(/borderStyle: 'dashed'/);
+    expect(src).not.toMatch(/placeholder="\+"/);
+  });
+});
+
+describe('keyword locale filter', () => {
+  it('shows only the current language on built-ins; matching still uses every language', () => {
+    const cats = seedCategories();
+    const clean = cats.find((c) => c.id === 'clean');
+    expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'en' })).toEqual(
+      expect.arrayContaining(['take out trash', 'trash']),
+    );
+    expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'en' })).not.toContain('倒垃圾');
+    expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'en' })).not.toContain('ゴミ出し');
+    expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'zh-Hant' })).toEqual(
+      expect.arrayContaining(['倒垃圾', '垃圾']),
+    );
+    expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'zh-Hant' })).not.toContain('take out trash');
+    expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'ja' })).toContain('ゴミ出し');
+    expect(matchCategory('倒垃圾', cats)).toBe('clean');
+    expect(matchCategory('take out trash', cats)).toBe('clean');
+    expect(matchCategory('ゴミ出し', cats)).toBe('clean');
+  });
+  it('keeps user-added chips and shows every keyword on custom categories', () => {
+    const seeded = seedKeywords().clean;
+    const withExtra = [...seeded, 'custom'];
+    expect(keywordsForLocale(withExtra, { key: 'clean', locale: 'en' })).toContain('custom');
+    expect(keywordsForLocale(['foo', '倒垃圾'], {})).toEqual(['foo', '倒垃圾']);
+    expect(keywordsForLocale(['foo', '倒垃圾'], { key: 'mine', locale: 'en' })).toEqual(['foo', '倒垃圾']);
+  });
 });
 
 describe('home', () => {
@@ -228,9 +305,12 @@ describe('icons and widgets', () => {
 describe('strings', () => {
   it('category keys exist in en / zh-Hant / ja', () => {
     for (const l of [en, zh, ja]) {
-      for (const k of ['title', 'all', 'other', 'newCategory', 'name', 'keywords', 'deleteMoved', 'limit', 'duplicate', 'auto']) expect(l.category[k]).toBeTruthy();
+      for (const k of ['title', 'all', 'other', 'newCategory', 'name', 'keywords', 'addKeyword', 'deleteMoved', 'limit', 'duplicate', 'auto']) expect(l.category[k]).toBeTruthy();
       for (const k of ['clean', 'care', 'pet', 'plant', 'car', 'health', 'appl']) expect(l.category.defaults[k]).toBeTruthy();
     }
+    expect(en.category.addKeyword).toBe('+ Keyword');
+    expect(zh.category.addKeyword).toBe('＋ 關鍵字');
+    expect(ja.category.addKeyword).toBe('＋ キーワード');
   });
   it('zh-Hant uses natural category wording', () => {
     expect(zh.category.title).toBe('類型');

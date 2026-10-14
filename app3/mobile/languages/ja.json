@@ -212,6 +212,7 @@
     "newCategory": "新しいカテゴリ",
     "name": "名前",
     "keywords": "キーワード",
+    "addKeyword": "＋ キーワード",
     "deleteMoved": "{n}件はその他へ",
     "limit": "{n}件まで",
     "duplicate": "使われている",

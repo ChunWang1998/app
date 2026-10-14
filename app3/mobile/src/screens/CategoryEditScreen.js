@@ -6,8 +6,8 @@ import { useActivities, addCategory, updateCategory, deleteCategory, MAX_CATEGOR
 import { useThemeColors, useItemTone } from '../theme/useTheme';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { suggestIcon } from '../lib/suggestIcon';
-import { categoryName, normalizeKeywords } from '../lib/categories';
-import { t } from '../i18n';
+import { categoryName, keywordsForLocale, normalizeKeywords } from '../lib/categories';
+import { getLocale, t } from '../i18n';
 
 export const CATEGORY_ICONS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'plug', 'mono'];
 
@@ -24,7 +24,9 @@ export default function CategoryEditScreen() {
   const [iconManual, setIconManual] = useState(!isNew);
   const [keywords, setKeywords] = useState(current?.keywords || []);
   const [draft, setDraft] = useState('');
+  const [adding, setAdding] = useState(false);
   const tone = useItemTone(icon, name);
+  const visible = keywordsForLocale(keywords, { key: current?.key, locale: getLocale() });
 
   function onName(text) {
     setName(text);
@@ -35,6 +37,11 @@ export default function CategoryEditScreen() {
     const k = draft.trim();
     if (k) setKeywords((list) => normalizeKeywords([...list, k]));
     setDraft('');
+  }
+
+  function finishAdding() {
+    commitDraft();
+    setAdding(false);
   }
 
   async function save() {
@@ -111,7 +118,7 @@ export default function CategoryEditScreen() {
         <Text style={[styles.lab, { color: c.l2 }]}>{t('category.keywords')}</Text>
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 8 }]}>
           <View style={styles.kws}>
-            {keywords.map((k) => (
+            {visible.map((k) => (
               <TouchableOpacity
                 key={k}
                 onPress={() => setKeywords((list) => list.filter((x) => x !== k))}
@@ -122,18 +129,29 @@ export default function CategoryEditScreen() {
                 <Text style={{ color: tone.acf, fontSize: 13 }}>{'\u00d7'}</Text>
               </TouchableOpacity>
             ))}
-            <TextInput
-              value={draft}
-              onChangeText={setDraft}
-              onSubmitEditing={commitDraft}
-              blurOnSubmit={false}
-              returnKeyType="done"
-              placeholder="+"
-              placeholderTextColor={c.l3}
-              maxLength={40}
-              testID="cat-kw-input"
-              style={[styles.kwInput, { color: c.label, backgroundColor: c.fill }, Platform.OS === 'web' ? { outlineStyle: 'none' } : null]}
-            />
+            {adding ? (
+              <TextInput
+                value={draft}
+                onChangeText={setDraft}
+                onSubmitEditing={commitDraft}
+                onBlur={finishAdding}
+                autoFocus
+                blurOnSubmit={false}
+                returnKeyType="done"
+                maxLength={40}
+                testID="cat-kw-input"
+                style={[styles.kwInput, { color: c.label, backgroundColor: c.fill, borderColor: c.l3 }, Platform.OS === 'web' ? { outlineStyle: 'none' } : null]}
+              />
+            ) : (
+              <TouchableOpacity
+                onPress={() => setAdding(true)}
+                testID="cat-kw-add"
+                accessibilityLabel={t('category.addKeyword')}
+                style={[styles.kwAdd, { borderColor: c.l3 }]}
+              >
+                <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', fontSize: 15 }}>{t('category.addKeyword')}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -174,5 +192,6 @@ const styles = StyleSheet.create({
   lab: { fontSize: 14, fontFamily: 'BeenAgesRounded-Regular', paddingHorizontal: 32, paddingTop: 24 },
   kws: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12 },
   kw: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 11, borderRadius: 14 },
-  kwInput: { minWidth: 72, paddingVertical: 6, paddingHorizontal: 11, borderRadius: 14, fontSize: 15, fontFamily: 'BeenAgesRounded-Regular' },
+  kwAdd: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 11, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed' },
+  kwInput: { minWidth: 72, paddingVertical: 6, paddingHorizontal: 11, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', fontSize: 15, fontFamily: 'BeenAgesRounded-Regular' },
 });

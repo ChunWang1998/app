@@ -209,6 +209,7 @@
     "newCategory": "新類型",
     "name": "名稱",
     "keywords": "關鍵字",
+    "addKeyword": "＋ 關鍵字",
     "deleteMoved": "{n} 件到其他",
     "limit": "最多 {n} 個",
     "duplicate": "名稱已有",
