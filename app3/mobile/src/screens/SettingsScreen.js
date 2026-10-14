@@ -5,8 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, useTheme } from '../theme/useTheme';
 import { restoreProUnlock } from '../lib/iap';
 import { isProUnlocked } from '../lib/entitlements';
-import { exportToJson, exportToCsv, importFromJson, getRecentlyDeleted, subscribe } from '../data/repository';
-import { ChevronLeftIcon, ChevronRightIcon, CheckIcon, RestoreIcon, MailIcon, LockIcon, PaintIcon, ClockIcon } from '../components/Icons';
+import { exportToJson, exportToCsv, importFromJson, getRecentlyDeleted, subscribe, refreshReminders } from '../data/repository';
+import { ChevronLeftIcon, ChevronRightIcon, CheckIcon, RestoreIcon, MailIcon, LockIcon, PaintIcon, ClockIcon, BellIcon } from '../components/Icons';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
@@ -26,7 +26,11 @@ export default function SettingsScreen() {
   const c = useThemeColors();
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
-  const { appearance, setAppearance, preciseTime, setPreciseTime, reminderTime, setReminderTime } = useTheme();
+  const {
+    appearance, setAppearance, preciseTime, setPreciseTime,
+    reminderTime, setReminderTime,
+    showNameInNotifications, setShowNameInNotifications,
+  } = useTheme();
   const [pro, setPro] = React.useState(false);
   const [trash, setTrash] = React.useState(() => getRecentlyDeleted().length);
   React.useEffect(() => { isProUnlocked().then(setPro); }, []);
@@ -190,6 +194,21 @@ export default function SettingsScreen() {
             value={reminderTime}
             onPress={cycleTime}
             chev
+            c={c}
+          />
+          <Row
+            icon={<Sq bg="#FF9F0A"><BellIcon color="#fff" size={15} /></Sq>}
+            title="通知含名稱"
+            right={(
+              <Switch
+                value={showNameInNotifications}
+                onValueChange={async (v) => {
+                  await setShowNameInNotifications(v);
+                  await refreshReminders();
+                }}
+                trackColor={{ false: c.fill, true: c.brand }}
+              />
+            )}
             c={c}
             last
           />

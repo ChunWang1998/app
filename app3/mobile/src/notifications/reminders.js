@@ -1,7 +1,10 @@
 import * as Notifications from 'expo-notifications';
+import { getPrefs } from '../data/prefs';
 
 const MAX_IOS_PENDING = 64;
 const CHANNEL_ID = 'default';
+
+export const GENERIC_NOTIFICATION_TITLE = '好久沒了';
 
 function parseHm(time) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(time || '09:00'));
@@ -11,7 +14,8 @@ function parseHm(time) {
 
 /**
  * Next fire time: lastDone (or created) + reminderDays, at reminderTime.
- * Overdue + snooze → now + snoozeDays (default 3). Overdue without snooze → +1 minute.
+ * Overdue + snooze → now + snoozeDays (default 3).
+ * Overdue without snooze → next day's reminderTime (never now+1min).
  */
 export function nextTriggerDate(activity, now = Date.now()) {
   if (!activity || !activity.reminderDays || activity.deletedAt) return null;
@@ -25,14 +29,24 @@ export function nextTriggerDate(activity, now = Date.now()) {
     const days = Number.isFinite(activity.snoozeDays) ? activity.snoozeDays : 3;
     return new Date(now + days * 864e5);
   }
-  return new Date(now + 60 * 1000);
+  const next = new Date(now);
+  next.setDate(next.getDate() + 1);
+  next.setHours(h, min, 0, 0);
+  if (next.getTime() <= now) {
+    next.setDate(next.getDate() + 1);
+  }
+  return next;
 }
 
-export async function ensureNotificationPermissions() {
-  const cur = await Notifications.getPermissionsAsync();
-  if (!cur.granted) {
-    await Notifications.requestPermissionsAsync();
+export function notificationTitle(activity) {
+  const prefs = getPrefs();
+  if (prefs.showNameInNotifications === true && activity?.title) {
+    return activity.title;
   }
+  return GENERIC_NOTIFICATION_TITLE;
+}
+
+async function ensureChannel() {
   try {
     await Notifications.setNotificationChannelAsync?.(CHANNEL_ID, {
       name: 'Reminders',
@@ -43,9 +57,30 @@ export async function ensureNotificationPermissions() {
   }
 }
 
+/** Read current permission. Does not prompt. */
+export async function getNotificationPermissions() {
+  const cur = await Notifications.getPermissionsAsync();
+  if (cur.granted) await ensureChannel();
+  return !!cur.granted;
+}
+
+/** Prompt only when the user turns a reminder on. */
+export async function requestNotificationPermissions() {
+  const cur = await Notifications.getPermissionsAsync();
+  if (cur.granted) {
+    await ensureChannel();
+    return true;
+  }
+  const next = await Notifications.requestPermissionsAsync();
+  if (next.granted) await ensureChannel();
+  return !!next.granted;
+}
+
 export async function enforceReminderBudget(activities) {
-  await ensureNotificationPermissions();
+  const granted = await getNotificationPermissions();
   await Notifications.cancelAllScheduledNotificationsAsync();
+  if (!granted) return;
+
   const candidates = (activities || [])
     .filter((a) => !a.deletedAt && a.reminderDays)
     .map((a) => ({ a, when: nextTriggerDate(a) }))
@@ -56,7 +91,7 @@ export async function enforceReminderBudget(activities) {
   for (const { a, when } of keep) {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: a.title,
+        title: notificationTitle(a),
         body: '該做這件事了',
         sound: true,
       },

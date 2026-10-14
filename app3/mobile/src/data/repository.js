@@ -64,16 +64,20 @@ export function useActivities() {
   return { activities: snap.activities.filter(a => !a.deletedAt), ready: initialized, raw: snap.activities };
 }
 
-async function persist(nextState) {
-  state = { ...nextState, activities: nextState.activities || [] };
-  await saveState(state, storage);
-  notify();
+export async function refreshReminders() {
   try {
     const { enforceReminderBudget } = require('../notifications/reminders');
     await enforceReminderBudget(state.activities);
   } catch {
     // web / tests / missing permission — never block a save
   }
+}
+
+async function persist(nextState) {
+  state = { ...nextState, activities: nextState.activities || [] };
+  await saveState(state, storage);
+  notify();
+  await refreshReminders();
 }
 
 export async function addActivity(input) {
