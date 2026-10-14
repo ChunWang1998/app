@@ -14,7 +14,7 @@ export function isoYearInRange(iso) {
 const isoDate = z.string().datetime().refine(isoYearInRange, { message: 'year must be 2000–2100' });
 const isoDateOrNull = isoDate.nullable();
 
-const iconSchema = z.enum(['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'mono']);
+const iconSchema = z.enum(['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'plug', 'dots', 'mono']);
 
 const historyEntrySchema = z.object({
   at: isoDate,
@@ -37,5 +37,6 @@ export const activitySchema = z.object({
   createdAt: isoDate,
   updatedAt: isoDate,
   deletedAt: isoDateOrNull,
+  categoryId: z.string().min(1).max(64).optional(),
 }).strict();
 

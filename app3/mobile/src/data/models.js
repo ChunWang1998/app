@@ -2,7 +2,7 @@ import { isoYearInRange } from './schema';
 import { sanitizeSnoozeDays } from './snooze';
 
 export const ICON_DEFAULT = 'brush';
-export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'mono'];
+export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'plug', 'dots', 'mono'];
 
 export function nowIso() {
   return new Date().toISOString();
@@ -70,6 +70,7 @@ export function createActivity(input) {
     createdAt: ts,
     updatedAt: ts,
     deletedAt: null,
+    ...(input.categoryId ? { categoryId: String(input.categoryId) } : {}),
   };
 }
 
@@ -91,5 +92,6 @@ export function migrateActivity(raw) {
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
     deletedAt: raw.deletedAt ?? null,
+    ...(typeof raw.categoryId === 'string' && raw.categoryId ? { categoryId: raw.categoryId } : {}),
   };
 }

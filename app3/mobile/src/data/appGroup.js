@@ -240,6 +240,8 @@ export function sfSymbolForIcon(icon) {
     case 'drop': return 'drop';
     case 'eye': return 'eye';
     case 'paw': return 'pawprint';
+    case 'plug': return 'powerplug';
+    case 'dots': return 'ellipsis';
     case 'pill': return 'pills';
     case 'bed': return 'bed.double';
     case 'leaf': return 'leaf';
