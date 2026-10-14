@@ -45,6 +45,8 @@ export async function ensureWidgetAssets() {
   if (!dir) return null;
   const iconUris = {};
   for (const kind of ICON_KINDS) {
+    // No bundled PNG (e.g. paw, mono): the widget falls back to the SF Symbol.
+    if (!FILES[kind]) continue;
     const uri = await copyAsset(dir, `icon-${kind}.png`, FILES[kind]);
     if (uri) iconUris[kind] = uri;
   }

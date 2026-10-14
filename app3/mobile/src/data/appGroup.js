@@ -239,6 +239,7 @@ export function sfSymbolForIcon(icon) {
   switch (icon) {
     case 'drop': return 'drop';
     case 'eye': return 'eye';
+    case 'paw': return 'pawprint';
     case 'pill': return 'pills';
     case 'bed': return 'bed.double';
     case 'leaf': return 'leaf';

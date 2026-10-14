@@ -11,9 +11,9 @@ describe('suggestIcon', () => {
     expect(suggestIcon('water filter')).toBe('drop');
     expect(suggestIcon('濾水器')).toBe('drop');
     expect(suggestIcon('浄水器')).toBe('drop');
-    expect(suggestIcon('cat litter')).toBe('leaf');
-    expect(suggestIcon('貓砂')).toBe('leaf');
-    expect(suggestIcon('猫砂')).toBe('leaf');
+    expect(suggestIcon('cat litter')).toBe('paw');
+    expect(suggestIcon('貓砂')).toBe('paw');
+    expect(suggestIcon('猫砂')).toBe('paw');
     expect(suggestIcon('contact lenses')).toBe('eye');
     expect(suggestIcon('隱形眼鏡')).toBe('eye');
     expect(suggestIcon('コンタクト')).toBe('eye');
@@ -25,7 +25,7 @@ describe('suggestIcon', () => {
   it('covers 60+ household / health / pet / car items and only built-in icons', () => {
     expect(itemCount()).toBeGreaterThanOrEqual(60);
     expect(keywordCount()).toBeGreaterThanOrEqual(150);
-    expect(SUGGEST_ICONS).toEqual(['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye']);
+    expect(SUGGEST_ICONS).toEqual(['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw']);
   });
 
   it('falls back to a monogram when nothing matches', () => {
