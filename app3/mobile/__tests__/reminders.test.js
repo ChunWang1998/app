@@ -30,16 +30,31 @@ describe('nextTriggerDate', () => {
     expect(when.getMinutes()).toBe(0);
   });
 
-  it('snoozes overdue items by snoozeDays', () => {
+  it('snoozes overdue items from due + snoozeDays, stable across later writes', () => {
     const last = new Date(now - 20 * 864e5).toISOString();
-    const when = nextTriggerDate({
+    const activity = {
       reminderDays: 7,
       reminderTime: '09:00',
       lastDoneAt: last,
       snoozeEnabled: true,
       snoozeDays: 3,
-    }, now);
-    expect(when.getTime()).toBe(now + 3 * 864e5);
+    };
+    const when = nextTriggerDate(activity, now);
+    const laterWrite = nextTriggerDate(activity, now + 90 * 60 * 1000);
+    expect(when.getTime()).toBe(laterWrite.getTime());
+    expect(when.getTime()).toBeGreaterThan(now);
+    expect(when.getTime()).not.toBe(now + 3 * 864e5);
+    expect(when.getHours()).toBe(9);
+    expect(when.getMinutes()).toBe(0);
+
+    const due = new Date(new Date(last).getTime() + 7 * 864e5);
+    due.setHours(9, 0, 0, 0);
+    const expected = new Date(due);
+    expected.setDate(expected.getDate() + 3);
+    while (expected.getTime() <= now) {
+      expected.setDate(expected.getDate() + 3);
+    }
+    expect(when.getTime()).toBe(expected.getTime());
   });
 
   it('schedules overdue items with snooze off for the next day reminderTime', () => {

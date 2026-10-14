@@ -14,7 +14,9 @@ function parseHm(time) {
 
 /**
  * Next fire time: lastDone (or created) + reminderDays, at reminderTime.
- * Overdue + snooze → now + snoozeDays (default 3).
+ * Overdue + snooze → due + k * snoozeDays (default 3) until after now.
+ *   Anchored on due, not on the current write, so opening the app does not
+ *   keep pushing the reminder out.
  * Overdue without snooze → next day's reminderTime (never now+1min).
  */
 export function nextTriggerDate(activity, now = Date.now()) {
@@ -26,8 +28,15 @@ export function nextTriggerDate(activity, now = Date.now()) {
   due.setHours(h, min, 0, 0);
   if (due.getTime() > now) return due;
   if (activity.snoozeEnabled !== false) {
-    const days = Number.isFinite(activity.snoozeDays) ? activity.snoozeDays : 3;
-    return new Date(now + days * 864e5);
+    const days = Number.isFinite(activity.snoozeDays) && activity.snoozeDays > 0
+      ? activity.snoozeDays
+      : 3;
+    const when = new Date(due);
+    when.setDate(when.getDate() + days);
+    while (when.getTime() <= now) {
+      when.setDate(when.getDate() + days);
+    }
+    return when;
   }
   const next = new Date(now);
   next.setDate(next.getDate() + 1);
