@@ -19,13 +19,14 @@ function startOfDay(now) {
 }
 
 /**
- * 'overdue' only once at least a full day late; anything else due by tonight is 'today'.
- * `due` is ms until due (negative = late), as from dueInMs.
+ * Local calendar days: due before today's 00:00 is 'overdue', due any time today is 'today'.
+ * `due` is ms until due (negative = late), as from dueInMs. DST-safe (uses local midnights).
  */
 export function dueStatus(due, now = Date.now()) {
   if (!Number.isFinite(due)) return 'none';
-  if (due <= -DAY) return 'overdue';
-  if (now + due <= endOfDay(now)) return 'today';
+  const at = now + due;
+  if (at < startOfDay(now)) return 'overdue';
+  if (at <= endOfDay(now)) return 'today';
   return 'upcoming';
 }
 
