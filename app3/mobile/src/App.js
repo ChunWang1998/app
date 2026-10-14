@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { getLocale, initializeI18n, t } from './i18n';
+import { getLocale, initializeI18n, setLocale, t } from './i18n';
 import { initRepository, resetRepositoryForTests, addActivity, updateActivity, logActivityNow } from './data/repository';
 import { initPrefs, updatePrefs } from './data/prefs';
 import AppNavigator from './navigation/AppNavigator';
@@ -26,6 +26,12 @@ export default function App() {
     (async () => {
       try {
         initializeI18n();
+        try {
+          if (typeof window !== 'undefined') {
+            const lang = new URL(window.location.href).searchParams.get('lang');
+            if (lang) setLocale(lang);
+          }
+        } catch {}
         try {
           await Font.loadAsync({
             'NaikaiSubset-Regular': require('../assets/fonts/naikai/NaikaiSubset-Regular.ttf'),

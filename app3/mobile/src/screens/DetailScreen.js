@@ -7,7 +7,7 @@ import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
 import { ChevronLeftIcon, CheckIcon, BellIcon, PlusIcon, ChevronRightIcon, ShareIcon, CalendarIcon } from '../components/Icons';
 import { addNextDueToCalendar, openSystemSettings } from '../lib/calendar';
-import { formatDate, formatTime, formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts } from '../lib/time';
+import { formatDate, formatTime, formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneLine } from '../lib/time';
 import { historyStats } from '../lib/historyStats';
 import * as Haptics from 'expo-haptics';
 import { getLocale, t } from '../i18n';
@@ -40,14 +40,14 @@ export default function DetailScreen() {
     );
   }
 
-  const tone = useItemTone(item.icon);
+  const tone = useItemTone(item.icon, item.title);
   const due = dueInMs(item);
   const od = due < 0;
   const elapsed = elapsedMs(item);
   const just = elapsed != null && elapsed < 60e3;
   const hasReminder = !!item.reminderDays;
   const lastWhen = item.lastDoneAt
-        ? `${formatDate(item.lastDoneAt)}${preciseTime ? ` ${formatTime(item.lastDoneAt)}` : ''}`
+    ? `${formatLastDoneLine(item.lastDoneAt, Date.now(), getLocale())}${preciseTime ? ` ${formatTime(item.lastDoneAt)}` : ''}`
     : '';
   const parts = elapsed == null ? null : formatSpanParts(elapsed, preciseTime ? 2 : 1);
   const mood = just ? 'happy' : od ? 'worry' : 'idle';

@@ -1,4 +1,4 @@
-import { formatSpan, formatSpanParts, dueInMs, elapsedMs, progressRatio } from '../src/lib/time';
+import { formatSpan, formatSpanParts, dueInMs, elapsedMs, progressRatio, formatLastDoneDate, formatLastDoneRelative, formatLastDoneLine } from '../src/lib/time';
 import { setLocale } from '../src/i18n';
 
 describe('time helpers', () => {
@@ -25,5 +25,21 @@ describe('time helpers', () => {
     const item = { lastDoneAt: new Date().toISOString(), reminderDays: null };
     expect(dueInMs(item)).toBe(Infinity);
     expect(progressRatio(item)).toBe(0);
+  });
+});
+
+describe('last-done copy', () => {
+  it('uses relative + dated wording in en / zh-Hant / ja', () => {
+    const ts = new Date(2026, 9, 11, 12, 0, 0).toISOString();
+    const now = new Date(2026, 9, 14, 12, 0, 0).getTime();
+    expect(formatLastDoneRelative(ts, now, 'en')).toBe('3 days ago');
+    expect(formatLastDoneRelative(ts, now, 'zh-Hant')).toBe('3 天前');
+    expect(formatLastDoneRelative(ts, now, 'ja')).toBe('3日前');
+    expect(formatLastDoneDate(ts, 'en')).toBe('Oct 11');
+    expect(formatLastDoneDate(ts, 'zh-Hant')).toBe('10/11');
+    expect(formatLastDoneDate(ts, 'ja')).toBe('10/11');
+    expect(formatLastDoneLine(ts, now, 'en')).toBe('3 days ago · Last done Oct 11');
+    expect(formatLastDoneLine(ts, now, 'zh-Hant')).toBe('3 天前 · 上次做是 10/11');
+    expect(formatLastDoneLine(ts, now, 'ja')).toBe('3日前 · 前回 10/11');
   });
 });

@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useActivities } from '../data/repository';
@@ -11,7 +11,6 @@ import ShareCardView from '../share/ShareCardView';
 import { SHARE_SIZES, SHARE_STYLES, canUseStyle, styleById } from '../share/config';
 import { captureCard } from '../share/capture';
 import { shareCardImage } from '../share/shareSheet';
-import { getPrefs, updatePrefs } from '../data/prefs';
 import { getLocale, t } from '../i18n';
 
 const PREVIEW_W = 220;
@@ -24,7 +23,6 @@ export default function ShareCardScreen() {
   const { activities } = useActivities();
   const item = useMemo(() => activities.find((a) => a.id === params?.id), [activities, params]);
   const cardRef = useRef(null);
-  const [hideName, setHideName] = useState(() => !!getPrefs().hideName);
   const [styleId, setStyleId] = useState('cream');
   const [sizeKey, setSizeKey] = useState('story');
   const [pro, setPro] = useState(false);
@@ -94,27 +92,13 @@ export default function ShareCardScreen() {
             <ShareCardView
               style={theme}
               title={item.title}
-              hideName={hideName}
               daysNum={part?.n ?? null}
               daysUnit={part?.unit || t('time.day')}
               icon={item.icon}
+              letter={item.title}
               width={size.width}
               height={size.height}
               locale={getLocale()}
-            />
-          </View>
-        </View>
-
-        <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 22 }]}>
-          <View style={styles.row}>
-            <Text style={[styles.rowTitle, { color: c.label }]}>{t('share.hideName')}</Text>
-            <Switch
-              value={hideName}
-              onValueChange={(v) => {
-                setHideName(v);
-                updatePrefs({ hideName: v }).catch(() => {});
-              }}
-              trackColor={{ false: c.fill, true: c.brand }}
             />
           </View>
         </View>

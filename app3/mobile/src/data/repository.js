@@ -1,8 +1,6 @@
 import React from 'react';
 import { createActivity, nowIso, migrateActivity, normalizeHistory, lastDoneFromHistory } from './models';
 import { KeyValueStorage, loadState, saveState } from './storage';
-import { validateExport } from './schema';
-import { csvEscape } from './csv';
 import { isProUnlocked } from '../lib/entitlements';
 
 const storage = new KeyValueStorage();
@@ -183,52 +181,3 @@ export async function undoDelete(id) {
   await persist({ ...state, activities: next });
 }
 
-export async function exportToCsv() {
-  const rows = state.activities.filter((a) => !a.deletedAt);
-  const header = ['id', 'title', 'icon', 'lastDoneAt', 'reminderDays', 'notes', 'history'];
-  const lines = [header.join(',')];
-  for (const a of rows) {
-    lines.push([
-      a.id,
-      a.title,
-      a.icon || '',
-      a.lastDoneAt || '',
-      a.reminderDays ?? '',
-      a.notes || '',
-      (a.history || []).map((e) => e.at).join('|'),
-    ].map(csvEscape).join(','));
-  }
-  return lines.join('\n');
-}
-
-export async function exportToJson() {
-  const blob = {
-    schema: 'been-ages/export',
-    version: 1,
-    exportedAt: nowIso(),
-    activities: state.activities.filter((a) => !a.deletedAt).map(migrateActivity),
-  };
-  return validateExport(blob);
-}
-
-export async function importFromJson(data) {
-  const valid = validateExport(data);
-  const map = new Map();
-  for (const a of valid.activities) {
-    const existing = map.get(a.id);
-    if (!existing || new Date(a.updatedAt) > new Date(existing.updatedAt)) {
-      map.set(a.id, migrateActivity(a));
-    }
-  }
-  let nextActivities = Array.from(map.values()).filter((a) => !a.deletedAt);
-  let truncated = false;
-  const pro = await isProUnlocked();
-  if (!pro) {
-    if (nextActivities.length > FREE_ACTIVITY_LIMIT) {
-      truncated = true;
-      nextActivities = nextActivities.slice(0, FREE_ACTIVITY_LIMIT);
-    }
-  }
-  await persist({ ...state, activities: nextActivities });
-  return { truncated };
-}

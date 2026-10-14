@@ -1,6 +1,7 @@
 import { dueInMs, elapsedMs, formatSpanParts } from '../lib/time';
 import { sfSymbolForIcon } from '../data/appGroup';
 import { tLocale } from '../i18n';
+import { monogramLetter } from '../lib/suggestIcon';
 
 const LOCK_FAMILIES = new Set(['accessoryCircular', 'accessoryRectangular', 'accessoryInline']);
 
@@ -80,8 +81,9 @@ export function toWidgetItem(activity, { now = Date.now(), iconUris = {}, locale
     daysNum: days.daysNum,
     daysUnit: days.daysUnit,
     daysText: days.daysText,
-    iconUri: iconUris[activity.icon || 'brush'] || null,
+    iconUri: activity.icon === 'mono' ? null : (iconUris[activity.icon || 'brush'] || null),
     sfSymbol: sfSymbolForIcon(activity.icon || 'brush'),
+    monoLetter: activity.icon === 'mono' ? monogramLetter(activity.title) : '',
   };
 }
 
@@ -99,8 +101,6 @@ export function buildWidgetProps(snapshot, {
     logged: tLocale(locale, 'widget.logged'),
   };
   const selectedIds = snapshot?.selectedIds || { small: 'auto', medium: [] };
-  const hideLockNames = !!selectedIds.hideLockNames;
-  const hideHomeNames = !!selectedIds.hideHomeNames;
   if (!isPro) {
     return {
       isPro: false,
@@ -108,8 +108,6 @@ export function buildWidgetProps(snapshot, {
       items: [],
       selectedSmall: 'auto',
       selectedMedium: [],
-      hideLockNames,
-      hideHomeNames,
       pending: null,
       logoUri,
       upgradeLabel,
@@ -122,8 +120,6 @@ export function buildWidgetProps(snapshot, {
     items: (snapshot.activities || []).map((a) => toWidgetItem(a, { now, iconUris, locale })),
     selectedSmall: selectedIds.small || 'auto',
     selectedMedium: selectedIds.medium || [],
-    hideLockNames,
-    hideHomeNames,
     pending: null,
     logoUri,
     upgradeLabel,

@@ -54,3 +54,13 @@ export const itemPalette = {
   brush: { light: { ac: '#DCF0EE', acf: '#2F8476' }, dark: { ac: '#1E2F2C', acf: '#6EC3B0' } },
   car: { light: { ac: '#E9E4DA', acf: '#7A6A55' }, dark: { ac: '#2C2925', acf: '#C9B9A0' } },
 };
+
+const PALETTE_LIST = Object.values(itemPalette);
+
+export function paletteForItem(icon, title) {
+  if (icon && icon !== 'mono' && itemPalette[icon]) return itemPalette[icon];
+  const s = String(title || '');
+  let h = 0;
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return PALETTE_LIST[h % PALETTE_LIST.length] || itemPalette.brush;
+}

@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useActivities } from '../data/repository';
 import { useThemeColors } from '../theme/useTheme';
 import { ChevronLeftIcon, CheckIcon } from '../components/Icons';
 import { ItemGlyph } from '../components/ItemGlyph';
-import { itemPalette } from '../theme/colors';
+import { paletteForItem } from '../theme/colors';
+import { SettingsRow } from '../components/SettingsRow';
 import { loadWidgetSelection, saveWidgetSelection } from '../widgets/sync';
 import { t } from '../i18n';
 
@@ -15,12 +16,7 @@ export default function WidgetPickerScreen() {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
   const { activities } = useActivities();
-  const [sel, setSel] = React.useState({
-    small: 'auto',
-    medium: [],
-    hideLockNames: false,
-    hideHomeNames: false,
-  });
+  const [sel, setSel] = React.useState({ small: 'auto', medium: [] });
 
   React.useEffect(() => {
     loadWidgetSelection().then(setSel).catch(() => {});
@@ -56,94 +52,61 @@ export default function WidgetPickerScreen() {
         <Text style={[styles.hint, { color: c.l2 }]}>{t('widget.hint')}</Text>
         <Text style={[styles.sec, { color: c.l2 }]}>{t('widget.small')}</Text>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
-          <Row
+          <PickRow
             title={t('widget.mostDue')}
             on={sel.small === 'auto'}
             onPress={() => setSmall('auto')}
-            c={c}
+            last={!activities.length}
           />
           {activities.map((a, i) => (
-            <Row
+            <PickRow
               key={a.id}
               title={a.title}
               icon={a.icon}
               on={sel.small === a.id}
               onPress={() => setSmall(a.id)}
-              c={c}
               last={i === activities.length - 1}
             />
           ))}
         </View>
         <Text style={[styles.sec, { color: c.l2 }]}>{t('widget.medium')}</Text>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
-          <Row
+          <PickRow
             title={t('widget.mostDue')}
             on={!sel.medium?.length}
             onPress={() => saveWidgetSelection({ ...sel, medium: [] }).then(() => setSel({ ...sel, medium: [] }))}
-            c={c}
             last={!activities.length}
           />
           {activities.map((a, i) => (
-            <Row
+            <PickRow
               key={a.id}
               title={a.title}
               icon={a.icon}
               on={(sel.medium || []).includes(a.id)}
               onPress={() => toggleMedium(a.id)}
-              c={c}
               last={i === activities.length - 1}
             />
           ))}
-        </View>
-        <Text style={[styles.sec, { color: c.l2 }]}>{t('widget.home')}</Text>
-        <View style={[styles.grp, { backgroundColor: c.cell }]}>
-          <View style={styles.row}>
-            <Text style={[styles.rowTitle, { color: c.label }]}>{t('widget.hideName')}</Text>
-            <Switch
-              value={!!sel.hideHomeNames}
-              onValueChange={async (v) => {
-                const next = { ...sel, hideHomeNames: v };
-                setSel(next);
-                await saveWidgetSelection(next);
-              }}
-              trackColor={{ false: c.fill, true: c.brand }}
-              accessibilityLabel={t('widget.a11yHideHome')}
-            />
-          </View>
-        </View>
-        <Text style={[styles.sec, { color: c.l2 }]}>{t('widget.lock')}</Text>
-        <View style={[styles.grp, { backgroundColor: c.cell }]}>
-          <View style={styles.row}>
-            <Text style={[styles.rowTitle, { color: c.label }]}>{t('widget.hideName')}</Text>
-            <Switch
-              value={!!sel.hideLockNames}
-              onValueChange={async (v) => {
-                const next = { ...sel, hideLockNames: v };
-                setSel(next);
-                await saveWidgetSelection(next);
-              }}
-              trackColor={{ false: c.fill, true: c.brand }}
-              accessibilityLabel={t('widget.a11yHideLock')}
-            />
-          </View>
         </View>
       </ScrollView>
     </View>
   );
 }
 
-function Row({ title, icon, on, onPress, c, last }) {
-  const pal = itemPalette[icon || 'brush'] || itemPalette.brush;
+function PickRow({ title, icon, on, onPress, last }) {
+  const pal = paletteForItem(icon, title).light;
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.row, !last && styles.line]} activeOpacity={0.6}>
-      {icon ? (
-        <View style={[styles.gl, { backgroundColor: pal.light.ac }]}>
-          <ItemGlyph kind={icon} color={pal.light.acf} size={16} />
+    <SettingsRow
+      title={title}
+      onPress={onPress}
+      last={last}
+      icon={icon ? (
+        <View style={[styles.gl, { backgroundColor: pal.ac }]}>
+          <ItemGlyph kind={icon} color={pal.acf} size={16} letter={title} />
         </View>
       ) : null}
-      <Text style={[styles.rowTitle, { color: c.label }]}>{title}</Text>
-      {on ? <CheckIcon color={c.brand} size={16} /> : null}
-    </TouchableOpacity>
+      right={on ? <CheckIcon color={pal.acf} size={16} /> : null}
+    />
   );
 }
 
@@ -157,11 +120,8 @@ const styles = StyleSheet.create({
   },
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
-  hint: { marginHorizontal: 20, marginTop: 8, marginBottom: 16, fontSize: 13, fontFamily: 'NaikaiSubset-Regular', lineHeight: 20 },
+  hint: { marginHorizontal: 20, marginTop: 8, marginBottom: 12, fontSize: 13, fontFamily: 'NaikaiSubset-Regular' },
   sec: { marginHorizontal: 28, marginBottom: 8, marginTop: 8, fontSize: 13, fontFamily: 'NaikaiSubset-Regular' },
   grp: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden', marginBottom: 20 },
-  row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16, gap: 12 },
-  line: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(46,41,37,0.09)' },
-  rowTitle: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', flex: 1 },
   gl: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 });

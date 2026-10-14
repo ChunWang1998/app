@@ -11,10 +11,10 @@ import { tLocale } from '../i18n';
 export default function ShareCardView({
   style: theme,
   title,
-  hideName,
   daysNum,
   daysUnit,
   icon = 'brush',
+  letter = '',
   width,
   height,
   locale = 'zh',
@@ -44,9 +44,9 @@ export default function ShareCardView({
           justifyContent: 'center',
         }}
       >
-        <ItemGlyph kind={icon} color={theme.accent} size={glyph} strokeWidth={2.2} />
+        <ItemGlyph kind={icon} color={theme.accent} size={glyph} strokeWidth={2.2} letter={letter || title} />
       </View>
-      {!hideName && title ? (
+      {title ? (
         <Text
           numberOfLines={2}
           style={{
@@ -61,7 +61,7 @@ export default function ShareCardView({
       ) : null}
       <Text
         style={{
-          marginTop: hideName ? Math.round(height * 0.06) : Math.round(height * 0.03),
+          marginTop: Math.round(height * 0.03),
           fontFamily: 'NaikaiSubset-Regular',
           fontSize: Math.round(width * 0.048),
           color: theme.accent,

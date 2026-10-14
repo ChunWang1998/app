@@ -1,9 +1,29 @@
 import React from 'react';
+import { Text } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye'];
+export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'mono'];
 
-export function ItemGlyph({ kind = 'brush', color = '#3E9180', size = 20, strokeWidth = 1.7 }) {
+export function ItemGlyph({ kind = 'brush', color = '#3E9180', size = 20, strokeWidth = 1.7, letter = '' }) {
+  if (kind === 'mono') {
+    const ch = String(letter || '').trim().slice(0, 2);
+    const glyph = ch ? [...ch][0] : '·';
+    return (
+      <Text
+        style={{
+          fontSize: Math.round(size * 0.62),
+          lineHeight: size,
+          height: size,
+          width: size,
+          textAlign: 'center',
+          fontFamily: 'NaikaiSubset-Bold',
+          color,
+        }}
+      >
+        {glyph}
+      </Text>
+    );
+  }
   const common = { stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' };
   if (kind === 'drop') {
     return (

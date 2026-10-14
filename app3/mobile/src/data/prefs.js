@@ -8,7 +8,6 @@ const DEFAULTS = {
   preciseTime: true,
   sort: 'due', // due | last
   reminderTime: '09:00',
-  hideName: false, // share cards + calendar event titles
   showNameInNotifications: false,
 };
 

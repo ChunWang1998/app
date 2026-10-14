@@ -5,7 +5,7 @@
     "loading": "載入中…"
   },
   "labels": {
-    "lastDone": "上次",
+    "lastDone": "上次做是",
     "never": "從未",
     "deleted": "已刪除",
     "empty": "還沒有項目",
@@ -17,8 +17,6 @@
     "logNow": "現在記一次",
     "delete": "刪除",
     "undo": "復原",
-    "export": "匯出",
-    "exportedToConsole": "已在主控台列印匯出內容",
     "restore": "恢復購買"
   },
   "iap": {
@@ -98,7 +96,7 @@
     "edit": "編輯",
     "add": "加入",
     "placeholder": "要記的事",
-    "last": "上次",
+    "last": "上次做是",
     "reminder": "提醒",
     "reminderNew": "先加入項目，再到詳情設定提醒。",
     "notes": "備註"
@@ -110,10 +108,6 @@
     "redeem": "兌換代碼",
     "widgets": "小工具",
     "data": "資料",
-    "export": "匯出",
-    "import": "匯入",
-    "exportFormats": "JSON・CSV",
-    "importFormat": "JSON",
     "recentlyDeleted": "最近刪除",
     "display": "顯示",
     "appearance": "外觀",
@@ -123,22 +117,8 @@
     "preciseTime": "精確時間",
     "reminderTime": "提醒時間",
     "notifyWithName": "通知含名稱",
-    "hideName": "隱藏名稱",
     "rate": "給個評分",
-    "contact": "聯絡我們",
-    "support": "支援",
-    "privacy": "隱私權政策",
-    "exportPick": "選擇格式",
-    "exportDone": "匯出完成",
-    "exportCsv": "已產生 CSV",
-    "exportJson": "已產生 JSON",
-    "importFail": "匯入失敗",
-    "importNoFile": "找不到檔案",
-    "importBadJson": "不是合法的 JSON 檔",
-    "importConfirm": "將以檔案內容覆蓋目前資料，是否繼續？",
-    "importOk": "已匯入資料",
-    "importOkTruncated": "已匯入資料。免費版只保留 3 個項目。",
-    "importDone": "完成"
+    "privacy": "隱私權政策"
   },
   "paywall": {
     "headline": "不只記 3 件事",
@@ -158,19 +138,13 @@
     "empty": "還沒有項目",
     "logged": "已記錄",
     "title": "小工具",
-    "hint": "長按桌面或鎖定畫面小工具也可選項目。沒選時顯示最該做的。",
+    "hint": "沒選就顯示最該做的。",
     "small": "小尺寸",
     "medium": "中尺寸（最多 3 個）",
-    "mostDue": "最該做的",
-    "home": "桌面",
-    "lock": "鎖定畫面",
-    "hideName": "隱藏名稱",
-    "a11yHideHome": "桌面小工具隱藏名稱",
-    "a11yHideLock": "鎖定畫面隱藏名稱"
+    "mostDue": "最該做的"
   },
   "share": {
     "title": "分享卡片",
-    "hideName": "隱藏名稱",
     "styles": "樣式",
     "prefix": "好久沒了",
     "notYet": "還沒記錄",
@@ -182,7 +156,6 @@
   },
   "calendar": {
     "note": "從好久沒了加入",
-    "titleHidden": "好久沒了",
     "titleNamed": "{name}｜好久沒了",
     "itemFallback": "項目"
   },
@@ -196,7 +169,8 @@
     "minute": "分鐘",
     "hour": "小時",
     "day": "天",
-    "month": "個月"
+    "month": "個月",
+    "lastDoneLine": "{relative} · 上次做是 {date}"
   },
   "reminder": {
     "title": "提醒",
@@ -214,10 +188,6 @@
     "empty": "沒有項目",
     "restore": "還原",
     "purge": "30 天後永久刪除"
-  },
-  "import": {
-    "sizeUnknown": "無法確認檔案大小",
-    "tooLarge": "檔案太大"
   },
   "demo": {
     "filter": "換濾水器濾心",

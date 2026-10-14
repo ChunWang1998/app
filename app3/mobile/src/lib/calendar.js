@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking } from 'react-native';
-import { getPrefs } from '../data/prefs';
 import { tLocale } from '../i18n';
 
 const MEMORY_KEY = 'beenages/calendarAdded/v1';
@@ -32,20 +31,19 @@ export function nextDueDate(item, now = new Date()) {
   return due;
 }
 
-export function eventTitle(item, locale = 'zh', hideName = false) {
-  if (hideName) return tLocale(locale, 'calendar.titleHidden');
+export function eventTitle(item, locale = 'zh') {
   const name = String(item?.title || '').trim() || tLocale(locale, 'calendar.itemFallback');
   return tLocale(locale, 'calendar.titleNamed', { name });
 }
 
-export function eventPayload(item, locale = 'zh', hideName = false) {
+export function eventPayload(item, locale = 'zh') {
   const due = nextDueDate(item);
   if (!due) return null;
   const end = new Date(due);
   end.setDate(end.getDate() + 1);
   const alertAt = new Date(due.getFullYear(), due.getMonth(), due.getDate(), CALENDAR_ALERT_HOUR, 0, 0);
   return {
-    title: eventTitle(item, locale, hideName),
+    title: eventTitle(item, locale),
     startDate: due,
     endDate: end,
     allDay: true,
@@ -102,9 +100,8 @@ export async function writeDueEvent(payload) {
 /**
  * @returns {{ status: 'added'|'duplicate'|'denied'|'no-interval'|'error', dateKey?: string, error?: string }}
  */
-export async function addNextDueToCalendar(item, { force = false, locale = 'zh', hideName } = {}) {
-  const hidden = hideName != null ? !!hideName : !!getPrefs().hideName;
-  const payload = eventPayload(item, locale, hidden);
+export async function addNextDueToCalendar(item, { force = false, locale = 'zh' } = {}) {
+  const payload = eventPayload(item, locale);
   if (!payload) return { status: 'no-interval' };
   if (!force && await wasCalendarAdded(item.id, payload.dateKey)) {
     return { status: 'duplicate', dateKey: payload.dateKey };

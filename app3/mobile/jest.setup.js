@@ -104,10 +104,6 @@ jest.mock('react-native-view-shot', () => ({
   captureRef: jest.fn(async () => 'file:///tmp/card.png'),
 }), { virtual: true });
 
-jest.mock('expo-document-picker', () => ({
-  getDocumentAsync: jest.fn(async () => ({ canceled: true })),
-}));
-
 jest.mock('expo-widgets', () => {
   const mk = (name) => ({
     name,

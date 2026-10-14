@@ -1,6 +1,6 @@
 import React from 'react';
 import { useColorScheme } from 'react-native';
-import { light, dark, itemPalette } from './colors';
+import { light, dark, paletteForItem } from './colors';
 import { getPrefs, initPrefs, subscribePrefs, updatePrefs } from '../data/prefs';
 
 export const ThemeContext = React.createContext({
@@ -54,8 +54,8 @@ export function useTheme() {
   return React.useContext(ThemeContext);
 }
 
-export function useItemTone(icon) {
+export function useItemTone(icon, title) {
   const { scheme } = useTheme();
-  const pal = itemPalette[icon || 'brush'] || itemPalette.brush;
+  const pal = paletteForItem(icon, title);
   return pal[scheme] || pal.light;
 }

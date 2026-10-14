@@ -1,4 +1,4 @@
-import { t, tLocale } from '../i18n';
+import { getLocale, resolveLocale, t, tLocale } from '../i18n';
 
 function unitLabel(key, locale) {
   return locale ? tLocale(locale, key) : t(key);
@@ -69,6 +69,38 @@ export function formatDateShort(ts) {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return '';
   return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}`;
+}
+
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+export function formatLastDoneDate(ts, locale) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '';
+  const tag = resolveLocale(locale || getLocale());
+  if (tag === 'en') return `${MONTHS_EN[d.getMonth()]} ${d.getDate()}`;
+  return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}`;
+}
+
+export function formatLastDoneRelative(ts, now = Date.now(), locale) {
+  if (!ts) return '';
+  const t0 = new Date(ts).getTime();
+  if (Number.isNaN(t0)) return '';
+  const days = Math.floor(Math.max(0, now - t0) / DAY);
+  const loc = locale || getLocale();
+  if (days <= 0) return tLocale(loc, 'common.today');
+  if (days === 1) return tLocale(loc, 'common.yesterday');
+  return tLocale(loc, 'common.daysAgo', { n: days });
+}
+
+/** e.g. "3 days ago · Last done Oct 11" */
+export function formatLastDoneLine(ts, now = Date.now(), locale) {
+  if (!ts) return '';
+  const loc = locale || getLocale();
+  return tLocale(loc, 'time.lastDoneLine', {
+    relative: formatLastDoneRelative(ts, now, loc),
+    date: formatLastDoneDate(ts, loc),
+  });
 }
 
 export function dueInMs(item, now = Date.now()) {

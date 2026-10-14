@@ -11,10 +11,6 @@ const BeenAgesHome = (props, environment) => {
   const family = environment.widgetFamily;
   const config = environment.configuration || {};
   const configId = config.itemId ? config.itemId : 'auto';
-  const hideNames = config.hideNames === true
-    || config.hideNames === 'true'
-    || !!(props && props.hideHomeNames);
-
   const colorFor = (dueClass) => {
     if (dueClass === 'od') return RED;
     if (dueClass === 'soon') return ORANGE;
@@ -114,6 +110,13 @@ const BeenAgesHome = (props, environment) => {
   };
 
   const glyph = (item, size) => {
+    if (item.monoLetter) {
+      return (
+        <Text modifiers={[font({ size: Math.max(12, size - 2), weight: 'bold' }), foregroundStyle(LABEL)]}>
+          {item.monoLetter}
+        </Text>
+      );
+    }
     if (item.iconUri) {
       return <Image uiImage={item.iconUri} size={size} />;
     }
@@ -154,11 +157,9 @@ const BeenAgesHome = (props, environment) => {
         {shown.map((item) => (
           <HStack key={item.id} spacing={8}>
             {glyph(item, 18)}
-            {hideNames ? null : (
-              <Text modifiers={[font({ size: 15, weight: 'semibold' }), foregroundStyle(colorFor(item.dueClass))]}>
-                {item.title}
-              </Text>
-            )}
+            <Text modifiers={[font({ size: 15, weight: 'semibold' }), foregroundStyle(colorFor(item.dueClass))]}>
+              {item.title}
+            </Text>
             <Spacer />
             <Text modifiers={[font({ size: 20, weight: 'bold' }), foregroundStyle(colorFor(item.dueClass))]}>
               {pending && pending.itemId === item.id ? ((props && props.labels && props.labels.logged) || 'Logged') : (item.daysText || '—')}
@@ -176,11 +177,9 @@ const BeenAgesHome = (props, environment) => {
     <VStack spacing={4} modifiers={[padding({ all: 12 }), frame({ maxWidth: 1000, maxHeight: 1000 })]}>
       <HStack spacing={6}>
         {glyph(item, 20)}
-        {hideNames ? null : (
-          <Text modifiers={[font({ size: 14, weight: 'semibold' }), foregroundStyle(LABEL)]}>
-            {item.title}
-          </Text>
-        )}
+        <Text modifiers={[font({ size: 14, weight: 'semibold' }), foregroundStyle(LABEL)]}>
+          {item.title}
+        </Text>
       </HStack>
       <HStack>
         <Text modifiers={[font({ size: 40, weight: 'bold' }), foregroundStyle(LABEL)]}>

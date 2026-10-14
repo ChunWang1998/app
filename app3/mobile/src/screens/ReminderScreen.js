@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useActivities, updateActivity } from '../data/repository';
 import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { ChevronLeftIcon } from '../components/Icons';
+import { SettingsRow, SettingsSwitch } from '../components/SettingsRow';
 import { t } from '../i18n';
 
 const CHIPS = [
@@ -93,10 +94,11 @@ export default function ReminderScreen() {
       </View>
 
       <View style={[styles.grp, { backgroundColor: c.cell }]}>
-        <View style={styles.row}>
-          <Text style={[styles.rowTitle, { color: c.label }]}>{item.title}</Text>
-          <Switch value={on} onValueChange={toggleOn} trackColor={{ false: c.fill, true: c.brand }} />
-        </View>
+        <SettingsRow
+          title={item.title}
+          right={<SettingsSwitch value={on} onValueChange={toggleOn} accessibilityLabel={t('reminder.title')} />}
+          last
+        />
       </View>
 
       <View style={{ opacity: on ? 1 : 0.35 }} pointerEvents={on ? 'auto' : 'none'}>
@@ -132,23 +134,25 @@ export default function ReminderScreen() {
         </View>
 
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 18 }]}>
-          <TouchableOpacity style={[styles.row, styles.rowLine]} onPress={cycleTime}>
-            <Text style={[styles.rowTitle, { color: c.label }]}>{t('reminder.time')}</Text>
-            <View style={[styles.pill, { backgroundColor: c.fill }]}>
-              <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-SemiBold' }}>{time}</Text>
-            </View>
-          </TouchableOpacity>
-          <View style={styles.row}>
-            <Text style={[styles.rowTitle, { color: c.label }]}>{t('reminder.snooze')}</Text>
-            <Switch
-              value={snooze}
-              onValueChange={async (v) => {
-                setSnooze(v);
-                await persist({ snooze: v });
-              }}
-              trackColor={{ false: c.fill, true: c.brand }}
-            />
-          </View>
+          <SettingsRow
+            title={t('reminder.time')}
+            onPress={cycleTime}
+            value={time}
+          />
+          <SettingsRow
+            title={t('reminder.snooze')}
+            right={(
+              <SettingsSwitch
+                value={snooze}
+                onValueChange={async (v) => {
+                  setSnooze(v);
+                  await persist({ snooze: v });
+                }}
+                accessibilityLabel={t('reminder.snooze')}
+              />
+            )}
+            last
+          />
         </View>
       </View>
     </View>

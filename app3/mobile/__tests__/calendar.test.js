@@ -18,11 +18,9 @@ describe('add to calendar', () => {
     const alert = new Date(payload.alarms[0].absoluteDate);
     expect(alert.getHours()).toBe(CALENDAR_ALERT_HOUR);
     expect(eventTitle({ title: 'Brush' }, 'en')).toBe('Brush | Been Ages');
-    expect(eventTitle({ title: '換牙刷' }, 'zh', true)).toBe('好久沒了');
-    expect(eventTitle({ title: 'Brush' }, 'en', true)).toBe('Been Ages');
-    expect(eventPayload(item, 'zh', true).title).toBe('好久沒了');
+    expect(eventTitle({ title: '換牙刷' }, 'zh')).toBe('換牙刷｜好久沒了');
+    expect(eventPayload(item, 'zh').title).toBe('換牙刷｜好久沒了');
     expect(eventTitle({ title: 'ハブラシ' }, 'ja')).toBe('ハブラシ｜久しぶり');
-    expect(eventTitle({ title: 'ハブラシ' }, 'ja', true)).toBe('久しぶり');
     expect(calendarNote('ja')).toBe('久しぶりから追加');
   });
 
