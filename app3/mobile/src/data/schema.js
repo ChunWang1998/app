@@ -14,7 +14,7 @@ export const activitySchema = z.object({
   history: z.array(historyEntrySchema).max(500).optional(),
   lastDoneAt: z.string().datetime().nullable(),
   reminderDays: z.number().int().positive().max(3650).nullable(),
-  reminderTime: z.string().max(8).optional(),
+  reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
   snoozeEnabled: z.boolean().optional(),
   snoozeDays: z.number().int().positive().max(365).optional(),
   createdAt: z.string().datetime(),
