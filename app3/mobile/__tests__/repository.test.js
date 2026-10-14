@@ -1,4 +1,4 @@
-import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, undoLogActivity, softDeleteActivity, undoDelete, hardDeleteActivity, exportToJson, importFromJson, FREE_ACTIVITY_LIMIT } from '../src/data/repository';
+import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, undoLogActivity, softDeleteActivity, undoDelete, hardDeleteActivity, exportToJson, importFromJson, backfillHistory, FREE_ACTIVITY_LIMIT } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
 import React from 'react';
 import TestRenderer from 'react-test-renderer';
@@ -15,7 +15,8 @@ describe('repository', () => {
 
     const logged = await logActivityNow(a.id);
     expect(logged.previousLastDoneAt).toBeNull();
-    await undoLogActivity(a.id, logged.previousLastDoneAt);
+    expect(logged.previousHistory).toEqual([]);
+    await undoLogActivity(a.id, logged.previousLastDoneAt, logged.previousHistory);
     await logActivityNow(a.id);
 
     await softDeleteActivity(a.id);
@@ -101,6 +102,24 @@ describe('repository', () => {
     const blob = await exportToJson();
     expect(blob.activities.find((x) => x.id === kept[0].id)).toBeUndefined();
     expect(blob.activities.length).toBe(FREE_ACTIVITY_LIMIT);
+  });
+
+  it('logs into history and can backfill / undo', async () => {
+    await resetRepositoryForTests();
+    const a = await addActivity({ title: 'Hist', lastDoneAt: '2026-09-01T00:00:00.000Z' });
+    expect(a.history[0].at).toBe('2026-09-01T00:00:00.000Z');
+    const logged = await logActivityNow(a.id);
+    const afterLog = await exportToJson();
+    const row = afterLog.activities[0];
+    expect(row.history.length).toBe(2);
+    expect(row.lastDoneAt).toBe(logged.loggedAt);
+    await undoLogActivity(a.id, logged.previousLastDoneAt, logged.previousHistory);
+    const undone = await exportToJson();
+    expect(undone.activities[0].history.length).toBe(1);
+    await backfillHistory(a.id, '2026-08-01T00:00:00.000Z');
+    const filled = await exportToJson();
+    expect(filled.activities[0].history.some((e) => e.at === '2026-08-01T00:00:00.000Z')).toBe(true);
+    expect(filled.activities[0].notes).toBe('');
   });
 
   it('persists icon and migrates rows without one', async () => {
