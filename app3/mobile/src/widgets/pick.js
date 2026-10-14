@@ -94,6 +94,7 @@ export function buildWidgetProps(snapshot, {
   const upgradeLabel = locale === 'en' ? 'Upgrade to use' : '升級就能用';
   const selectedIds = snapshot?.selectedIds || { small: 'auto', medium: [] };
   const hideLockNames = !!selectedIds.hideLockNames;
+  const hideHomeNames = !!selectedIds.hideHomeNames;
   if (!isPro) {
     return {
       isPro: false,
@@ -102,6 +103,7 @@ export function buildWidgetProps(snapshot, {
       selectedSmall: 'auto',
       selectedMedium: [],
       hideLockNames,
+      hideHomeNames,
       pending: null,
       logoUri,
       upgradeLabel,
@@ -114,6 +116,7 @@ export function buildWidgetProps(snapshot, {
     selectedSmall: selectedIds.small || 'auto',
     selectedMedium: selectedIds.medium || [],
     hideLockNames,
+    hideHomeNames,
     pending: null,
     logoUri,
     upgradeLabel,

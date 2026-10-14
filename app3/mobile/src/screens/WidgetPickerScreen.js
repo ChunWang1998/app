@@ -14,7 +14,12 @@ export default function WidgetPickerScreen() {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
   const { activities } = useActivities();
-  const [sel, setSel] = React.useState({ small: 'auto', medium: [], hideLockNames: false });
+  const [sel, setSel] = React.useState({
+    small: 'auto',
+    medium: [],
+    hideLockNames: false,
+    hideHomeNames: false,
+  });
 
   React.useEffect(() => {
     loadWidgetSelection().then(setSel).catch(() => {});
@@ -88,6 +93,22 @@ export default function WidgetPickerScreen() {
               last={i === activities.length - 1}
             />
           ))}
+        </View>
+        <Text style={[styles.sec, { color: c.l2 }]}>桌面</Text>
+        <View style={[styles.grp, { backgroundColor: c.cell }]}>
+          <View style={styles.row}>
+            <Text style={[styles.rowTitle, { color: c.label }]}>隱藏名稱</Text>
+            <Switch
+              value={!!sel.hideHomeNames}
+              onValueChange={async (v) => {
+                const next = { ...sel, hideHomeNames: v };
+                setSel(next);
+                await saveWidgetSelection(next);
+              }}
+              trackColor={{ false: c.fill, true: c.brand }}
+              accessibilityLabel="桌面小工具隱藏名稱"
+            />
+          </View>
         </View>
         <Text style={[styles.sec, { color: c.l2 }]}>鎖定畫面</Text>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>

@@ -9,9 +9,11 @@ const BeenAgesHome = (props, environment) => {
   const ORANGE = '#E39424';
   const BRAND = '#3E9180';
   const family = environment.widgetFamily;
-  const configId = environment.configuration && environment.configuration.itemId
-    ? environment.configuration.itemId
-    : 'auto';
+  const config = environment.configuration || {};
+  const configId = config.itemId ? config.itemId : 'auto';
+  const hideNames = config.hideNames === true
+    || config.hideNames === 'true'
+    || !!(props && props.hideHomeNames);
 
   const colorFor = (dueClass) => {
     if (dueClass === 'od') return RED;
@@ -152,9 +154,11 @@ const BeenAgesHome = (props, environment) => {
         {shown.map((item) => (
           <HStack key={item.id} spacing={8}>
             {glyph(item, 18)}
-            <Text modifiers={[font({ size: 15, weight: 'semibold' }), foregroundStyle(colorFor(item.dueClass))]}>
-              {item.title}
-            </Text>
+            {hideNames ? null : (
+              <Text modifiers={[font({ size: 15, weight: 'semibold' }), foregroundStyle(colorFor(item.dueClass))]}>
+                {item.title}
+              </Text>
+            )}
             <Spacer />
             <Text modifiers={[font({ size: 20, weight: 'bold' }), foregroundStyle(colorFor(item.dueClass))]}>
               {pending && pending.itemId === item.id ? '已記錄' : (item.daysText || '—')}
@@ -172,9 +176,11 @@ const BeenAgesHome = (props, environment) => {
     <VStack spacing={4} modifiers={[padding({ all: 12 }), frame({ maxWidth: 1000, maxHeight: 1000 })]}>
       <HStack spacing={6}>
         {glyph(item, 20)}
-        <Text modifiers={[font({ size: 14, weight: 'semibold' }), foregroundStyle(LABEL)]}>
-          {item.title}
-        </Text>
+        {hideNames ? null : (
+          <Text modifiers={[font({ size: 14, weight: 'semibold' }), foregroundStyle(LABEL)]}>
+            {item.title}
+          </Text>
+        )}
       </HStack>
       <HStack>
         <Text modifiers={[font({ size: 40, weight: 'bold' }), foregroundStyle(LABEL)]}>
