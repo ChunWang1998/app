@@ -1,7 +1,7 @@
 Subset Naikai TTFs (generated, committed):
-- NaikaiSubset-Regular.ttf
-- NaikaiSubset-SemiBold.ttf
-- NaikaiSubset-Bold.ttf
+- BeenAgesRounded-Regular.ttf
+- BeenAgesRounded-SemiBold.ttf
+- BeenAgesRounded-Bold.ttf
 
 Family name in the name table: BeenAgesRounded (Regular / SemiBold / Bold).
 Code loads them as BeenAgesRounded-Regular, BeenAgesRounded-SemiBold, BeenAgesRounded-Bold.

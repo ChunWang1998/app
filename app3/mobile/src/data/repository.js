@@ -230,11 +230,12 @@ export async function addCategory({ name, icon, keywords } = {}) {
   if (getCategories().length >= MAX_CATEGORIES) {
     throw categoryError('CATEGORY_LIMIT', 'category limit');
   }
-  const trimmed = String(name || '').trim();
+  const trimmed = String(name || '').trim().slice(0, 40);
   if (categoryNameTaken(trimmed, getCategories())) {
     throw categoryError('CATEGORY_DUP', 'duplicate name');
   }
   const cat = normalizeCategory({ id: newCategoryId(), name: trimmed, icon, keywords });
+  if (!cat) throw new Error('invalid category');
   await persist({ ...state, categories: [...getCategories(), cat] });
   return cat;
 }
@@ -242,7 +243,7 @@ export async function addCategory({ name, icon, keywords } = {}) {
 /** Keyword edits only affect items added later; existing items keep their category. */
 export async function updateCategory(id, changes = {}) {
   if (changes.name !== undefined) {
-    const trimmed = String(changes.name || '').trim();
+    const trimmed = String(changes.name || '').trim().slice(0, 40);
     if (trimmed && categoryNameTaken(trimmed, getCategories(), { exceptId: id })) {
       throw categoryError('CATEGORY_DUP', 'duplicate name');
     }
@@ -253,7 +254,7 @@ export async function updateCategory(id, changes = {}) {
     if (changes.name !== undefined) merged.name = String(changes.name || '').trim().slice(0, 40) || null;
     if (changes.icon !== undefined) merged.icon = normalizeCategoryIcon(changes.icon);
     if (changes.keywords !== undefined) merged.keywords = normalizeKeywords(changes.keywords);
-    return merged;
+    return normalizeCategory(merged) || c;
   });
   await persist({ ...state, categories: next });
 }

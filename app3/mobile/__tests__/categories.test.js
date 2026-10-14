@@ -95,6 +95,26 @@ describe('migration', () => {
     for (const a of saved.activities) expect(() => activitySchema.parse(a)).not.toThrow();
     for (const c of saved.categories) expect(() => categorySchema.parse(c)).not.toThrow();
   });
+  it('filters invalid categories out of storage', async () => {
+    expect(normalizeCategory(null)).toBeNull();
+    expect(normalizeCategory({ name: 'noid', icon: 'mono', keywords: [] })).toBeNull();
+    expect(normalizeCategory({ id: OTHER_ID, name: 'Nope', icon: 'dots', keywords: [] })).toBeNull();
+    await repo.repositoryStorageForTests.setItem(STATE_KEY, JSON.stringify({
+      version: 2,
+      categories: [
+        { id: 'keep', name: 'Keep', icon: 'paw', keywords: ['ok'] },
+        { id: OTHER_ID, name: 'Nope', icon: 'dots', keywords: [] },
+        { name: 'noid', icon: 'mono', keywords: [] },
+        null,
+        'bad',
+      ],
+      activities: [row('1', 'x', { categoryId: 'gone' }), row('2', 'y', { categoryId: 'keep' })],
+    }));
+    await repo.reloadRepositoryForTests();
+    expect(repo.getCategories().map((c) => c.id)).toEqual(['keep']);
+    expect(repo.getVisibleActivities().map((a) => a.categoryId)).toEqual([OTHER_ID, 'keep']);
+    for (const c of repo.getCategories()) expect(() => categorySchema.parse(c)).not.toThrow();
+  });
 });
 
 describe('repository categories (free)', () => {
@@ -153,6 +173,9 @@ describe('repository categories (free)', () => {
     await expect(repo.updateCategory(cat.id, { name: 'Cleaning' })).rejects.toHaveProperty('code', 'CATEGORY_DUP');
     await repo.updateCategory(cat.id, { name: 'Mine' });
     expect(repo.getCategories().find((c) => c.id === cat.id).name).toBe('Mine');
+    const forty = 'n'.repeat(40);
+    await repo.addCategory({ name: forty });
+    await expect(repo.addCategory({ name: forty + 'Z' })).rejects.toHaveProperty('code', 'CATEGORY_DUP');
   });
   it('unknown icons fall back to mono', async () => {
     expect(normalizeCategory({ id: 'x', name: 'X', icon: 'evil' }).icon).toBe('mono');

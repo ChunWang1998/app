@@ -41,13 +41,13 @@ subset() {
 }
 
 echo "Subsetting Regular..."
-subset "$TMP/Regular.ttf" "$OUT/NaikaiSubset-Regular.ttf"
+subset "$TMP/Regular.ttf" "$OUT/BeenAgesRounded-Regular.ttf"
 echo "Subsetting SemiBold..."
-subset "$TMP/SemiBold.ttf" "$OUT/NaikaiSubset-SemiBold.ttf"
+subset "$TMP/SemiBold.ttf" "$OUT/BeenAgesRounded-SemiBold.ttf"
 echo "Subsetting Bold..."
-subset "$TMP/Bold.ttf" "$OUT/NaikaiSubset-Bold.ttf"
+subset "$TMP/Bold.ttf" "$OUT/BeenAgesRounded-Bold.ttf"
 
 python3 "$DIR/scripts/rename-font-family.py"
 
-ls -l "$OUT"/NaikaiSubset-*.ttf
+ls -l "$OUT"/BeenAgesRounded-*.ttf
 echo "Done. Subsets at $OUT"

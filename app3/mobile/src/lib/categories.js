@@ -1,6 +1,7 @@
 import ICON_TABLE from './iconKeywords.json';
 import { hasKey } from './suggestIcon';
 import { ICON_KINDS } from '../data/models';
+import { categorySchema } from '../data/schema';
 import en from '../../languages/en.json';
 import zhHant from '../../languages/zh-Hant.json';
 import ja from '../../languages/ja.json';
@@ -15,7 +16,7 @@ export const CATEGORIES_STATE_VERSION = 2;
 const LOCALES = [en, zhHant, ja];
 
 function foldName(s) {
-  return String(s || '').trim().toLowerCase();
+  return String(s || '').trim().slice(0, 40).toLowerCase();
 }
 
 export function normalizeCategoryIcon(icon) {
@@ -96,13 +97,15 @@ export function normalizeKeywords(list) {
 
 export function normalizeCategory(raw) {
   if (!raw || typeof raw !== 'object' || !raw.id || raw.id === OTHER_ID) return null;
-  return {
+  const candidate = {
     id: String(raw.id).slice(0, 64),
-    key: raw.key ? String(raw.key) : null,
+    key: raw.key ? String(raw.key).slice(0, 64) : null,
     name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim().slice(0, 40) : null,
     icon: normalizeCategoryIcon(raw.icon),
     keywords: normalizeKeywords(raw.keywords),
   };
+  const parsed = categorySchema.safeParse(candidate);
+  return parsed.success ? parsed.data : null;
 }
 
 /**
