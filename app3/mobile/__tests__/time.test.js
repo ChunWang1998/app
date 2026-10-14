@@ -42,4 +42,18 @@ describe('last-done copy', () => {
     expect(formatLastDoneLine(ts, now, 'zh-Hant')).toBe('3 天前 · 上次做是 10/11');
     expect(formatLastDoneLine(ts, now, 'ja')).toBe('3日前 · 前回 10/11');
   });
+
+  it('counts calendar days across local midnight, not 24h blocks', () => {
+    const { tLocale } = require('../src/i18n');
+    const ts = new Date(2026, 9, 13, 23, 0, 0).toISOString();
+    const now = new Date(2026, 9, 14, 9, 0, 0).getTime();
+    for (const loc of ['en', 'zh-Hant', 'ja']) {
+      expect(formatLastDoneRelative(ts, now, loc)).toBe(tLocale(loc, 'common.yesterday'));
+      expect(formatLastDoneRelative(ts, now, loc)).not.toBe(tLocale(loc, 'common.today'));
+    }
+    const sameDay = new Date(2026, 9, 14, 0, 30, 0).toISOString();
+    expect(formatLastDoneRelative(sameDay, new Date(2026, 9, 14, 23, 59).getTime(), 'en')).toBe(tLocale('en', 'common.today'));
+    const late = new Date(2026, 9, 11, 23, 30, 0).toISOString();
+    expect(formatLastDoneRelative(late, new Date(2026, 9, 14, 0, 10).getTime(), 'zh-Hant')).toBe('3 天前');
+  });
 });
