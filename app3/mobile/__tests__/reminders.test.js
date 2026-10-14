@@ -30,16 +30,67 @@ describe('nextTriggerDate', () => {
     expect(when.getMinutes()).toBe(0);
   });
 
-  it('snoozes overdue items by snoozeDays', () => {
+  it('snoozes overdue items from due + snoozeDays, stable across later writes', () => {
     const last = new Date(now - 20 * 864e5).toISOString();
-    const when = nextTriggerDate({
+    const activity = {
       reminderDays: 7,
       reminderTime: '09:00',
       lastDoneAt: last,
       snoozeEnabled: true,
       snoozeDays: 3,
+    };
+    const when = nextTriggerDate(activity, now);
+    const laterWrite = nextTriggerDate(activity, now + 90 * 60 * 1000);
+    expect(when.getTime()).toBe(laterWrite.getTime());
+    expect(when.getTime()).toBeGreaterThan(now);
+    expect(when.getTime()).not.toBe(now + 3 * 864e5);
+    expect(when.getHours()).toBe(9);
+    expect(when.getMinutes()).toBe(0);
+
+    const due = new Date(new Date(last).getTime() + 7 * 864e5);
+    due.setHours(9, 0, 0, 0);
+    let k = Math.ceil((now - due.getTime()) / (3 * 864e5));
+    if (k < 1) k = 1;
+    const expected = new Date(due);
+    expected.setDate(expected.getDate() + k * 3);
+    expect(when.getTime()).toBeGreaterThanOrEqual(expected.getTime());
+    expect(Number.isFinite(when.getTime())).toBe(true);
+  });
+
+  it('sanitizes fractional, huge, zero and negative snoozeDays without looping', () => {
+    const last = new Date(now - 20 * 864e5).toISOString();
+    const base = {
+      reminderDays: 7,
+      reminderTime: '09:00',
+      lastDoneAt: last,
+      snoozeEnabled: true,
+    };
+    for (const snoozeDays of [0.5, 1e10, 0, -3]) {
+      const when = nextTriggerDate({ ...base, snoozeDays }, now);
+      expect(when).toBeInstanceOf(Date);
+      expect(Number.isFinite(when.getTime())).toBe(true);
+      expect(when.getTime()).toBeGreaterThan(now);
+    }
+    const half = nextTriggerDate({ ...base, snoozeDays: 0.5 }, now);
+    const asOne = nextTriggerDate({ ...base, snoozeDays: 1 }, now);
+    expect(half.getTime()).toBe(asOne.getTime());
+    const huge = nextTriggerDate({ ...base, snoozeDays: 1e10 }, now);
+    const capped = nextTriggerDate({ ...base, snoozeDays: 365 }, now);
+    expect(huge.getTime()).toBe(capped.getTime());
+  });
+
+  it('computes a finite snooze from a 2001 due date', () => {
+    const when = nextTriggerDate({
+      reminderDays: 7,
+      reminderTime: '09:00',
+      lastDoneAt: '2001-01-01T00:00:00.000Z',
+      snoozeEnabled: true,
+      snoozeDays: 3,
     }, now);
-    expect(when.getTime()).toBe(now + 3 * 864e5);
+    expect(when).toBeInstanceOf(Date);
+    expect(Number.isFinite(when.getTime())).toBe(true);
+    expect(when.getTime()).toBeGreaterThan(now);
+    expect(when.getFullYear()).toBeGreaterThanOrEqual(2026);
   });
 
   it('schedules overdue items with snooze off for the next day reminderTime', () => {
