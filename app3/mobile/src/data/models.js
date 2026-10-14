@@ -1,5 +1,5 @@
 import { isoYearInRange } from './schema';
-import { sanitizeSnoozeDays } from './snooze';
+import { reminderFieldsFromConfig, reminderConfigFromActivity } from '../lib/reminderSchedule';
 
 export const ICON_DEFAULT = 'brush';
 export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'plug', 'dots', 'mono'];
@@ -63,10 +63,7 @@ export function createActivity(input) {
     notes: String(input.notes || ''),
     history,
     lastDoneAt: lastDoneFromHistory(history),
-    reminderDays: input.reminderDays ?? null,
-    reminderTime: input.reminderTime || '09:00',
-    snoozeEnabled: input.snoozeEnabled !== false,
-    snoozeDays: sanitizeSnoozeDays(input.snoozeDays),
+    ...reminderFieldsFromConfig(reminderConfigFromActivity(input)),
     createdAt: ts,
     updatedAt: ts,
     deletedAt: null,
@@ -85,10 +82,7 @@ export function migrateActivity(raw) {
     notes: typeof raw.notes === 'string' ? raw.notes : '',
     history,
     lastDoneAt: lastDoneFromHistory(history),
-    reminderDays: raw.reminderDays ?? null,
-    reminderTime: raw.reminderTime || '09:00',
-    snoozeEnabled: raw.snoozeEnabled !== false,
-    snoozeDays: sanitizeSnoozeDays(raw.snoozeDays),
+    ...reminderFieldsFromConfig(reminderConfigFromActivity(raw)),
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
     deletedAt: raw.deletedAt ?? null,

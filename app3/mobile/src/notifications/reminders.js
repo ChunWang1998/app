@@ -1,7 +1,11 @@
 import * as Notifications from 'expo-notifications';
 import { getPrefs } from '../data/prefs';
-import { sanitizeSnoozeDays } from '../data/snooze';
 import { t } from '../i18n';
+import {
+  hasReminder,
+  nextFireDate,
+  formatReminderLabel,
+} from '../lib/reminderSchedule';
 
 const MAX_IOS_PENDING = 64;
 const CHANNEL_ID = 'default';
@@ -10,46 +14,14 @@ export function genericNotificationTitle() {
   return t('notify.title');
 }
 
-function parseHm(time) {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(String(time || '09:00'));
-  if (!m) return { h: 9, min: 0 };
-  return { h: Math.min(23, Number(m[1])), min: Math.min(59, Number(m[2])) };
-}
-
 /**
- * Next fire time: lastDone (or created) + reminderDays, at reminderTime.
- * Overdue + snooze → due + k * snoozeDays (default 3) until after now.
- *   Anchored on due, not on the current write, so opening the app does not
- *   keep pushing the reminder out.
- * Overdue without snooze → next day's reminderTime (never now+1min).
+ * Next fire time from the shared scheduler (interval / weekly / monthly).
+ * Overdue + snooze → due + k * snoozeDays until after now, never past the
+ * next regular occurrence. Overdue without snooze → next day's reminderTime
+ * (or the next regular occurrence if that is sooner). Never now+1min.
  */
 export function nextTriggerDate(activity, now = Date.now()) {
-  if (!activity || !activity.reminderDays || activity.deletedAt) return null;
-  const base = new Date(activity.lastDoneAt || activity.createdAt);
-  if (Number.isNaN(base.getTime())) return null;
-  const due = new Date(base.getTime() + activity.reminderDays * 864e5);
-  const { h, min } = parseHm(activity.reminderTime);
-  due.setHours(h, min, 0, 0);
-  if (due.getTime() > now) return due;
-  if (activity.snoozeEnabled !== false) {
-    const days = sanitizeSnoozeDays(activity.snoozeDays);
-    const stepMs = days * 864e5;
-    let k = Math.ceil((now - due.getTime()) / stepMs);
-    if (!Number.isFinite(k) || k < 1) k = 1;
-    const when = new Date(due);
-    when.setDate(when.getDate() + k * days);
-    for (let i = 0; i < 2 && when.getTime() <= now; i += 1) {
-      when.setDate(when.getDate() + days);
-    }
-    return when;
-  }
-  const next = new Date(now);
-  next.setDate(next.getDate() + 1);
-  next.setHours(h, min, 0, 0);
-  if (next.getTime() <= now) {
-    next.setDate(next.getDate() + 1);
-  }
-  return next;
+  return nextFireDate(activity, now);
 }
 
 export function notificationTitle(activity) {
@@ -96,7 +68,7 @@ export async function enforceReminderBudget(activities) {
   if (!granted) return;
 
   const candidates = (activities || [])
-    .filter((a) => !a.deletedAt && a.reminderDays)
+    .filter((a) => !a.deletedAt && hasReminder(a))
     .map((a) => ({ a, when: nextTriggerDate(a) }))
     .filter((x) => x.when)
     .sort((x, y) => x.when.getTime() - y.when.getTime());
@@ -106,7 +78,7 @@ export async function enforceReminderBudget(activities) {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: notificationTitle(a),
-        body: t('notify.body'),
+        body: formatReminderLabel(a) || t('notify.body'),
         sound: true,
       },
       trigger: {

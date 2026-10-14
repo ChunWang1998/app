@@ -1,10 +1,4 @@
-const DAY = 864e5;
-
-function lastTs(item) {
-  const v = item?.lastDoneAt || item?.createdAt;
-  const t = v ? new Date(v).getTime() : NaN;
-  return Number.isFinite(t) ? t : null;
-}
+import { hasReminder, firstDueInstant, reminderConfigFromActivity } from './reminderSchedule';
 
 function endOfDay(now) {
   const d = new Date(now);
@@ -32,10 +26,10 @@ export function dueStatus(due, now = Date.now()) {
 
 /** Has a reminder and is due by the end of today (includes overdue). */
 export function isDueToday(item, now = Date.now()) {
-  if (!item?.reminderDays) return false;
-  const last = lastTs(item);
-  if (last == null) return false;
-  return last + item.reminderDays * DAY <= endOfDay(now);
+  if (!hasReminder(item)) return false;
+  const due = firstDueInstant(item, reminderConfigFromActivity(item), now);
+  if (!due) return false;
+  return due.getTime() <= endOfDay(now);
 }
 
 export function doneToday(item, now = Date.now()) {
@@ -56,6 +50,6 @@ export function splitToday(items, now = Date.now()) {
 export function homeMood(items, now = Date.now()) {
   if (!items.length) return 'idle';
   if (items.some((a) => isDueToday(a, now))) return 'worry';
-  if (items.some((a) => a.reminderDays && doneToday(a, now))) return 'happy';
+  if (items.some((a) => hasReminder(a) && doneToday(a, now))) return 'happy';
   return 'idle';
 }

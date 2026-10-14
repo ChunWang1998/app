@@ -29,6 +29,11 @@ export const activitySchema = z.object({
   lastDoneAt: isoDateOrNull,
   reminderDays: z.number().int().positive().max(3650).nullable(),
   reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
+  reminderMode: z.enum(['interval', 'week', 'month']).nullable().optional(),
+  reminderUnit: z.enum(['d', 'w', 'm', 'y']).optional(),
+  reminderN: z.number().int().positive().max(3650).optional(),
+  reminderWeekdays: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+  reminderMonthDay: z.number().int().min(1).max(31).optional(),
   snoozeEnabled: z.boolean().optional(),
   snoozeDays: z.preprocess(
     (v) => (v === undefined ? undefined : sanitizeSnoozeDays(v)),

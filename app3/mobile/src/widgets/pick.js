@@ -3,6 +3,7 @@ import { sfSymbolForIcon } from '../data/appGroup';
 import { tLocale } from '../i18n';
 import { monogramLetter } from '../lib/suggestIcon';
 import { dueStatus } from '../lib/today';
+import { formatReminderLabel } from '../lib/reminderSchedule';
 
 const LOCK_FAMILIES = new Set(['accessoryCircular', 'accessoryRectangular', 'accessoryInline']);
 
@@ -80,6 +81,7 @@ export function toWidgetItem(activity, { now = Date.now(), iconUris = {}, locale
     icon: activity.icon || 'brush',
     lastDoneAt: activity.lastDoneAt ?? null,
     reminderDays: activity.reminderDays ?? null,
+    reminderLabel: formatReminderLabel(activity, locale),
     dueClass: dueClassOf(activity, now),
     daysNum: days.daysNum,
     daysUnit: days.daysUnit,

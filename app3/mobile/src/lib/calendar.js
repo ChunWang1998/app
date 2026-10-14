@@ -1,6 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking } from 'react-native';
 import { tLocale } from '../i18n';
+import {
+  firstDueInstant,
+  reminderConfigFromActivity,
+  MODE_INTERVAL,
+  UNIT_DAY,
+} from './reminderSchedule';
 
 const MEMORY_KEY = 'beenages/calendarAdded/v1';
 export const CALENDAR_ALERT_HOUR = 9;
@@ -18,17 +24,23 @@ export function dateKey(d) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
-/** Next due local calendar day = last (or created) + reminderDays. Null if no interval. */
+/** Next due local calendar day. Null if no reminder. */
 export function nextDueDate(item, now = new Date()) {
-  if (!item?.reminderDays) return null;
-  const startRaw = item.lastDoneAt || item.createdAt;
-  if (!startRaw) return null;
-  const start = new Date(startRaw);
-  if (Number.isNaN(start.getTime())) return null;
-  const due = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-  due.setDate(due.getDate() + item.reminderDays);
-  void now;
-  return due;
+  const cfg = reminderConfigFromActivity(item);
+  if (!cfg.enabled) return null;
+  if (cfg.mode === MODE_INTERVAL && cfg.unit === UNIT_DAY) {
+    const startRaw = item.lastDoneAt || item.createdAt;
+    if (!startRaw) return null;
+    const start = new Date(startRaw);
+    if (Number.isNaN(start.getTime())) return null;
+    const due = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    due.setDate(due.getDate() + cfg.n);
+    void now;
+    return due;
+  }
+  const due = firstDueInstant(item, cfg, now instanceof Date ? now.getTime() : now);
+  if (!due) return null;
+  return new Date(due.getFullYear(), due.getMonth(), due.getDate());
 }
 
 export function eventTitle(item, locale = 'zh') {

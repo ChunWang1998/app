@@ -46,14 +46,23 @@ describe('reminder suggestion from name', () => {
     expect(suggestReminderDays('')).toBeNull();
   });
   it('shows a custom chip only for non-preset intervals', () => {
-    expect(reminderOptions(14).map((o) => o.d)).toEqual([null, 7, 14, 30, 90]);
-    expect(reminderOptions(42).map((o) => o.d)).toEqual([null, 7, 14, 30, 90, 42]);
+    expect(reminderOptions(14).map((o) => o.d)).toEqual([null, 7, 14, 30, 90, 'more']);
+    expect(reminderOptions(42).map((o) => o.d)).toEqual([null, 7, 14, 30, 90, 42, 'more']);
   });
   it('add screen saves the interval directly', () => {
     const src = read('../src/screens/EditScreen.js');
     expect(src).toMatch(/<ReminderChips/);
     expect(src).toMatch(/\n\s+reminderDays,\n/);
     expect(src).not.toMatch(/reminderNew/);
+    expect(src).toMatch(/onMore/);
+    expect(read('../src/components/ReminderChips.js')).toMatch(/reminder\.more/);
+    const reminder = read('../src/screens/ReminderScreen.js');
+    expect(reminder).toMatch(/reminder-mode-\$\{m\.mode\}/);
+    expect(reminder).toMatch(/MODE_INTERVAL/);
+    expect(reminder).toMatch(/MODE_WEEK/);
+    expect(reminder).toMatch(/MODE_MONTH/);
+    expect(reminder).toMatch(/TimeWheel/);
+    expect(reminder).toMatch(/reminder-next/);
   });
 });
 
