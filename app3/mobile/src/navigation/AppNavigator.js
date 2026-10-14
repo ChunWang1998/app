@@ -8,6 +8,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import ReminderScreen from '../screens/ReminderScreen';
 import ShareCardScreen from '../screens/ShareCardScreen';
+import RecentlyDeletedScreen from '../screens/RecentlyDeletedScreen';
 import WidgetPickerScreen from '../screens/WidgetPickerScreen';
 import { useTheme } from '../theme/useTheme';
 import { subscribePaywallLink } from '../lib/deepLink';
@@ -60,6 +61,7 @@ export default function AppNavigator({ initial }) {
           component={ShareCardScreen}
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
+        <Stack.Screen name="RecentlyDeleted" component={RecentlyDeletedScreen} />
         <Stack.Screen name="WidgetPicker" component={WidgetPickerScreen} />
       </Stack.Navigator>
     </NavigationContainer>

@@ -45,6 +45,16 @@ jest.mock('expo-font', () => ({
   loadAsync: jest.fn(async () => {}),
 }));
 
+jest.mock('expo-notifications', () => ({
+  getPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  setNotificationChannelAsync: jest.fn(async () => {}),
+  cancelAllScheduledNotificationsAsync: jest.fn(async () => {}),
+  scheduleNotificationAsync: jest.fn(async () => 'id'),
+  getAllScheduledNotificationsAsync: jest.fn(async () => []),
+  SchedulableTriggerInputTypes: { DATE: 'date' },
+}));
+
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(async () => {}),
   NotificationFeedbackType: { Success: 'success' },
@@ -57,6 +67,17 @@ jest.mock('expo-calendar', () => ({
   })),
 }), { virtual: true });
 
+jest.mock('expo-file-system', () => ({
+  cacheDirectory: '/tmp/',
+  documentDirectory: '/tmp/',
+  writeAsStringAsync: jest.fn(async () => {}),
+  readAsStringAsync: jest.fn(async () => { throw new Error('no file'); }),
+  getInfoAsync: jest.fn(async () => ({ exists: false, size: 0 })),
+  deleteAsync: jest.fn(async () => {}),
+  copyAsync: jest.fn(async () => {}),
+  downloadAsync: jest.fn(async () => {}),
+}), { virtual: true });
+
 jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn(async () => true),
   shareAsync: jest.fn(async () => {}),
@@ -65,6 +86,10 @@ jest.mock('expo-sharing', () => ({
 jest.mock('react-native-view-shot', () => ({
   captureRef: jest.fn(async () => 'file:///tmp/card.png'),
 }), { virtual: true });
+
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(async () => ({ canceled: true })),
+}));
 
 jest.mock('expo-widgets', () => {
   const mk = (name) => ({
@@ -100,15 +125,6 @@ jest.mock('@expo/ui/swift-ui/modifiers', () => ({
 
 jest.mock('expo-asset', () => ({
   Asset: { fromModule: () => ({ downloadAsync: async () => ({ localUri: null, uri: null }) }) },
-}), { virtual: true });
-
-jest.mock('expo-file-system', () => ({
-  deleteAsync: jest.fn(async () => {}),
-  readAsStringAsync: jest.fn(async () => { throw new Error('no file'); }),
-  writeAsStringAsync: jest.fn(async () => {}),
-  getInfoAsync: jest.fn(async () => ({ exists: false })),
-  copyAsync: jest.fn(async () => {}),
-  downloadAsync: jest.fn(async () => {}),
 }), { virtual: true });
 
 process.env.EXPO_PUBLIC_IAP_SIMULATE = '1';

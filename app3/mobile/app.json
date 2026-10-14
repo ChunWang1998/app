@@ -56,6 +56,7 @@
       ],
       "expo-iap",
       "expo-sharing",
+      "expo-notifications",
       [
         "expo-calendar",
         {
@@ -115,7 +116,8 @@
             }
           ]
         }
-      ]
+      ],
+      "./plugins/with-strip-aps-environment"
     ],
     "locales": {
       "en": "./languages/en.json",

@@ -1,39 +1,49 @@
 const fs = require('fs');
 const path = require('path');
 
-describe('v1.1 hides unfinished entry points', () => {
+describe('v1.1 ships finished entry points only', () => {
   const nav = fs.readFileSync(path.join(__dirname, '../src/navigation/AppNavigator.js'), 'utf8');
   const settings = fs.readFileSync(path.join(__dirname, '../src/screens/SettingsScreen.js'), 'utf8');
   const home = fs.readFileSync(path.join(__dirname, '../src/screens/HomeScreen.js'), 'utf8');
   const app = fs.readFileSync(path.join(__dirname, '../src/App.js'), 'utf8');
   const appJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../app.json'), 'utf8'));
 
-  it('ships Reminder, ShareCard and WidgetPicker, not RecentlyDeleted', () => {
+  it('ships Reminder, ShareCard, RecentlyDeleted, and WidgetPicker', () => {
     expect(nav).toMatch(/ReminderScreen/);
     expect(nav).toMatch(/ShareCardScreen/);
+    expect(nav).toMatch(/RecentlyDeleted/);
     expect(nav).toMatch(/WidgetPickerScreen/);
-    expect(nav).not.toMatch(/RecentlyDeleted/);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/ReminderScreen.js'))).toBe(true);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/ShareCardScreen.js'))).toBe(true);
+    expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(true);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/WidgetPickerScreen.js'))).toBe(true);
-    expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(false);
   });
 
-  it('does not depend on expo-notifications yet', () => {
+  it('schedules reminders with expo-notifications', () => {
     const plugins = JSON.stringify(appJson.expo.plugins || []);
-    expect(plugins).not.toMatch(/expo-notifications/);
+    expect(plugins).toMatch(/expo-notifications/);
+    expect(plugins).toMatch(/with-strip-aps-environment/);
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
-    expect(pkg.dependencies['expo-notifications']).toBeUndefined();
-    expect(fs.existsSync(path.join(__dirname, '../src/notifications'))).toBe(false);
+    expect(pkg.dependencies['expo-notifications']).toBeDefined();
+    expect(fs.existsSync(path.join(__dirname, '../src/notifications/reminders.js'))).toBe(true);
+    const reminders = fs.readFileSync(path.join(__dirname, '../src/notifications/reminders.js'), 'utf8');
+    const reminderScreen = fs.readFileSync(path.join(__dirname, '../src/screens/ReminderScreen.js'), 'utf8');
+    expect(reminderScreen).toMatch(/requestNotificationPermissions/);
+    expect(reminders).toMatch(/async function enforceReminderBudget/);
+    expect(reminders).not.toMatch(/enforceReminderBudget[\s\S]*requestPermissionsAsync/);
   });
 
-  it('does not expose import/export or recently deleted in Settings', () => {
-    expect(settings).not.toMatch(/匯出/);
-    expect(settings).not.toMatch(/匯入/);
-    expect(settings).not.toMatch(/最近刪除/);
-    expect(settings).toMatch(/恢復購買/);
+  it('exposes import/export, recently deleted, and widgets in Settings', () => {
+    expect(settings).toMatch(/匯出/);
+    expect(settings).toMatch(/匯入/);
+    expect(settings).toMatch(/最近刪除/);
     expect(settings).toMatch(/小工具/);
     expect(settings).toMatch(/顯示/);
+    expect(settings).toMatch(/恢復購買/);
+    expect(settings).toMatch(/通知含名稱/);
+    expect(settings).toMatch(/getInfoAsync/);
+    expect(settings).toMatch(/deleteAsync/);
+    expect(settings).toMatch(/exportFileName/);
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/privacy.html');
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/support.html');
   });

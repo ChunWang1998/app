@@ -1,4 +1,4 @@
-import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, undoLogActivity, softDeleteActivity, undoDelete, hardDeleteActivity, exportToJson, importFromJson, backfillHistory, FREE_ACTIVITY_LIMIT } from '../src/data/repository';
+import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, undoLogActivity, softDeleteActivity, undoDelete, hardDeleteActivity, exportToJson, exportToCsv, importFromJson, backfillHistory, getRecentlyDeleted, FREE_ACTIVITY_LIMIT } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
 import React from 'react';
 import TestRenderer from 'react-test-renderer';
@@ -78,6 +78,17 @@ describe('repository', () => {
     expect(result.truncated).toBe(true);
     const blob = await exportToJson();
     expect(blob.activities.length).toBe(FREE_ACTIVITY_LIMIT);
+  });
+
+  it('keeps swipe-deletes in recently deleted', async () => {
+    await resetRepositoryForTests();
+    const a = await addActivity({ title: 'Trash me' });
+    await softDeleteActivity(a.id);
+    const trash = getRecentlyDeleted();
+    expect(trash.map((x) => x.id)).toContain(a.id);
+    const csv = await exportToCsv();
+    expect(csv).toMatch(/title/);
+    expect(csv).not.toMatch(/Trash me/);
   });
 
   it('hard-deletes after the undo window', async () => {
