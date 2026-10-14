@@ -10,6 +10,8 @@ import ReminderScreen from '../screens/ReminderScreen';
 import ShareCardScreen from '../screens/ShareCardScreen';
 import RecentlyDeletedScreen from '../screens/RecentlyDeletedScreen';
 import WidgetPickerScreen from '../screens/WidgetPickerScreen';
+import CategoriesScreen from '../screens/CategoriesScreen';
+import CategoryEditScreen from '../screens/CategoryEditScreen';
 import { useTheme } from '../theme/useTheme';
 import { subscribePaywallLink } from '../lib/deepLink';
 
@@ -63,6 +65,12 @@ export default function AppNavigator({ initial }) {
         />
         <Stack.Screen name="RecentlyDeleted" component={RecentlyDeletedScreen} />
         <Stack.Screen name="WidgetPicker" component={WidgetPickerScreen} />
+        <Stack.Screen name="Categories" component={CategoriesScreen} />
+        <Stack.Screen
+          name="CategoryEdit"
+          component={CategoryEditScreen}
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
