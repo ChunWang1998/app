@@ -137,10 +137,10 @@
       "./plugins/with-strip-aps-environment"
     ],
     "locales": {
-      "en": "./languages/en.json",
-      "zh-Hant": "./languages/zh-Hant.json",
-      "zh-TW": "./languages/zh-Hant.json",
-      "zh-HK": "./languages/zh-Hant.json"
+      "en": "./languages/ios/en.json",
+      "zh-Hant": "./languages/ios/zh-Hant.json",
+      "zh-TW": "./languages/ios/zh-Hant.json",
+      "zh-HK": "./languages/ios/zh-Hant.json"
     },
     "extra": {
       "eas": {

@@ -8,7 +8,12 @@ function readJson(p) {
 
 function collectStrings() {
   const root = path.join(__dirname, '..');
-  const langs = ['languages/en.json', 'languages/zh-Hant.json'];
+  const langs = [
+    'languages/en.json',
+    'languages/zh-Hant.json',
+    'languages/ios/en.json',
+    'languages/ios/zh-Hant.json',
+  ];
   const texts = [];
   for (const rel of langs) {
     const p = path.join(root, rel);
