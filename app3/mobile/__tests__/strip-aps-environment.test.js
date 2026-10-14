@@ -15,11 +15,13 @@ describe('strip aps-environment plugin', () => {
   it('uses withEntitlementsPlist to delete aps-environment', () => {
     const src = fs.readFileSync(pluginPath, 'utf8');
     expect(src).toMatch(/withEntitlementsPlist/);
+    expect(src).toMatch(/withBaseMod/);
     expect(src).toMatch(/delete\s+\w+\.modResults\['aps-environment'\]/);
   });
 
-  it('deletes aps-environment from the entitlements plist', () => {
+  it('deletes aps-environment from the entitlements plist', async () => {
     let captured;
+    let afterNext;
     jest.isolateModules(() => {
       jest.doMock('expo/config-plugins', () => ({
         withEntitlementsPlist: (cfg, fn) => {
@@ -29,6 +31,18 @@ describe('strip aps-environment plugin', () => {
           });
           return captured;
         },
+        withBaseMod: (cfg, { action }) => {
+          afterNext = action({
+            modRequest: {
+              nextMod: async (c) => ({
+                ...c,
+                modResults: { 'aps-environment': 'development' },
+                ios: { entitlements: { 'aps-environment': 'development' } },
+              }),
+            },
+          });
+          return cfg;
+        },
       }));
       const plugin = require(pluginPath);
       expect(typeof plugin).toBe('function');
@@ -36,5 +50,8 @@ describe('strip aps-environment plugin', () => {
     });
     expect(captured.modResults['aps-environment']).toBeUndefined();
     expect(captured.modResults['com.apple.developer.applesignin']).toEqual([]);
+    const results = await afterNext;
+    expect(results.modResults['aps-environment']).toBeUndefined();
+    expect(results.ios.entitlements['aps-environment']).toBeUndefined();
   });
 });
