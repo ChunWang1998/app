@@ -7,6 +7,9 @@ import AppNavigator from './navigation/AppNavigator';
 import * as Font from 'expo-font';
 import { StatusBar } from 'react-native';
 import { verifyProOnLaunch } from './lib/iap';
+import { initWidgets } from './widgets/sync';
+import './widgets/BeenAgesHome';
+import './widgets/BeenAgesLock';
 
 export default function App() {
   const [ready, setReady] = React.useState(false);
@@ -26,6 +29,7 @@ export default function App() {
         }
         await initRepository();
         await verifyProOnLaunch();
+        try { await initWidgets(); } catch {}
         try {
           if (typeof __DEV__ !== 'undefined' && __DEV__ && typeof window !== 'undefined') {
             const url = new URL(window.location.href);

@@ -54,10 +54,22 @@ export function useActivities() {
   return { activities: snap.activities.filter(a => !a.deletedAt), ready: initialized, raw: snap.activities };
 }
 
+export function getVisibleActivities() {
+  return (state.activities || []).filter((a) => !a.deletedAt);
+}
+
 async function persist(nextState) {
   state = { ...nextState, activities: nextState.activities || [] };
   await saveState(state, storage);
   notify();
+  if (typeof process === 'undefined' || !process.env.JEST_WORKER_ID) {
+    try {
+      const { scheduleWidgetSync } = require('../widgets/sync');
+      scheduleWidgetSync();
+    } catch {
+      // widgets optional in tests / web
+    }
+  }
 }
 
 export async function addActivity(input) {
@@ -76,16 +88,20 @@ export async function updateActivity(id, changes) {
   await persist({ ...state, activities: next });
 }
 
-export async function logActivityNow(id) {
-  const ts = nowIso();
+export async function logActivityAt(id, atIso) {
+  const ts = atIso || nowIso();
   let previousLastDoneAt = null;
   const next = state.activities.map((a) => {
     if (a.id !== id) return a;
     previousLastDoneAt = a.lastDoneAt ?? null;
-    return { ...a, lastDoneAt: ts, updatedAt: ts };
+    return { ...a, lastDoneAt: ts, updatedAt: nowIso() };
   });
   await persist({ ...state, activities: next });
   return { previousLastDoneAt, loggedAt: ts };
+}
+
+export async function logActivityNow(id) {
+  return logActivityAt(id, nowIso());
 }
 
 export async function undoLogActivity(id, previousLastDoneAt) {

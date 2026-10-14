@@ -83,6 +83,17 @@ export function LockIcon({ color = '#fff', size = 17 }) {
   );
 }
 
+export function GridIcon({ color = '#3E9180', size = 22 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 22 22">
+      <Rect x="2" y="2" width="7.5" height="7.5" rx="1.6" stroke={color} strokeWidth={1.8} {...stroke} />
+      <Rect x="12.5" y="2" width="7.5" height="7.5" rx="1.6" stroke={color} strokeWidth={1.8} {...stroke} />
+      <Rect x="2" y="12.5" width="7.5" height="7.5" rx="1.6" stroke={color} strokeWidth={1.8} {...stroke} />
+      <Rect x="12.5" y="12.5" width="7.5" height="7.5" rx="1.6" stroke={color} strokeWidth={1.8} {...stroke} />
+    </Svg>
+  );
+}
+
 export function MailIcon({ color = '#fff', size = 18 }) {
   return (
     <Svg width={size} height={size * 0.78} viewBox="0 0 20 15">

@@ -26,6 +26,7 @@ describe('v1.0 hides unfinished entry points', () => {
     expect(settings).not.toMatch(/匯出/);
     expect(settings).not.toMatch(/匯入/);
     expect(settings).toMatch(/恢復購買/);
+    expect(settings).toMatch(/小工具/);
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/privacy.html');
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/support.html');
   });
