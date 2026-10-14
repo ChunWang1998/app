@@ -6,13 +6,15 @@ import { initRepository, resetRepositoryForTests, addActivity, updateActivity, l
 import { initPrefs, updatePrefs } from './data/prefs';
 import AppNavigator from './navigation/AppNavigator';
 import * as Font from 'expo-font';
-import { StatusBar } from 'react-native';
+import { Platform, StatusBar } from 'react-native';
 import { startPurchaseUpdates, verifyProOnLaunch } from './lib/iap';
 import { ThemeProvider, useForcedScheme } from './theme/useTheme';
 import { setProUnlocked } from './lib/entitlements';
 import { initWidgets } from './widgets/sync';
-import './widgets/BeenAgesHome';
-import './widgets/BeenAgesLock';
+if (Platform.OS !== 'web') {
+  require('./widgets/BeenAgesHome');
+  require('./widgets/BeenAgesLock');
+}
 
 function AppStatusBar() {
   const scheme = useForcedScheme();
