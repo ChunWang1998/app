@@ -211,7 +211,7 @@ export function applyWidgetCheck(props, itemId, now = Date.now()) {
     },
     items: items.map((i) => (
       i.id === itemId
-        ? { ...i, lastDoneAt: new Date(now).toISOString(), daysNum: 0, daysUnit: i.daysUnit || '天', dueClass: '' }
+        ? { ...i, lastDoneAt: new Date(now).toISOString(), daysNum: 0, daysUnit: i.daysUnit || 'd', dueClass: '' }
         : i
     )),
   };

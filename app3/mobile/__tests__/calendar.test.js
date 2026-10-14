@@ -1,4 +1,4 @@
-import { nextDueDate, eventPayload, eventTitle, CALENDAR_NOTE, CALENDAR_ALERT_HOUR, rememberCalendarAdd, wasCalendarAdded, addNextDueToCalendar } from '../src/lib/calendar';
+import { nextDueDate, eventPayload, eventTitle, calendarNote, CALENDAR_ALERT_HOUR, rememberCalendarAdd, wasCalendarAdded, addNextDueToCalendar } from '../src/lib/calendar';
 
 const ts = '2026-10-01T15:30:00.000Z';
 
@@ -13,7 +13,7 @@ describe('add to calendar', () => {
     const payload = eventPayload(item);
     expect(payload.allDay).toBe(true);
     expect(payload.recurrenceRule).toBeUndefined();
-    expect(payload.notes).toBe(CALENDAR_NOTE);
+    expect(payload.notes).toBe(calendarNote('zh'));
     expect(payload.title).toBe('換牙刷｜好久沒了');
     const alert = new Date(payload.alarms[0].absoluteDate);
     expect(alert.getHours()).toBe(CALENDAR_ALERT_HOUR);
@@ -63,10 +63,12 @@ describe('add to calendar', () => {
     const en = require('../languages/en.json');
     expect(zh.ios.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/項目的下次該做日子/);
     expect(en.ios.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/item's next due date/i);
-    expect(zh.ios.NSCalendarsUsageDescription).toBeUndefined();
-    expect(en.ios.NSCalendarsUsageDescription).toBeUndefined();
-    expect(zh.ios.NSRemindersUsageDescription).toBeUndefined();
-    expect(en.ios.NSRemindersUsageDescription).toBeUndefined();
+    expect(zh.ios.NSCalendarsUsageDescription).toMatch(/加到行事曆/);
+    expect(en.ios.NSCalendarsUsageDescription).toMatch(/Add to Calendar/i);
+    expect(zh.ios.NSRemindersUsageDescription).toMatch(/「好久沒了」不使用「提醒事項」/);
+    expect(en.ios.NSRemindersUsageDescription).toMatch(/Reminders app/i);
+    expect(appJson.expo.ios.infoPlist.NSCalendarsUsageDescription).toMatch(/Add to Calendar/i);
+    expect(appJson.expo.ios.infoPlist.NSRemindersUsageDescription).toMatch(/Reminders app/i);
     const src = require('fs').readFileSync(require('path').join(__dirname, '../src/lib/calendar.js'), 'utf8');
     expect(src).toMatch(/requestCalendarPermissions\(true\)/);
     expect(src).not.toMatch(/getCalendars\(/);

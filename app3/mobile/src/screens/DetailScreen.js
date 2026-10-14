@@ -10,6 +10,7 @@ import { addNextDueToCalendar, openSystemSettings } from '../lib/calendar';
 import { formatDate, formatTime, formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts } from '../lib/time';
 import { historyStats } from '../lib/historyStats';
 import * as Haptics from 'expo-haptics';
+import { getLocale, t } from '../i18n';
 
 function daysAgo(n, hours = 0) {
   const d = new Date();
@@ -31,7 +32,7 @@ export default function DetailScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
         <View style={styles.nav}>
-          <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel="返回">
+          <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel={t('common.back')}>
             <ChevronLeftIcon color={c.label} />
           </TouchableOpacity>
         </View>
@@ -52,7 +53,7 @@ export default function DetailScreen() {
   const mood = just ? 'happy' : od ? 'worry' : 'idle';
   const hist = item.history || [];
   const stats = historyStats(hist);
-  const remLabel = hasReminder ? `每 ${item.reminderDays} 天` : '不提醒';
+  const remLabel = hasReminder ? t('detail.everyDays', { n: item.reminderDays }) : t('detail.noReminder');
 
   async function logNow() {
     await logActivityNow(item.id);
@@ -60,11 +61,11 @@ export default function DetailScreen() {
   }
 
   function addBackfill() {
-    Alert.alert('補記一筆', '要記哪一天？', [
-      { text: '取消', style: 'cancel' },
-      { text: '今天', onPress: () => backfillHistory(item.id, new Date().toISOString()) },
-      { text: '昨天', onPress: () => backfillHistory(item.id, daysAgo(1)) },
-      { text: '3 天前', onPress: () => backfillHistory(item.id, daysAgo(3)) },
+    Alert.alert(t('detail.backfill'), t('detail.backfillAsk'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.today'), onPress: () => backfillHistory(item.id, new Date().toISOString()) },
+      { text: t('common.yesterday'), onPress: () => backfillHistory(item.id, daysAgo(1)) },
+      { text: t('common.daysAgo', { n: 3 }), onPress: () => backfillHistory(item.id, daysAgo(3)) },
     ]);
   }
 
@@ -73,12 +74,12 @@ export default function DetailScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
         <View style={[styles.heroblk, { backgroundColor: tone.ac, paddingTop: insets.top }]}>
           <View style={styles.nav}>
-            <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel="返回">
+            <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel={t('common.back')}>
               <ChevronLeftIcon color={c.label} />
             </TouchableOpacity>
             <Text style={[styles.title, { color: c.label }]} numberOfLines={1}>{item.title}</Text>
             <TouchableOpacity onPress={() => nav.navigate('Edit', { id: item.id })} style={styles.navBtnRight}>
-              <Text style={{ color: c.label, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>編輯</Text>
+              <Text style={{ color: c.label, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>{t('detail.edit')}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.hero}>
@@ -101,7 +102,7 @@ export default function DetailScreen() {
               <View style={styles.whenRow}>
                 {lastWhen ? <Text style={[styles.when, { color: c.l2 }]}>{lastWhen}</Text> : null}
                 {od ? (
-                  <Text style={[styles.od, { color: c.red }]}>逾期 {formatSpan(-due)}</Text>
+                  <Text style={[styles.od, { color: c.red }]}>{t('home.overdue')} {formatSpan(-due)}</Text>
                 ) : null}
               </View>
             ) : null}
@@ -120,62 +121,63 @@ export default function DetailScreen() {
             ) : null}
           </View>
         </View>
-        <TouchableOpacity onPress={logNow} style={[styles.cta, { backgroundColor: c.brand }]} accessibilityLabel={`記錄${item.title}，剛剛做了`}>
+        <TouchableOpacity onPress={logNow} style={[styles.cta, { backgroundColor: c.brand }]} accessibilityLabel={t('home.a11yLog', { title: item.title })}>
           <CheckIcon color={c.onbrand} size={18} />
-          <Text style={[styles.ctaText, { color: c.onbrand }]}>剛剛做了</Text>
+          <Text style={[styles.ctaText, { color: c.onbrand }]}>{t('detail.justDid')}</Text>
         </TouchableOpacity>
         <View style={styles.extraRow}>
           <TouchableOpacity
             onPress={() => nav.navigate('ShareCard', { id: item.id })}
             style={[styles.extraBtn, { backgroundColor: c.cell }]}
-            accessibilityLabel="分享卡片"
+            accessibilityLabel={t('detail.shareCard')}
           >
             <ShareIcon color={c.brand} size={18} />
-            <Text style={[styles.extraText, { color: c.label }]}>分享卡片</Text>
+            <Text style={[styles.extraText, { color: c.label }]}>{t('detail.shareCard')}</Text>
           </TouchableOpacity>
           {hasReminder ? (
             <TouchableOpacity
               onPress={async () => {
-                const r = await addNextDueToCalendar(item);
+                const loc = getLocale() === 'en' ? 'en' : 'zh';
+                const r = await addNextDueToCalendar(item, { locale: loc });
                 if (r.status === 'added') {
-                  Alert.alert('已加入', '已加到行事曆');
+                  Alert.alert(t('detail.calendarAdded'), t('detail.calendarAddedBody'));
                   return;
                 }
                 if (r.status === 'duplicate') {
-                  Alert.alert('已加過', '要不要再加一次？', [
-                    { text: '取消', style: 'cancel' },
-                    { text: '再加一次', onPress: () => addNextDueToCalendar(item, { force: true }) },
+                  Alert.alert(t('detail.calendarDup'), t('detail.calendarDupAsk'), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('detail.calendarDupAgain'), onPress: () => addNextDueToCalendar(item, { force: true, locale: loc }) },
                   ]);
                   return;
                 }
                 if (r.status === 'denied') {
-                  Alert.alert('無法加入', '到設定開啟行事曆', [
-                    { text: '取消', style: 'cancel' },
-                    { text: '設定', onPress: () => openSystemSettings() },
+                  Alert.alert(t('detail.calendarDenied'), t('detail.calendarDeniedBody'), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('detail.openSettings'), onPress: () => openSystemSettings() },
                   ]);
                 }
               }}
               style={[styles.extraBtn, { backgroundColor: c.cell }]}
-              accessibilityLabel="加到行事曆"
+              accessibilityLabel={t('detail.addToCalendar')}
             >
               <CalendarIcon color={c.brand} size={18} />
-              <Text style={[styles.extraText, { color: c.label }]}>加到行事曆</Text>
+              <Text style={[styles.extraText, { color: c.label }]}>{t('detail.addToCalendar')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
 
         <View style={styles.stats}>
-          <Stat label="總次數" value={`${stats.count}次`} c={c} />
-          <Stat label="平均" value={stats.avgDays == null ? '—' : `${stats.avgDays.toFixed(1)}天`} c={c} />
-          <Stat label="最久" value={stats.maxDays == null ? '—' : `${Math.round(stats.maxDays)}天`} c={c} />
+          <Stat label={t('detail.count')} value={t('detail.countVal', { n: stats.count })} c={c} />
+          <Stat label={t('detail.avg')} value={stats.avgDays == null ? '—' : t('detail.avgVal', { n: stats.avgDays.toFixed(1) })} c={c} />
+          <Stat label={t('detail.max')} value={stats.maxDays == null ? '—' : t('detail.maxVal', { n: Math.round(stats.maxDays) })} c={c} />
         </View>
 
-        <Text style={[styles.sec, { color: c.label }]}>提醒</Text>
+        <Text style={[styles.sec, { color: c.label }]}>{t('detail.reminder')}</Text>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
           <TouchableOpacity
             style={styles.row}
             onPress={() => nav.navigate('Reminder', { id: item.id })}
-            accessibilityLabel="提醒"
+            accessibilityLabel={t('detail.reminder')}
           >
             <View style={[styles.sq, { backgroundColor: tone.ac }]}>
               <BellIcon color={tone.acf} size={16} />
@@ -189,15 +191,15 @@ export default function DetailScreen() {
         </View>
 
         <View style={styles.secRow}>
-          <Text style={[styles.sec, { color: c.label, paddingTop: 0 }]}>紀錄</Text>
-          <TouchableOpacity onPress={addBackfill} style={styles.plus} accessibilityLabel="補記一筆">
+          <Text style={[styles.sec, { color: c.label, paddingTop: 0 }]}>{t('detail.history')}</Text>
+          <TouchableOpacity onPress={addBackfill} style={styles.plus} accessibilityLabel={t('detail.backfill')}>
             <PlusIcon color={c.brand} size={18} />
           </TouchableOpacity>
         </View>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
           {hist.length === 0 ? (
             <View style={styles.row}>
-              <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular' }}>還沒記錄</Text>
+              <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular' }}>{t('detail.neverLogged')}</Text>
             </View>
           ) : hist.map((e, i) => {
             const next = hist[i + 1];
@@ -218,7 +220,7 @@ export default function DetailScreen() {
 
         {item.notes ? (
           <>
-            <Text style={[styles.sec, { color: c.label }]}>備註</Text>
+            <Text style={[styles.sec, { color: c.label }]}>{t('detail.notes')}</Text>
             <View style={[styles.grp, { backgroundColor: c.cell }]}>
               <View style={[styles.row, { minHeight: 56 }]}>
                 <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular', fontSize: 16 }}>{item.notes}</Text>

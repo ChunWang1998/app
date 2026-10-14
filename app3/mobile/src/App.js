@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { initializeI18n } from './i18n';
+import { getLocale, initializeI18n, t } from './i18n';
 import { initRepository, resetRepositoryForTests, addActivity, updateActivity, logActivityNow } from './data/repository';
 import { initPrefs, updatePrefs } from './data/prefs';
 import AppNavigator from './navigation/AppNavigator';
@@ -38,7 +38,7 @@ export default function App() {
         await initPrefs();
         await initRepository();
         await verifyProOnLaunch();
-        try { await initWidgets(); } catch {}
+        try { await initWidgets({ locale: getLocale() === 'en' ? 'en' : 'zh' }); } catch {}
         try {
           if (typeof __DEV__ !== 'undefined' && __DEV__ && typeof window !== 'undefined') {
             const url = new URL(window.location.href);
@@ -55,12 +55,12 @@ export default function App() {
             if (demo === '1' || demo === 'logged') {
               await setProUnlocked(true);
               const past = (days, hours = 0) => new Date(Date.now() - days * 864e5 - hours * 36e5).toISOString();
-              const a1 = await addActivity({ title: '換濾水器濾心', icon: 'drop', reminderDays: 60, lastDoneAt: past(74) });
-              const a2 = await addActivity({ title: '換隱形眼鏡', icon: 'eye', reminderDays: 14, lastDoneAt: past(19, 7) });
-              const a3 = await addActivity({ title: '吃維他命 D', icon: 'pill', reminderDays: 1, lastDoneAt: past(2) });
-              const a4 = await addActivity({ title: '洗床單', icon: 'bed', reminderDays: 7, lastDoneAt: past(9) });
-              const a5 = await addActivity({ title: '幫植物澆水', icon: 'leaf', reminderDays: 3, lastDoneAt: past(1) });
-              const a6 = await addActivity({ title: '剪頭髮', icon: 'scissors', reminderDays: null, lastDoneAt: past(44) });
+              const a1 = await addActivity({ title: t('demo.filter'), icon: 'drop', reminderDays: 60, lastDoneAt: past(74) });
+              const a2 = await addActivity({ title: t('demo.contacts'), icon: 'eye', reminderDays: 14, lastDoneAt: past(19, 7) });
+              const a3 = await addActivity({ title: t('demo.vitamin'), icon: 'pill', reminderDays: 1, lastDoneAt: past(2) });
+              const a4 = await addActivity({ title: t('demo.sheets'), icon: 'bed', reminderDays: 7, lastDoneAt: past(9) });
+              const a5 = await addActivity({ title: t('demo.plant'), icon: 'leaf', reminderDays: 3, lastDoneAt: past(1) });
+              const a6 = await addActivity({ title: t('demo.hair'), icon: 'scissors', reminderDays: null, lastDoneAt: past(44) });
               await updateActivity(a2.id, {
                 history: [
                   { at: past(19, 7) },

@@ -1,11 +1,13 @@
+import { t } from '../i18n';
 import { IG_STORIES_DIRECT } from './config';
 
 /**
  * Always uses the system share sheet in v1.1.
  * Direct IG Stories is gated on META_APP_ID and is not implemented yet.
  */
-export async function shareCardImage(uri, { dialogTitle = 'Been Ages' } = {}) {
+export async function shareCardImage(uri, { dialogTitle } = {}) {
   if (!uri) throw new Error('missing image');
+  const title = dialogTitle || t('app.title');
   try {
     const Sharing = require('expo-sharing');
     if (typeof Sharing.isAvailableAsync === 'function') {
@@ -16,7 +18,7 @@ export async function shareCardImage(uri, { dialogTitle = 'Been Ages' } = {}) {
     await Sharing.shareAsync(uri, {
       mimeType: 'image/png',
       UTI: 'public.png',
-      dialogTitle,
+      dialogTitle: title,
     });
   } finally {
     await cleanupShareFile(uri);

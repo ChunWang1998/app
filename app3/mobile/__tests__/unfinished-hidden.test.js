@@ -34,13 +34,13 @@ describe('v1.1 ships finished entry points only', () => {
   });
 
   it('exposes import/export, recently deleted, and widgets in Settings', () => {
-    expect(settings).toMatch(/匯出/);
-    expect(settings).toMatch(/匯入/);
-    expect(settings).toMatch(/最近刪除/);
-    expect(settings).toMatch(/小工具/);
-    expect(settings).toMatch(/顯示/);
-    expect(settings).toMatch(/恢復購買/);
-    expect(settings).toMatch(/通知含名稱/);
+    expect(settings).toMatch(/settings\.export/);
+    expect(settings).toMatch(/settings\.import/);
+    expect(settings).toMatch(/settings\.recentlyDeleted/);
+    expect(settings).toMatch(/settings\.widgets/);
+    expect(settings).toMatch(/settings\.display/);
+    expect(settings).toMatch(/settings\.restore/);
+    expect(settings).toMatch(/settings\.notifyWithName/);
     expect(settings).toMatch(/getInfoAsync/);
     expect(settings).toMatch(/deleteAsync/);
     expect(settings).toMatch(/exportFileName/);

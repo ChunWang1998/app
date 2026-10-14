@@ -5,8 +5,11 @@ import {
   resolveImportSize,
   importSizeError,
 } from '../src/data/importLimit';
+import { setLocale } from '../src/i18n';
 
 describe('import size limit', () => {
+  beforeAll(() => setLocale('zh-Hant'));
+
   it('is 1MB', () => {
     expect(IMPORT_MAX_BYTES).toBe(1024 * 1024);
   });

@@ -2,12 +2,13 @@ import * as Notifications from 'expo-notifications';
 import {
   nextTriggerDate,
   notificationTitle,
-  GENERIC_NOTIFICATION_TITLE,
+  genericNotificationTitle,
   getNotificationPermissions,
   requestNotificationPermissions,
   enforceReminderBudget,
 } from '../src/notifications/reminders';
 import { resetPrefsForTests, updatePrefs } from '../src/data/prefs';
+import { setLocale, t } from '../src/i18n';
 
 describe('nextTriggerDate', () => {
   const now = Date.parse('2026-10-13T14:50:00.000Z');
@@ -120,8 +121,10 @@ describe('notificationTitle', () => {
   });
 
   it('defaults to a generic title without the item name', () => {
-    expect(notificationTitle({ title: 'Secret item' })).toBe(GENERIC_NOTIFICATION_TITLE);
-    expect(GENERIC_NOTIFICATION_TITLE).toBe('好久沒了');
+    setLocale('zh-Hant');
+    expect(notificationTitle({ title: 'Secret item' })).toBe(genericNotificationTitle());
+    expect(genericNotificationTitle()).toBe(t('notify.title'));
+    expect(genericNotificationTitle()).toBe('好久沒了');
   });
 
   it('uses the item name only when the setting is on', async () => {
@@ -173,12 +176,13 @@ describe('permissions and scheduling', () => {
   });
 
   it('enforceReminderBudget schedules with a generic title when granted', async () => {
+    setLocale('zh-Hant');
     await enforceReminderBudget([activity]);
     expect(Notifications.requestPermissionsAsync).not.toHaveBeenCalled();
     expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
     const arg = Notifications.scheduleNotificationAsync.mock.calls[0][0];
-    expect(arg.content.title).toBe(GENERIC_NOTIFICATION_TITLE);
-    expect(arg.content.body).toBe('該做這件事了');
+    expect(arg.content.title).toBe(genericNotificationTitle());
+    expect(arg.content.body).toBe(t('notify.body'));
   });
 
   it('does not schedule now+1min for overdue items with snooze off', async () => {

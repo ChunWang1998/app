@@ -25,7 +25,7 @@ const BeenAgesHome = (props, environment) => {
     return (
       <VStack spacing={8} modifiers={[padding({ all: 14 })]}>
         <Text modifiers={[font({ weight: 'semibold', size: 16 }), foregroundStyle(LABEL)]}>
-          {props && props.upgradeLabel ? props.upgradeLabel : '升級就能用'}
+          {props && props.upgradeLabel ? props.upgradeLabel : 'Upgrade to use'}
         </Text>
         <Link label="Been Ages" destination="beenages://paywall" />
       </VStack>
@@ -87,7 +87,7 @@ const BeenAgesHome = (props, environment) => {
     },
     items: all.map((i) => (
       i.id === item.id
-        ? { ...i, lastDoneAt: '', daysNum: 0, daysUnit: item.daysUnit || '天', daysText: '0天', dueClass: '' }
+        ? { ...i, lastDoneAt: '', daysNum: 0, daysUnit: item.daysUnit || 'd', daysText: `0${item.daysUnit || 'd'}`, dueClass: '' }
         : i
     )),
   });
@@ -125,7 +125,7 @@ const BeenAgesHome = (props, environment) => {
     if (undoing) {
       return (
         <Button
-          label="復原"
+          label={(props && props.labels && props.labels.undo) || 'Undo'}
           target={'undo:' + item.id}
           onPress={pressUndo()}
         />
@@ -143,7 +143,7 @@ const BeenAgesHome = (props, environment) => {
   if (!shown.length) {
     return (
       <VStack modifiers={[padding({ all: 14 })]}>
-        <Text modifiers={[foregroundStyle(LABEL)]}>還沒有項目</Text>
+        <Text modifiers={[foregroundStyle(LABEL)]}>{(props && props.labels && props.labels.empty) || 'No items'}</Text>
       </VStack>
     );
   }
@@ -161,7 +161,7 @@ const BeenAgesHome = (props, environment) => {
             )}
             <Spacer />
             <Text modifiers={[font({ size: 20, weight: 'bold' }), foregroundStyle(colorFor(item.dueClass))]}>
-              {pending && pending.itemId === item.id ? '已記錄' : (item.daysText || '—')}
+              {pending && pending.itemId === item.id ? ((props && props.labels && props.labels.logged) || 'Logged') : (item.daysText || '—')}
             </Text>
             {checkBtn(item)}
           </HStack>
@@ -187,12 +187,12 @@ const BeenAgesHome = (props, environment) => {
           {undoing ? '0' : (item.daysNum == null ? '—' : String(item.daysNum))}
         </Text>
         <Text modifiers={[font({ size: 14 }), foregroundStyle(LABEL)]}>
-          {undoing ? (item.daysUnit || '天') : (item.daysUnit || '')}
+          {undoing ? (item.daysUnit || 'd') : (item.daysUnit || '')}
         </Text>
       </HStack>
       <HStack>
         {undoing ? (
-          <Text modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(BRAND)]}>已記錄</Text>
+          <Text modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(BRAND)]}>{(props && props.labels && props.labels.logged) || 'Logged'}</Text>
         ) : null}
         {checkBtn(item)}
       </HStack>

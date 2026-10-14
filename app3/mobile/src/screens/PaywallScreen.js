@@ -4,10 +4,11 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
-import { ChevronLeftIcon, InfinityIcon, GridIcon, CloudIcon, ShareIcon } from '../components/Icons';
+import { ChevronLeftIcon, InfinityIcon, GridIcon, ShareIcon } from '../components/Icons';
 import { purchaseProUnlock, restoreProUnlock, getProDisplayPrice } from '../lib/iap';
 import { isProUnlocked } from '../lib/entitlements';
 import { FREE_ACTIVITY_LIMIT } from '../data/repository';
+import { t } from '../i18n';
 
 export default function PaywallScreen() {
   const c = useThemeColors();
@@ -45,7 +46,7 @@ export default function PaywallScreen() {
         return;
       }
       if (!r.cancelled && r.error) {
-        Alert.alert('失敗', r.error);
+        Alert.alert(t('common.fail'), r.error);
       }
     } finally {
       setBusy(false);
@@ -62,11 +63,11 @@ export default function PaywallScreen() {
         return;
       }
       if (r.error) {
-        Alert.alert('失敗', r.error);
+        Alert.alert(t('common.fail'), r.error);
         return;
       }
       if (r.ok && r.restored === false) {
-        Alert.alert('恢復購買', '找不到已購買紀錄');
+        Alert.alert(t('settings.restore'), t('iap.nothingToRestore'));
       }
     } finally {
       setBusy(false);
@@ -77,7 +78,7 @@ export default function PaywallScreen() {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={[styles.pwblk, { backgroundColor: c.pwband, paddingTop: insets.top }]}>
         <View style={styles.nav}>
-          <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel="返回">
+          <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel={t('common.back')}>
             <ChevronLeftIcon color={c.brand} />
           </TouchableOpacity>
           <View style={styles.navBtn} />
@@ -87,27 +88,22 @@ export default function PaywallScreen() {
         </View>
       </View>
       <View style={styles.pw}>
-        <Text style={[styles.h1, { color: c.label }]}>不只記 3 件事</Text>
+        <Text style={[styles.h1, { color: c.label }]}>{t('paywall.headline')}</Text>
         <View style={{ marginTop: 32 }}>
           <Feature
             icon={<InfinityIcon color={c.brand} size={22} />}
-            title="無限項目"
-            sub={`免費版 ${FREE_ACTIVITY_LIMIT} 個`}
+            title={t('paywall.unlimited')}
+            sub={t('paywall.unlimitedSub', { n: FREE_ACTIVITY_LIMIT })}
           />
           <Feature
             icon={<GridIcon color={c.brand} size={20} />}
-            title="桌面小工具"
-            sub="鎖定畫面也能記"
-          />
-          <Feature
-            icon={<CloudIcon color={c.brand} size={20} />}
-            title="iCloud 備份"
-            sub="v1.2"
+            title={t('paywall.widgets')}
+            sub={t('paywall.widgetsSub')}
           />
           <Feature
             icon={<ShareIcon color={c.brand} size={20} />}
-            title="更多分享樣式"
-            sub="奶油免費"
+            title={t('paywall.share')}
+            sub={t('paywall.shareSub')}
           />
         </View>
       </View>
@@ -116,24 +112,24 @@ export default function PaywallScreen() {
           price ? (
             <Text style={[styles.price, { color: c.label }]}>{price}</Text>
           ) : (
-            <TouchableOpacity onPress={loadPrice} style={styles.retry} accessibilityLabel="再試">
-              <Text style={[styles.priceFail, { color: c.label }]}>無法取得價格</Text>
-              <Text style={{ color: c.brand, fontSize: 15, fontFamily: 'NaikaiSubset-SemiBold', marginTop: 4 }}>再試</Text>
+            <TouchableOpacity onPress={loadPrice} style={styles.retry} accessibilityLabel={t('common.retry')}>
+              <Text style={[styles.priceFail, { color: c.label }]}>{t('paywall.priceFail')}</Text>
+              <Text style={{ color: c.brand, fontSize: 15, fontFamily: 'NaikaiSubset-SemiBold', marginTop: 4 }}>{t('common.retry')}</Text>
             </TouchableOpacity>
           )
         ) : (
           <ActivityIndicator color={c.brand} />
         )}
-        <Text style={[styles.once, { color: c.l2 }]}>一次買斷・沒有訂閱</Text>
+        <Text style={[styles.once, { color: c.l2 }]}>{t('paywall.once')}</Text>
         <TouchableOpacity
           onPress={buy}
           disabled={busy || pro}
           style={[styles.cta, { backgroundColor: c.brand, opacity: busy ? 0.7 : 1 }]}
         >
-          <Text style={[styles.ctaText, { color: c.onbrand }]}>{pro ? '已解鎖' : '購買'}</Text>
+          <Text style={[styles.ctaText, { color: c.onbrand }]}>{pro ? t('common.unlocked') : t('paywall.buy')}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={restore} disabled={busy} style={{ alignItems: 'center', padding: 16 }}>
-          <Text style={{ color: c.brand, fontSize: 15, fontFamily: 'NaikaiSubset-Regular' }}>恢復購買</Text>
+          <Text style={{ color: c.brand, fontSize: 15, fontFamily: 'NaikaiSubset-Regular' }}>{t('settings.restore')}</Text>
         </TouchableOpacity>
       </View>
     </View>

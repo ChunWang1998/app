@@ -1,5 +1,6 @@
 import { dueInMs, elapsedMs, formatSpanParts } from '../lib/time';
 import { sfSymbolForIcon } from '../data/appGroup';
+import { tLocale } from '../i18n';
 
 const LOCK_FAMILIES = new Set(['accessoryCircular', 'accessoryRectangular', 'accessoryInline']);
 
@@ -91,7 +92,12 @@ export function buildWidgetProps(snapshot, {
   locale = 'zh',
 } = {}) {
   const isPro = !!snapshot?.proUnlocked;
-  const upgradeLabel = locale === 'en' ? 'Upgrade to use' : '升級就能用';
+  const upgradeLabel = tLocale(locale, 'widget.upgrade');
+  const labels = {
+    undo: tLocale(locale, 'widget.undo'),
+    empty: tLocale(locale, 'widget.empty'),
+    logged: tLocale(locale, 'widget.logged'),
+  };
   const selectedIds = snapshot?.selectedIds || { small: 'auto', medium: [] };
   const hideLockNames = !!selectedIds.hideLockNames;
   const hideHomeNames = !!selectedIds.hideHomeNames;
@@ -107,6 +113,7 @@ export function buildWidgetProps(snapshot, {
       pending: null,
       logoUri,
       upgradeLabel,
+      labels,
     };
   }
   return {
@@ -120,6 +127,7 @@ export function buildWidgetProps(snapshot, {
     pending: null,
     logoUri,
     upgradeLabel,
+    labels,
   };
 }
 

@@ -6,6 +6,7 @@ import { getRecentlyDeleted, undoDelete, subscribe } from '../data/repository';
 import { useThemeColors } from '../theme/useTheme';
 import { ChevronLeftIcon } from '../components/Icons';
 import { formatDate } from '../lib/time';
+import { t } from '../i18n';
 
 export default function RecentlyDeletedScreen() {
   const c = useThemeColors();
@@ -22,22 +23,22 @@ export default function RecentlyDeletedScreen() {
         nav.navigate('Paywall');
         return;
       }
-      Alert.alert('失敗', String(e?.message || e));
+      Alert.alert(t('common.fail'), String(e?.message || e));
     }
   }
 
   return (
     <View style={{ flex: 1, backgroundColor: c.set, paddingTop: insets.top }}>
       <View style={styles.nav}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel="返回">
+        <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel={t('common.back')}>
           <ChevronLeftIcon color={c.brand} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: c.label }]}>最近刪除</Text>
+        <Text style={[styles.title, { color: c.label }]}>{t('deleted.title')}</Text>
         <View style={styles.navBtn} />
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom, paddingHorizontal: 16 }}>
         {items.length === 0 ? (
-          <Text style={{ color: c.l2, marginTop: 24, fontFamily: 'NaikaiSubset-Regular', textAlign: 'center' }}>沒有項目</Text>
+          <Text style={{ color: c.l2, marginTop: 24, fontFamily: 'NaikaiSubset-Regular', textAlign: 'center' }}>{t('deleted.empty')}</Text>
         ) : items.map((it) => (
           <View key={it.id} style={[styles.row, { backgroundColor: c.cell }]}>
             <View style={{ flex: 1 }}>
@@ -47,12 +48,12 @@ export default function RecentlyDeletedScreen() {
               </Text>
             </View>
             <TouchableOpacity onPress={() => restore(it)} style={[styles.btn, { borderColor: c.brand }]}>
-              <Text style={{ color: c.brand, fontFamily: 'NaikaiSubset-SemiBold' }}>還原</Text>
+              <Text style={{ color: c.brand, fontFamily: 'NaikaiSubset-SemiBold' }}>{t('deleted.restore')}</Text>
             </TouchableOpacity>
           </View>
         ))}
         <Text style={{ color: c.l3, fontSize: 13, marginTop: 20, textAlign: 'center', fontFamily: 'NaikaiSubset-Regular' }}>
-          30 天後永久刪除
+          {t('deleted.purge')}
         </Text>
       </ScrollView>
     </View>
