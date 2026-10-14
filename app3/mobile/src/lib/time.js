@@ -86,7 +86,12 @@ export function formatLastDoneRelative(ts, now = Date.now(), locale) {
   if (!ts) return '';
   const t0 = new Date(ts).getTime();
   if (Number.isNaN(t0)) return '';
-  const days = Math.floor(Math.max(0, now - t0) / DAY);
+  const a = new Date(t0);
+  const b = new Date(now);
+  const startA = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+  const startB = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  // Calendar days between local midnights; round absorbs DST 23h/25h days.
+  const days = Math.max(0, Math.round((startB - startA) / DAY));
   const loc = locale || getLocale();
   if (days <= 0) return tLocale(loc, 'common.today');
   if (days === 1) return tLocale(loc, 'common.yesterday');
