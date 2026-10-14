@@ -61,7 +61,8 @@
     "a11ySort": "排序",
     "a11yAdd": "新增項目",
     "a11yDelete": "刪除{title}",
-    "a11yLog": "記錄{title}，剛剛做了"
+    "a11yLog": "記錄{title}，剛剛做了",
+    "dueToday": "今天該做的"
   },
   "detail": {
     "edit": "編輯",
@@ -98,7 +99,6 @@
     "placeholder": "要記的事",
     "last": "上次做是",
     "reminder": "提醒",
-    "reminderNew": "先加入項目，再到詳情設定提醒。",
     "notes": "備註"
   },
   "settings": {
@@ -121,7 +121,7 @@
     "privacy": "隱私權政策"
   },
   "paywall": {
-    "headline": "不只記 3 件事",
+    "headline": "不只記 {n} 件事",
     "unlimited": "無限項目",
     "unlimitedSub": "免費版 {n} 個",
     "widgets": "桌面小工具",
@@ -196,5 +196,10 @@
     "sheets": "洗床單",
     "plant": "幫植物澆水",
     "hair": "剪頭髮"
+  },
+  "date": {
+    "weekAgo": "1 週前",
+    "monthAgo": "1 個月前",
+    "unknown": "不記得"
   }
 }
