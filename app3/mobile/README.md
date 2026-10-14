@@ -7,7 +7,7 @@ v1.1 core UI (this slice):
 - IAP unlock + Restore Purchases (expo-iap), free tier = 3 items
 - i18n (en, zh-Hant)
 - Local reminders are scheduled with expo-notifications (one per item, iOS 64 cap, snooze)
-- Import/export and Recently Deleted are the next slice
+- Recently Deleted (30 days) + JSON/CSV export and JSON import
 
 v1.1 widgets (this slice):
 - App Group `group.com.beenages.app` snapshot + check-in queue

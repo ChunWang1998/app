@@ -5,8 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, useTheme } from '../theme/useTheme';
 import { restoreProUnlock } from '../lib/iap';
 import { isProUnlocked } from '../lib/entitlements';
-import { refreshReminders } from '../data/repository';
+import { exportToJson, exportToCsv, importFromJson, getRecentlyDeleted, subscribe, refreshReminders } from '../data/repository';
+import { exportFileName } from '../data/csv';
+import { finiteSize, importSizeError, utf8ByteLength } from '../data/importLimit';
 import { ChevronLeftIcon, ChevronRightIcon, CheckIcon, RestoreIcon, MailIcon, LockIcon, GridIcon, PaintIcon, ClockIcon, BellIcon } from '../components/Icons';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+import * as DocumentPicker from 'expo-document-picker';
 
 const PRIVACY_URL = 'https://chunwang1998.github.io/app/app3/store/privacy.html';
 const SUPPORT_URL = 'https://chunwang1998.github.io/app/app3/store/support.html';
@@ -29,7 +34,9 @@ export default function SettingsScreen() {
     showNameInNotifications, setShowNameInNotifications,
   } = useTheme();
   const [pro, setPro] = React.useState(false);
+  const [trash, setTrash] = React.useState(() => getRecentlyDeleted().length);
   React.useEffect(() => { isProUnlocked().then(setPro); }, []);
+  React.useEffect(() => subscribe(() => setTrash(getRecentlyDeleted().length)), []);
 
   async function restore() {
     const r = await restoreProUnlock();
@@ -58,6 +65,94 @@ export default function SettingsScreen() {
   function cycleTime() {
     const i = TIMES.indexOf(reminderTime);
     setReminderTime(TIMES[(i + 1) % TIMES.length]);
+  }
+
+  async function shareExport(kind) {
+    const body = kind === 'csv' ? await exportToCsv() : JSON.stringify(await exportToJson(), null, 2);
+    const name = exportFileName(kind);
+    const mime = kind === 'csv' ? 'text/csv' : 'application/json';
+    const dir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+    const path = `${dir}${name}`;
+    try {
+      await FileSystem.writeAsStringAsync(path, body);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(path, { mimeType: mime, dialogTitle: '匯出' });
+      } else {
+        Alert.alert('匯出完成', kind === 'csv' ? '已產生 CSV' : '已產生 JSON');
+      }
+    } finally {
+      try {
+        await FileSystem.deleteAsync(path, { idempotent: true });
+      } catch {
+        // temp file cleanup is best-effort
+      }
+    }
+  }
+
+  function doExport() {
+    Alert.alert('匯出', '選擇格式', [
+      { text: '取消', style: 'cancel' },
+      { text: 'JSON', onPress: () => shareExport('json').catch((e) => Alert.alert('失敗', String(e?.message || e))) },
+      { text: 'CSV', onPress: () => shareExport('csv').catch((e) => Alert.alert('失敗', String(e?.message || e))) },
+    ]);
+  }
+
+  async function doImport() {
+    try {
+      const pick = await DocumentPicker.getDocumentAsync({ type: 'application/json', multiple: false, copyToCacheDirectory: true });
+      if (pick.canceled) return;
+      const file = pick.assets?.[0];
+      if (!file?.uri) {
+        Alert.alert('匯入失敗', '找不到檔案');
+        return;
+      }
+      let size = finiteSize(file.size);
+      if (size == null) {
+        try {
+          const info = await FileSystem.getInfoAsync(file.uri);
+          size = finiteSize(info?.size);
+        } catch {
+          size = null;
+        }
+      }
+      if (size != null) {
+        const early = importSizeError(size);
+        if (early) {
+          Alert.alert('匯入失敗', early);
+          return;
+        }
+      }
+      const raw = await FileSystem.readAsStringAsync(file.uri);
+      const after = importSizeError(utf8ByteLength(raw) ?? size);
+      if (after) {
+        Alert.alert('匯入失敗', after);
+        return;
+      }
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        Alert.alert('匯入失敗', '不是合法的 JSON 檔');
+        return;
+      }
+      Alert.alert('匯入', '將以檔案內容覆蓋目前資料，是否繼續？', [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '匯入',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const result = await importFromJson(data);
+              Alert.alert('完成', result?.truncated ? '已匯入資料。免費版只保留 3 個項目。' : '已匯入資料');
+            } catch (e) {
+              Alert.alert('匯入失敗', String(e?.message || e));
+            }
+          },
+        },
+      ]);
+    } catch (e) {
+      Alert.alert('匯入失敗', String(e?.message || e));
+    }
   }
 
   return (
@@ -89,6 +184,20 @@ export default function SettingsScreen() {
             icon={<Sq bg="#5DBB7A"><GridIcon color="#fff" size={15} /></Sq>}
             title="小工具"
             onPress={() => nav.navigate('WidgetPicker')}
+            chev
+            c={c}
+            last
+          />
+        </View>
+
+        <Text style={[styles.sec, { color: c.label }]}>資料</Text>
+        <View style={[styles.grp, { backgroundColor: c.cell }]}>
+          <Row title="匯出" value="JSON・CSV" onPress={doExport} chev c={c} />
+          <Row title="匯入" value="JSON" onPress={doImport} chev c={c} />
+          <Row
+            title="最近刪除"
+            value={String(trash)}
+            onPress={() => nav.navigate('RecentlyDeleted')}
             chev
             c={c}
             last
@@ -144,6 +253,18 @@ export default function SettingsScreen() {
         </View>
 
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 32 }]}>
+          <Row
+            title="給個評分"
+            onPress={() => open('itms-apps://itunes.apple.com/app/id6822311922?action=write-review')}
+            chev
+            c={c}
+          />
+          <Row
+            title="聯絡我們"
+            onPress={() => open('mailto:tinytoolshedhq@gmail.com')}
+            chev
+            c={c}
+          />
           <Row
             icon={<Sq bg="#30B0C7"><MailIcon color="#fff" size={16} /></Sq>}
             title="支援"

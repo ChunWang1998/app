@@ -33,3 +33,25 @@ describe('reminderTime HH:MM', () => {
     expect(blob.activities[0].reminderTime).toBeUndefined();
   });
 });
+
+describe('dates 2000–2100', () => {
+  it('accepts years inside the range', () => {
+    expect(activitySchema.parse({
+      ...base,
+      lastDoneAt: '2000-01-01T00:00:00.000Z',
+      createdAt: '2100-12-31T23:59:59.000Z',
+      updatedAt: '2026-10-14T00:00:00.000Z',
+    }).lastDoneAt).toBe('2000-01-01T00:00:00.000Z');
+  });
+
+  it('rejects years outside 2000–2100', () => {
+    expect(() => activitySchema.parse({ ...base, lastDoneAt: '1999-12-31T23:59:59.000Z' })).toThrow();
+    expect(() => activitySchema.parse({ ...base, createdAt: '2101-01-01T00:00:00.000Z' })).toThrow();
+    expect(() => validateExport({
+      schema: 'been-ages/export',
+      version: 1,
+      exportedAt: '1999-01-01T00:00:00.000Z',
+      activities: [base],
+    })).toThrow();
+  });
+});
