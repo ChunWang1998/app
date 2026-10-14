@@ -62,6 +62,24 @@ jest.mock('expo-haptics', () => ({
   NotificationFeedbackType: { Success: 'success' },
 }));
 
+jest.mock('expo-file-system', () => ({
+  cacheDirectory: '/tmp/',
+  documentDirectory: '/tmp/',
+  writeAsStringAsync: jest.fn(async () => {}),
+  readAsStringAsync: jest.fn(async () => ''),
+  getInfoAsync: jest.fn(async () => ({ exists: true, size: 0 })),
+  deleteAsync: jest.fn(async () => {}),
+}));
+
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn(async () => false),
+  shareAsync: jest.fn(async () => {}),
+}));
+
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(async () => ({ canceled: true })),
+}));
+
 // Force simulate IAP in tests
 process.env.EXPO_PUBLIC_IAP_SIMULATE = '1';
 

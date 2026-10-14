@@ -36,6 +36,9 @@ describe('v1.1 ships finished entry points only', () => {
     expect(settings).toMatch(/顯示/);
     expect(settings).toMatch(/恢復購買/);
     expect(settings).toMatch(/通知含名稱/);
+    expect(settings).toMatch(/getInfoAsync/);
+    expect(settings).toMatch(/deleteAsync/);
+    expect(settings).toMatch(/exportFileName/);
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/privacy.html');
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/support.html');
   });

@@ -2,6 +2,7 @@ import React from 'react';
 import { createActivity, nowIso, migrateActivity, normalizeHistory, lastDoneFromHistory } from './models';
 import { KeyValueStorage, loadState, saveState } from './storage';
 import { validateExport } from './schema';
+import { csvEscape } from './csv';
 import { isProUnlocked } from '../lib/entitlements';
 
 const storage = new KeyValueStorage();
@@ -169,11 +170,6 @@ export async function undoDelete(id) {
 export async function exportToCsv() {
   const rows = state.activities.filter((a) => !a.deletedAt);
   const header = ['id', 'title', 'icon', 'lastDoneAt', 'reminderDays', 'notes', 'history'];
-  const escape = (v) => {
-    const s = v == null ? '' : String(v);
-    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-    return s;
-  };
   const lines = [header.join(',')];
   for (const a of rows) {
     lines.push([
@@ -184,7 +180,7 @@ export async function exportToCsv() {
       a.reminderDays ?? '',
       a.notes || '',
       (a.history || []).map((e) => e.at).join('|'),
-    ].map(escape).join(','));
+    ].map(csvEscape).join(','));
   }
   return lines.join('\n');
 }

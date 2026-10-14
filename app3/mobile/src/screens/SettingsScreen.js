@@ -6,6 +6,8 @@ import { useThemeColors, useTheme } from '../theme/useTheme';
 import { restoreProUnlock } from '../lib/iap';
 import { isProUnlocked } from '../lib/entitlements';
 import { exportToJson, exportToCsv, importFromJson, getRecentlyDeleted, subscribe, refreshReminders } from '../data/repository';
+import { exportFileName } from '../data/csv';
+import { finiteSize, importSizeError, utf8ByteLength } from '../data/importLimit';
 import { ChevronLeftIcon, ChevronRightIcon, CheckIcon, RestoreIcon, MailIcon, LockIcon, PaintIcon, ClockIcon, BellIcon } from '../components/Icons';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
@@ -67,15 +69,23 @@ export default function SettingsScreen() {
 
   async function shareExport(kind) {
     const body = kind === 'csv' ? await exportToCsv() : JSON.stringify(await exportToJson(), null, 2);
-    const name = kind === 'csv' ? 'been-ages-export.csv' : 'been-ages-export.json';
+    const name = exportFileName(kind);
     const mime = kind === 'csv' ? 'text/csv' : 'application/json';
     const dir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
     const path = `${dir}${name}`;
-    await FileSystem.writeAsStringAsync(path, body);
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(path, { mimeType: mime, dialogTitle: '匯出' });
-    } else {
-      Alert.alert('匯出完成', kind === 'csv' ? '已產生 CSV' : '已產生 JSON');
+    try {
+      await FileSystem.writeAsStringAsync(path, body);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(path, { mimeType: mime, dialogTitle: '匯出' });
+      } else {
+        Alert.alert('匯出完成', kind === 'csv' ? '已產生 CSV' : '已產生 JSON');
+      }
+    } finally {
+      try {
+        await FileSystem.deleteAsync(path, { idempotent: true });
+      } catch {
+        // temp file cleanup is best-effort
+      }
     }
   }
 
@@ -96,7 +106,28 @@ export default function SettingsScreen() {
         Alert.alert('匯入失敗', '找不到檔案');
         return;
       }
+      let size = finiteSize(file.size);
+      if (size == null) {
+        try {
+          const info = await FileSystem.getInfoAsync(file.uri);
+          size = finiteSize(info?.size);
+        } catch {
+          size = null;
+        }
+      }
+      if (size != null) {
+        const early = importSizeError(size);
+        if (early) {
+          Alert.alert('匯入失敗', early);
+          return;
+        }
+      }
       const raw = await FileSystem.readAsStringAsync(file.uri);
+      const after = importSizeError(utf8ByteLength(raw) ?? size);
+      if (after) {
+        Alert.alert('匯入失敗', after);
+        return;
+      }
       let data;
       try {
         data = JSON.parse(raw);

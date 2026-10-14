@@ -1,3 +1,5 @@
+import { isoYearInRange } from './schema';
+
 export const ICON_DEFAULT = 'brush';
 export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye'];
 
@@ -10,16 +12,16 @@ function normalizeIcon(icon) {
   return ICON_DEFAULT;
 }
 
+function toIsoEntry(t) {
+  if (!Number.isFinite(t)) return null;
+  const at = new Date(t).toISOString();
+  return isoYearInRange(at) ? { at } : null;
+}
+
 function toEntry(value) {
   if (!value) return null;
-  if (typeof value === 'string') {
-    const t = new Date(value).getTime();
-    return Number.isFinite(t) ? { at: new Date(t).toISOString() } : null;
-  }
-  if (value instanceof Date) {
-    const t = value.getTime();
-    return Number.isFinite(t) ? { at: new Date(t).toISOString() } : null;
-  }
+  if (typeof value === 'string') return toIsoEntry(new Date(value).getTime());
+  if (value instanceof Date) return toIsoEntry(value.getTime());
   if (value.at) return toEntry(value.at);
   return null;
 }
