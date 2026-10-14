@@ -15,7 +15,7 @@ import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { Mascot } from '../components/Mascot';
 import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
-import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneLine } from '../lib/time';
+import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort } from '../lib/time';
 import { monogramLetter } from '../lib/suggestIcon';
 import * as Haptics from 'expo-haptics';
 import { isProUnlocked } from '../lib/entitlements';
@@ -198,7 +198,7 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
 
   let status;
   if (!item.lastDoneAt) status = t('home.neverLogged');
-  else if (!hasReminder) status = formatLastDoneLine(item.lastDoneAt, Date.now(), getLocale());
+  else if (!hasReminder) status = formatLastDoneShort(item.lastDoneAt, Date.now(), getLocale());
   else if (od) status = `${t('home.overdue')}\u2009${formatSpan(-due)}`;
   else status = `${t('home.remaining')}\u2009${formatSpan(due)}`;
 
@@ -221,7 +221,7 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
         </View>
         <TouchableOpacity style={styles.tx} onPress={onOpen} activeOpacity={0.7}>
           <Text numberOfLines={1} style={[styles.nm, { color: c.label }]}>{item.title}</Text>
-          <Text style={[styles.st, { color: od ? c.red : c.l2 }]}>{status}</Text>
+          <Text numberOfLines={1} style={[styles.st, { color: od ? c.red : c.l2 }]}>{status}</Text>
           {hasReminder ? (
             <View style={[styles.trk, { backgroundColor: c.track }]}>
               <View

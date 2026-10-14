@@ -98,6 +98,13 @@ export function formatLastDoneRelative(ts, now = Date.now(), locale) {
   return tLocale(loc, 'common.daysAgo', { n: days });
 }
 
+/** One-line list subtitle, e.g. "3 days ago · Oct 11" / "3 天前 · 10/11". */
+export function formatLastDoneShort(ts, now = Date.now(), locale) {
+  if (!ts) return '';
+  const loc = locale || getLocale();
+  return `${formatLastDoneRelative(ts, now, loc)} \u00b7 ${formatLastDoneDate(ts, loc)}`;
+}
+
 /** e.g. "3 days ago · Last done Oct 11" */
 export function formatLastDoneLine(ts, now = Date.now(), locale) {
   if (!ts) return '';

@@ -11,7 +11,7 @@ import { formatDate, formatTime } from '../lib/time';
 import { suggestIcon, monogramLetter } from '../lib/suggestIcon';
 import { t } from '../i18n';
 
-const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car'];
+const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car', 'paw'];
 
 export default function EditScreen() {
   const nav = useNavigation();
@@ -26,7 +26,7 @@ export default function EditScreen() {
   const [icon, setIcon] = useState(current?.icon || (isNew ? 'mono' : 'brush'));
   const [iconManual, setIconManual] = useState(!isNew);
   const [notes, setNotes] = useState(current?.notes || '');
-  const [lastDoneAt, setLastDoneAt] = useState(current?.lastDoneAt || null);
+  const [lastDoneAt, setLastDoneAt] = useState(() => (isNew ? new Date().toISOString() : current?.lastDoneAt || null));
   const [busy, setBusy] = useState(false);
 
   const remLabel = current?.reminderDays ? t('detail.everyDays', { n: current.reminderDays }) : t('detail.noReminder');
@@ -154,12 +154,12 @@ export default function EditScreen() {
             <Text style={[styles.lab, { color: c.label }]}>{t('edit.last')}</Text>
             <TouchableOpacity onPress={setLastToday} style={[styles.pill, { backgroundColor: c.fill }]}>
               <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular' }}>
-                {lastDoneAt ? formatDate(lastDoneAt) : t('common.today')}
+                {lastDoneAt ? formatDate(lastDoneAt) : t('home.neverLogged')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={setLastNowTime} style={[styles.pill, { backgroundColor: c.fill }]}>
               <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular' }}>
-                {lastDoneAt ? formatTime(lastDoneAt) : formatTime(new Date().toISOString())}
+                {lastDoneAt ? formatTime(lastDoneAt) : '—'}
               </Text>
             </TouchableOpacity>
           </View>
