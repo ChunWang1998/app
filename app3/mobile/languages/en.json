@@ -210,6 +210,8 @@
     "name": "Name",
     "keywords": "Keywords",
     "deleteMoved": "{n} moved to Other",
+    "limit": "Up to {n}",
+    "duplicate": "Name already used",
     "auto": "Auto",
     "defaults": {
       "clean": "Cleaning",

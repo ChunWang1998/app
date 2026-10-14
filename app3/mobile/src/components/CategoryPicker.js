@@ -41,8 +41,8 @@ export function CategoryPicker({ visible, categories, value, onPick, onClose }) 
 const styles = StyleSheet.create({
   dim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 16, paddingBottom: 34, maxHeight: '60%' },
-  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17, textAlign: 'center', marginBottom: 12 },
+  title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17, textAlign: 'center', marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, gap: 8 },
   cell: { width: '48%', flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 14, borderWidth: 1.5 },
-  name: { flex: 1, fontFamily: 'NaikaiSubset-Regular', fontSize: 16 },
+  name: { flex: 1, fontFamily: 'BeenAgesRounded-Regular', fontSize: 16 },
 });

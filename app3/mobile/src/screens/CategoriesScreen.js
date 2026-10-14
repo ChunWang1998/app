@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useActivities } from '../data/repository';
+import { useActivities, MAX_CATEGORIES } from '../data/repository';
 import { useThemeColors } from '../theme/useTheme';
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from '../components/Icons';
 import { CategoryGlyph } from '../components/CategoryGlyph';
@@ -46,7 +46,17 @@ export default function CategoriesScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
           {categories.map((cat) => row(cat, { onPress: () => nav.navigate('CategoryEdit', { id: cat.id }) }))}
-          <TouchableOpacity testID="cat-add" onPress={() => nav.navigate('CategoryEdit', {})} style={styles.row}>
+          <TouchableOpacity
+            testID="cat-add"
+            onPress={() => {
+              if (categories.length >= MAX_CATEGORIES) {
+                Alert.alert(t('category.limit', { n: MAX_CATEGORIES }));
+                return;
+              }
+              nav.navigate('CategoryEdit', {});
+            }}
+            style={styles.row}
+          >
             <View style={[styles.plus, { backgroundColor: c.tint }]}><PlusIcon color={c.brand} size={16} /></View>
             <Text style={[styles.name, { color: c.brand }]}>{t('category.newCategory')}</Text>
           </TouchableOpacity>
@@ -62,10 +72,10 @@ export default function CategoriesScreen() {
 const styles = StyleSheet.create({
   nav: { height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
+  title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
   grp: { marginHorizontal: 16, borderRadius: 18, overflow: 'hidden', marginTop: 12 },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 52, paddingHorizontal: 14, gap: 12 },
-  name: { flex: 1, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' },
-  count: { fontSize: 16, fontFamily: 'NaikaiSubset-Regular', marginRight: 4 },
+  name: { flex: 1, fontSize: 17, fontFamily: 'BeenAgesRounded-Regular' },
+  count: { fontSize: 16, fontFamily: 'BeenAgesRounded-Regular', marginRight: 4 },
   plus: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
 });

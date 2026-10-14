@@ -16,7 +16,7 @@ export function ItemGlyph({ kind = 'brush', color = '#3E9180', size = 20, stroke
           height: size,
           width: size,
           textAlign: 'center',
-          fontFamily: 'NaikaiSubset-Bold',
+          fontFamily: 'BeenAgesRounded-Bold',
           color,
         }}
       >

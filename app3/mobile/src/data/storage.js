@@ -28,7 +28,7 @@ export const CORRUPT_KEY = 'state/v1.corrupt';
 
 /**
  * Persist entire app state in one blob (simple and atomic for v1).
- * Shape: { activities: Activity[], version: 1 }
+ * Shape: { activities: Activity[], version: number, categories?: Category[] }
  */
 export async function loadState(storage = new KeyValueStorage()) {
   let raw = null;
@@ -39,7 +39,7 @@ export async function loadState(storage = new KeyValueStorage()) {
     if (!data || typeof data !== 'object') throw new Error('bad state');
     if (!Array.isArray(data.activities)) data.activities = [];
     return {
-      version: 1,
+      version: Number.isInteger(data.version) ? data.version : 1,
       activities: data.activities.map(migrateActivity),
       ...(Array.isArray(data.categories) ? { categories: data.categories } : {}),
     };
@@ -57,7 +57,7 @@ export async function loadState(storage = new KeyValueStorage()) {
 
 export async function saveState(state, storage = new KeyValueStorage()) {
   const clean = {
-    version: 1,
+    version: Number.isInteger(state.version) ? state.version : 1,
     activities: Array.isArray(state.activities) ? state.activities : [],
     ...(Array.isArray(state.categories) ? { categories: state.categories } : {}),
   };

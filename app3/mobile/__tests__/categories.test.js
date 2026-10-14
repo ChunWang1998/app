@@ -1,13 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import {
-  OTHER_ID, seedCategories, seedKeywords, matchCategory, migrateCategories, normalizeKeywords, categoryName, filterByCategory,
+  OTHER_ID, MAX_CATEGORIES, CATEGORIES_STATE_VERSION, seedCategories, seedKeywords, matchCategory, migrateCategories,
+  normalizeCategory, normalizeKeywords, categoryName, filterByCategory,
 } from '../src/lib/categories';
 import * as repo from '../src/data/repository';
 import { STATE_KEY } from '../src/data/storage';
 import { sfSymbolForIcon } from '../src/data/appGroup';
 import { ICON_KINDS } from '../src/data/models';
-import { activitySchema } from '../src/data/schema';
+import { activitySchema, categorySchema } from '../src/data/schema';
 import { chipList } from '../src/components/CategoryChips';
 import en from '../languages/en.json';
 import zh from '../languages/zh-Hant.json';
@@ -69,6 +70,7 @@ describe('migration', () => {
   it('seeds categories and classifies existing items, falling back to Other', () => {
     const out = migrateCategories({ version: 1, activities: [row('1', '換貓砂'), row('2', '報稅'), row('3', '澆花')] });
     expect(out.categories).toHaveLength(7);
+    expect(out.version).toBe(CATEGORIES_STATE_VERSION);
     expect(out.activities.map((a) => a.categoryId)).toEqual(['pet', OTHER_ID, 'plant']);
   });
   it('keeps valid categories, re-homes stale ids, never reseeds', () => {
@@ -88,8 +90,10 @@ describe('migration', () => {
     expect(repo.getCategories()).toHaveLength(7);
     const saved = JSON.parse(await repo.repositoryStorageForTests.getItem(STATE_KEY));
     expect(saved.categories).toHaveLength(7);
+    expect(saved.version).toBe(CATEGORIES_STATE_VERSION);
     expect(saved.activities[0].categoryId).toBe('pet');
     for (const a of saved.activities) expect(() => activitySchema.parse(a)).not.toThrow();
+    for (const c of saved.categories) expect(() => categorySchema.parse(c)).not.toThrow();
   });
 });
 
@@ -131,6 +135,42 @@ describe('repository categories (free)', () => {
     const body = src.slice(src.indexOf('// ---- Categories'));
     expect(body).not.toMatch(/isProUnlocked|FREE_LIMIT/);
   });
+  it('rejects a 31st category', async () => {
+    const n = MAX_CATEGORIES - repo.getCategories().length;
+    for (let i = 0; i < n; i++) await repo.addCategory({ name: `Extra ${i}` });
+    expect(repo.getCategories()).toHaveLength(MAX_CATEGORIES);
+    await expect(repo.addCategory({ name: 'Nope' })).rejects.toHaveProperty('code', 'CATEGORY_LIMIT');
+    expect(repo.getCategories()).toHaveLength(MAX_CATEGORIES);
+  });
+  it('rejects duplicate names, including Other in every locale', async () => {
+    await expect(repo.addCategory({ name: ' pets ' })).rejects.toHaveProperty('code', 'CATEGORY_DUP');
+    await expect(repo.addCategory({ name: '寵物' })).rejects.toHaveProperty('code', 'CATEGORY_DUP');
+    await expect(repo.addCategory({ name: 'Other' })).rejects.toHaveProperty('code', 'CATEGORY_DUP');
+    await expect(repo.addCategory({ name: '其他' })).rejects.toHaveProperty('code', 'CATEGORY_DUP');
+    await expect(repo.addCategory({ name: 'その他' })).rejects.toHaveProperty('code', 'CATEGORY_DUP');
+    const cat = await repo.addCategory({ name: 'Mine' });
+    await expect(repo.addCategory({ name: 'mine' })).rejects.toHaveProperty('code', 'CATEGORY_DUP');
+    await expect(repo.updateCategory(cat.id, { name: 'Cleaning' })).rejects.toHaveProperty('code', 'CATEGORY_DUP');
+    await repo.updateCategory(cat.id, { name: 'Mine' });
+    expect(repo.getCategories().find((c) => c.id === cat.id).name).toBe('Mine');
+  });
+  it('unknown icons fall back to mono', async () => {
+    expect(normalizeCategory({ id: 'x', name: 'X', icon: 'evil' }).icon).toBe('mono');
+    const cat = await repo.addCategory({ name: 'Zed', icon: 'not-an-icon' });
+    expect(cat.icon).toBe('mono');
+    expect(() => categorySchema.parse(cat)).not.toThrow();
+    await repo.updateCategory(cat.id, { icon: 'javascript:alert(1)' });
+    expect(repo.getCategories().find((c) => c.id === cat.id).icon).toBe('mono');
+    await repo.updateCategory(cat.id, { icon: 'paw' });
+    expect(repo.getCategories().find((c) => c.id === cat.id).icon).toBe('paw');
+  });
+  it('edit screen shows a short error on limit and duplicate', () => {
+    const src = read('../src/screens/CategoryEditScreen.js');
+    expect(src).toMatch(/CATEGORY_LIMIT/);
+    expect(src).toMatch(/CATEGORY_DUP/);
+    expect(src).toMatch(/category\.limit/);
+    expect(src).toMatch(/category\.duplicate/);
+  });
 });
 
 describe('home', () => {
@@ -165,7 +205,7 @@ describe('icons and widgets', () => {
 describe('strings', () => {
   it('category keys exist in en / zh-Hant / ja', () => {
     for (const l of [en, zh, ja]) {
-      for (const k of ['title', 'all', 'other', 'newCategory', 'name', 'keywords', 'deleteMoved', 'auto']) expect(l.category[k]).toBeTruthy();
+      for (const k of ['title', 'all', 'other', 'newCategory', 'name', 'keywords', 'deleteMoved', 'limit', 'duplicate', 'auto']) expect(l.category[k]).toBeTruthy();
       for (const k of ['clean', 'care', 'pet', 'plant', 'car', 'health', 'appl']) expect(l.category.defaults[k]).toBeTruthy();
     }
   });

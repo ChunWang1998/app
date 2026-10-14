@@ -115,7 +115,7 @@ export default function ShareCardScreen() {
                 style={[styles.swatch, { backgroundColor: s.bg, borderColor: on ? c.brand : 'transparent' }]}
                 accessibilityLabel={t(`share.${s.id}`)}
               >
-                <Text style={{ color: s.ink, fontFamily: 'NaikaiSubset-Regular', fontSize: 13 }}>
+                <Text style={{ color: s.ink, fontFamily: 'BeenAgesRounded-Regular', fontSize: 13 }}>
                   {t(`share.${s.id}`)}{locked ? ' ·Pro' : ''}
                 </Text>
               </TouchableOpacity>
@@ -130,7 +130,7 @@ export default function ShareCardScreen() {
               onPress={() => setSizeKey(s.key)}
               style={[styles.sizeBtn, { backgroundColor: sizeKey === s.key ? c.brand : c.cell }]}
             >
-              <Text style={{ color: sizeKey === s.key ? c.onbrand : c.label, fontFamily: 'NaikaiSubset-SemiBold' }}>
+              <Text style={{ color: sizeKey === s.key ? c.onbrand : c.label, fontFamily: 'BeenAgesRounded-SemiBold' }}>
                 {s.label}
               </Text>
             </TouchableOpacity>
@@ -144,7 +144,7 @@ export default function ShareCardScreen() {
           accessibilityLabel={t('common.share')}
         >
           {busy ? <ActivityIndicator color={c.onbrand} /> : (
-            <Text style={{ color: c.onbrand, fontFamily: 'NaikaiSubset-SemiBold', fontSize: 18 }}>{t('common.share')}</Text>
+            <Text style={{ color: c.onbrand, fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 18 }}>{t('common.share')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -161,11 +161,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
+  title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
   grp: { width: 320, borderRadius: 18, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16 },
-  rowTitle: { flex: 1, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' },
-  sec: { alignSelf: 'flex-start', marginLeft: 36, marginTop: 18, marginBottom: 8, fontFamily: 'NaikaiSubset-Regular' },
+  rowTitle: { flex: 1, fontSize: 17, fontFamily: 'BeenAgesRounded-Regular' },
+  sec: { alignSelf: 'flex-start', marginLeft: 36, marginTop: 18, marginBottom: 8, fontFamily: 'BeenAgesRounded-Regular' },
   swatches: { flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
   swatch: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14, borderWidth: 2 },
   sizes: { flexDirection: 'row', gap: 10, marginTop: 18 },

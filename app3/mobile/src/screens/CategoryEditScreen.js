@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useActivities, addCategory, updateCategory, deleteCategory } from '../data/repository';
+import { useActivities, addCategory, updateCategory, deleteCategory, MAX_CATEGORIES } from '../data/repository';
 import { useThemeColors, useItemTone } from '../theme/useTheme';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { suggestIcon } from '../lib/suggestIcon';
@@ -41,13 +41,19 @@ export default function CategoryEditScreen() {
     const trimmed = name.trim();
     if (!trimmed) return;
     const kw = normalizeKeywords([...keywords, draft]);
-    if (isNew) {
-      await addCategory({ name: trimmed, icon, keywords: kw });
-    } else {
-      const renamed = trimmed !== categoryName(current, t);
-      await updateCategory(current.id, { ...(renamed ? { name: trimmed } : {}), icon, keywords: kw });
+    try {
+      if (isNew) {
+        await addCategory({ name: trimmed, icon, keywords: kw });
+      } else {
+        const renamed = trimmed !== categoryName(current, t);
+        await updateCategory(current.id, { ...(renamed ? { name: trimmed } : {}), icon, keywords: kw });
+      }
+      nav.goBack();
+    } catch (e) {
+      if (e?.code === 'CATEGORY_LIMIT') Alert.alert(t('category.limit', { n: MAX_CATEGORIES }));
+      else if (e?.code === 'CATEGORY_DUP') Alert.alert(t('category.duplicate'));
+      else Alert.alert(t('common.fail'), String(e?.message || e));
     }
-    nav.goBack();
   }
 
   function del() {
@@ -69,11 +75,11 @@ export default function CategoryEditScreen() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.sheetbg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.nav, { paddingTop: insets.top ? 8 : 0 }]}>
         <TouchableOpacity onPress={() => nav.goBack()} style={styles.side}>
-          <Text style={{ color: c.brand, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>{t('common.cancel')}</Text>
+          <Text style={{ color: c.brand, fontSize: 17, fontFamily: 'BeenAgesRounded-Regular' }}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: c.label }]}>{isNew ? t('category.newCategory') : t('edit.edit')}</Text>
         <TouchableOpacity onPress={save} style={[styles.side, { alignItems: 'flex-end' }]} disabled={!name.trim()} testID="cat-save">
-          <Text style={{ color: name.trim() ? c.brand : c.l3, fontSize: 17, fontFamily: 'NaikaiSubset-SemiBold' }}>
+          <Text style={{ color: name.trim() ? c.brand : c.l3, fontSize: 17, fontFamily: 'BeenAgesRounded-SemiBold' }}>
             {isNew ? t('edit.add') : t('common.done')}
           </Text>
         </TouchableOpacity>
@@ -112,7 +118,7 @@ export default function CategoryEditScreen() {
                 style={[styles.kw, { backgroundColor: tone.ac }]}
                 accessibilityLabel={`${t('common.delete')} ${k}`}
               >
-                <Text style={{ color: tone.acf, fontFamily: 'NaikaiSubset-Regular', fontSize: 15 }}>{k}</Text>
+                <Text style={{ color: tone.acf, fontFamily: 'BeenAgesRounded-Regular', fontSize: 15 }}>{k}</Text>
                 <Text style={{ color: tone.acf, fontSize: 13 }}>{'\u00d7'}</Text>
               </TouchableOpacity>
             ))}
@@ -134,7 +140,7 @@ export default function CategoryEditScreen() {
         {!isNew ? (
           <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 24 }]}>
             <TouchableOpacity onPress={del} style={[styles.row, { justifyContent: 'center' }]} testID="cat-delete">
-              <Text style={{ color: c.red, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>{t('common.delete')}</Text>
+              <Text style={{ color: c.red, fontSize: 17, fontFamily: 'BeenAgesRounded-Regular' }}>{t('common.delete')}</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -157,16 +163,16 @@ function IconBtn({ k, on, name, onPress, idle, dim }) {
 const styles = StyleSheet.create({
   nav: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
   side: { minWidth: 64, height: 44, justifyContent: 'center' },
-  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
+  title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
   grp: { marginHorizontal: 16, borderRadius: 18, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16, gap: 10 },
-  input: { flex: 1, fontSize: 22, fontFamily: 'NaikaiSubset-SemiBold', paddingVertical: 14 },
+  input: { flex: 1, fontSize: 22, fontFamily: 'BeenAgesRounded-SemiBold', paddingVertical: 14 },
   preview: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   icp: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 10, paddingTop: 14, paddingHorizontal: 16 },
   icCell: { width: '20%', alignItems: 'center' },
   icBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  lab: { fontSize: 14, fontFamily: 'NaikaiSubset-Regular', paddingHorizontal: 32, paddingTop: 24 },
+  lab: { fontSize: 14, fontFamily: 'BeenAgesRounded-Regular', paddingHorizontal: 32, paddingTop: 24 },
   kws: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 12 },
   kw: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 11, borderRadius: 14 },
-  kwInput: { minWidth: 72, paddingVertical: 6, paddingHorizontal: 11, borderRadius: 14, fontSize: 15, fontFamily: 'NaikaiSubset-Regular' },
+  kwInput: { minWidth: 72, paddingVertical: 6, paddingHorizontal: 11, borderRadius: 14, fontSize: 15, fontFamily: 'BeenAgesRounded-Regular' },
 });

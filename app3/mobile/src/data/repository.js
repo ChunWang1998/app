@@ -3,11 +3,12 @@ import { createActivity, nowIso, migrateActivity, normalizeHistory, lastDoneFrom
 import { KeyValueStorage, loadState, saveState } from './storage';
 import { isProUnlocked } from '../lib/entitlements';
 import {
-  OTHER_ID, migrateCategories, matchCategory, categoryExists, normalizeCategory, normalizeKeywords, newCategoryId, seedCategories,
+  OTHER_ID, MAX_CATEGORIES, CATEGORIES_STATE_VERSION, migrateCategories, matchCategory, categoryExists,
+  normalizeCategory, normalizeCategoryIcon, normalizeKeywords, newCategoryId, seedCategories, categoryNameTaken,
 } from '../lib/categories';
 
 const storage = new KeyValueStorage();
-let state = { version: 1, activities: [], categories: seedCategories() };
+let state = { version: CATEGORIES_STATE_VERSION, activities: [], categories: seedCategories() };
 let initialized = false;
 const listeners = new Set();
 
@@ -50,7 +51,11 @@ export async function initRepository() {
   });
   state = migrateCategories({ ...loaded, activities: kept });
   initialized = true;
-  if (!Array.isArray(loaded.categories) || kept.some((a, i) => a.categoryId !== state.activities[i].categoryId)) {
+  if (
+    loaded.version !== CATEGORIES_STATE_VERSION
+    || !Array.isArray(loaded.categories)
+    || kept.some((a, i) => a.categoryId !== state.activities[i].categoryId)
+  ) {
     await saveState(state, storage);
   }
   notify();
@@ -62,7 +67,7 @@ export function getRecentlyDeleted() {
 
 export async function resetRepositoryForTests() {
   initialized = false;
-  state = { version: 1, activities: [], categories: seedCategories() };
+  state = { version: CATEGORIES_STATE_VERSION, activities: [], categories: seedCategories() };
   await saveState(state, storage);
   initialized = true;
   notify();
@@ -74,7 +79,7 @@ export async function reloadRepositoryForTests() {
   await initRepository();
 }
 
-export { storage as repositoryStorageForTests };
+export { storage as repositoryStorageForTests, MAX_CATEGORIES };
 
 export function subscribe(cb) {
   listeners.add(cb);
@@ -215,19 +220,38 @@ export function getCategories() {
   return state.categories || [];
 }
 
+function categoryError(code, message) {
+  const err = new Error(message);
+  err.code = code;
+  return err;
+}
+
 export async function addCategory({ name, icon, keywords } = {}) {
-  const cat = normalizeCategory({ id: newCategoryId(), name, icon, keywords });
+  if (getCategories().length >= MAX_CATEGORIES) {
+    throw categoryError('CATEGORY_LIMIT', 'category limit');
+  }
+  const trimmed = String(name || '').trim();
+  if (categoryNameTaken(trimmed, getCategories())) {
+    throw categoryError('CATEGORY_DUP', 'duplicate name');
+  }
+  const cat = normalizeCategory({ id: newCategoryId(), name: trimmed, icon, keywords });
   await persist({ ...state, categories: [...getCategories(), cat] });
   return cat;
 }
 
 /** Keyword edits only affect items added later; existing items keep their category. */
 export async function updateCategory(id, changes = {}) {
+  if (changes.name !== undefined) {
+    const trimmed = String(changes.name || '').trim();
+    if (trimmed && categoryNameTaken(trimmed, getCategories(), { exceptId: id })) {
+      throw categoryError('CATEGORY_DUP', 'duplicate name');
+    }
+  }
   const next = getCategories().map((c) => {
     if (c.id !== id) return c;
     const merged = { ...c };
     if (changes.name !== undefined) merged.name = String(changes.name || '').trim().slice(0, 40) || null;
-    if (changes.icon !== undefined) merged.icon = changes.icon;
+    if (changes.icon !== undefined) merged.icon = normalizeCategoryIcon(changes.icon);
     if (changes.keywords !== undefined) merged.keywords = normalizeKeywords(changes.keywords);
     return merged;
   });

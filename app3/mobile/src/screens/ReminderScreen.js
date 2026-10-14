@@ -105,14 +105,14 @@ export default function ReminderScreen() {
         <View style={[styles.bigblk, { backgroundColor: tone.ac }]}>
           <View style={styles.big}>
             <TouchableOpacity onPress={() => changeDays(days - 1)} style={[styles.rb, { backgroundColor: c.cell }]}>
-              <Text style={{ color: c.label, fontSize: 24, fontFamily: 'NaikaiSubset-Regular' }}>−</Text>
+              <Text style={{ color: c.label, fontSize: 24, fontFamily: 'BeenAgesRounded-Regular' }}>−</Text>
             </TouchableOpacity>
             <View>
               <Text style={[styles.num, { color: c.label }]}>{days}</Text>
-              <Text style={{ textAlign: 'center', color: c.l2, marginTop: 6, fontFamily: 'NaikaiSubset-Regular' }}>{t('reminder.everyNDays')}</Text>
+              <Text style={{ textAlign: 'center', color: c.l2, marginTop: 6, fontFamily: 'BeenAgesRounded-Regular' }}>{t('reminder.everyNDays')}</Text>
             </View>
             <TouchableOpacity onPress={() => changeDays(days + 1)} style={[styles.rb, { backgroundColor: c.cell }]}>
-              <Text style={{ color: c.label, fontSize: 24, fontFamily: 'NaikaiSubset-Regular' }}>+</Text>
+              <Text style={{ color: c.label, fontSize: 24, fontFamily: 'BeenAgesRounded-Regular' }}>+</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.chips}>
@@ -124,7 +124,7 @@ export default function ReminderScreen() {
                   onPress={() => changeDays(ch.d)}
                   style={[styles.chip, { backgroundColor: sel ? c.brand : c.cell }]}
                 >
-                  <Text style={{ color: sel ? c.onbrand : c.label, fontFamily: sel ? 'NaikaiSubset-Bold' : 'NaikaiSubset-Regular', fontSize: 14 }}>
+                  <Text style={{ color: sel ? c.onbrand : c.label, fontFamily: sel ? 'BeenAgesRounded-Bold' : 'BeenAgesRounded-Regular', fontSize: 14 }}>
                     {t(ch.key)}
                   </Text>
                 </TouchableOpacity>
@@ -168,14 +168,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
+  title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
   grp: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden', marginTop: 12 },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 52, paddingHorizontal: 16 },
   rowLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(46,41,37,0.09)' },
-  rowTitle: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', flex: 1 },
+  rowTitle: { fontSize: 17, fontFamily: 'BeenAgesRounded-Regular', flex: 1 },
   bigblk: { marginHorizontal: 16, marginTop: 16, borderRadius: 26, paddingVertical: 16 },
   big: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 28, paddingVertical: 6 },
-  num: { fontSize: 76, fontFamily: 'NaikaiSubset-SemiBold', lineHeight: 84, textAlign: 'center' },
+  num: { fontSize: 76, fontFamily: 'BeenAgesRounded-SemiBold', lineHeight: 84, textAlign: 'center' },
   rb: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingTop: 14, justifyContent: 'center' },
   chip: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 18 },

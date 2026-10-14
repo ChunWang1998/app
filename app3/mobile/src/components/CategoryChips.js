@@ -23,10 +23,10 @@ export function CategoryChips({ categories, counts, total, value, onChange }) {
         style={[styles.chip, { backgroundColor: on ? c.brand : c.cell }]}
       >
         {glyph ? glyph(on) : null}
-        <Text style={{ color: on ? c.onbrand : c.label, fontFamily: on ? 'NaikaiSubset-SemiBold' : 'NaikaiSubset-Regular', fontSize: 15 }}>
+        <Text style={{ color: on ? c.onbrand : c.label, fontFamily: on ? 'BeenAgesRounded-SemiBold' : 'BeenAgesRounded-Regular', fontSize: 15 }}>
           {label}
         </Text>
-        <Text style={{ color: on ? c.onbrand : c.l2, fontSize: 13, fontFamily: 'NaikaiSubset-Regular', opacity: 0.8 }}>{n}</Text>
+        <Text style={{ color: on ? c.onbrand : c.l2, fontSize: 13, fontFamily: 'BeenAgesRounded-Regular', opacity: 0.8 }}>{n}</Text>
       </TouchableOpacity>
     );
   };

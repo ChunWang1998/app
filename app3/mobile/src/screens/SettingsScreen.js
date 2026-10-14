@@ -90,7 +90,7 @@ export default function SettingsScreen() {
                 hitSlop={8}
                 accessibilityLabel={t('settings.redeem')}
               >
-                <Text style={{ color: c.l2, fontSize: 15, fontFamily: 'NaikaiSubset-Regular' }}>{t('settings.redeem')}</Text>
+                <Text style={{ color: c.l2, fontSize: 15, fontFamily: 'BeenAgesRounded-Regular' }}>{t('settings.redeem')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -174,7 +174,7 @@ export default function SettingsScreen() {
             last
           />
         </View>
-        <Text style={{ textAlign: 'center', marginTop: 28, color: c.l3, fontSize: 13, fontFamily: 'NaikaiSubset-Regular' }}>
+        <Text style={{ textAlign: 'center', marginTop: 28, color: c.l3, fontSize: 13, fontFamily: 'BeenAgesRounded-Regular' }}>
           Been Ages 1.1
         </Text>
       </ScrollView>
@@ -195,8 +195,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
-  sec: { fontSize: 20, fontFamily: 'NaikaiSubset-Bold', paddingTop: 28, paddingHorizontal: 20, paddingBottom: 8 },
+  title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
+  sec: { fontSize: 20, fontFamily: 'BeenAgesRounded-Bold', paddingTop: 28, paddingHorizontal: 20, paddingBottom: 8 },
   grp: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden' },
   restoreRow: {
     flexDirection: 'row',
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   restoreMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46 },
-  restoreTitle: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', flex: 1 },
+  restoreTitle: { fontSize: 17, fontFamily: 'BeenAgesRounded-Regular', flex: 1 },
   line: { borderBottomWidth: StyleSheet.hairlineWidth },
   sq: { width: 29, height: 29, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
 });

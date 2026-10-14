@@ -47,5 +47,7 @@ subset "$TMP/SemiBold.ttf" "$OUT/NaikaiSubset-SemiBold.ttf"
 echo "Subsetting Bold..."
 subset "$TMP/Bold.ttf" "$OUT/NaikaiSubset-Bold.ttf"
 
+python3 "$DIR/scripts/rename-font-family.py"
+
 ls -l "$OUT"/NaikaiSubset-*.ttf
 echo "Done. Subsets at $OUT"

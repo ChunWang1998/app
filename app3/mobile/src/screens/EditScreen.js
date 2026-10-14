@@ -125,11 +125,11 @@ export default function EditScreen() {
     >
       <View style={[styles.nav, { paddingTop: 8 }]}>
         <TouchableOpacity onPress={() => nav.goBack()} style={styles.navSide}>
-          <Text style={{ color: c.brand, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>{t('common.cancel')}</Text>
+          <Text style={{ color: c.brand, fontSize: 17, fontFamily: 'BeenAgesRounded-Regular' }}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: c.label }]}>{isNew ? t('edit.newItem') : t('edit.edit')}</Text>
         <TouchableOpacity onPress={save} style={styles.navSideRight} disabled={busy || !title.trim()}>
-          <Text style={{ color: title.trim() ? c.brand : c.l3, fontSize: 17, fontFamily: 'NaikaiSubset-SemiBold' }}>
+          <Text style={{ color: title.trim() ? c.brand : c.l3, fontSize: 17, fontFamily: 'BeenAgesRounded-SemiBold' }}>
             {isNew ? t('edit.add') : t('common.done')}
           </Text>
         </TouchableOpacity>
@@ -156,7 +156,7 @@ export default function EditScreen() {
             {!categoryId ? <Text style={[styles.auto, { color: c.l3 }]}>{t('category.auto')}</Text> : null}
             <TouchableOpacity testID="cat-pill" onPress={() => setPicker(true)} style={[styles.catPill, { backgroundColor: c.cell }]}>
               <CategoryGlyph icon={catObj.icon} name={categoryName(catObj, t)} size={22} glyph={13} />
-              <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular', fontSize: 15 }}>{categoryName(catObj, t)}</Text>
+              <Text style={{ color: c.label, fontFamily: 'BeenAgesRounded-Regular', fontSize: 15 }}>{categoryName(catObj, t)}</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -189,7 +189,7 @@ export default function EditScreen() {
           ) : (
             <TouchableOpacity style={styles.row} onPress={() => nav.navigate('Reminder', { id: current.id })}>
               <Text style={[styles.lab, { color: c.label }]}>{t('edit.reminder')}</Text>
-              <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular', marginLeft: 'auto', marginRight: 6 }}>
+              <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', marginLeft: 'auto', marginRight: 6 }}>
                 {remLabel}
               </Text>
               <ChevronRightIcon color={c.l3} />
@@ -211,7 +211,7 @@ export default function EditScreen() {
         {!!current && (
           <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 24 }]}>
             <TouchableOpacity onPress={del} style={[styles.row, { justifyContent: 'center' }]}>
-              <Text style={{ color: c.red, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>{t('common.delete')}</Text>
+              <Text style={{ color: c.red, fontSize: 17, fontFamily: 'BeenAgesRounded-Regular' }}>{t('common.delete')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -245,22 +245,22 @@ const styles = StyleSheet.create({
   },
   navSide: { minWidth: 64, height: 44, justifyContent: 'center' },
   navSideRight: { minWidth: 64, height: 44, justifyContent: 'center', alignItems: 'flex-end' },
-  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
+  title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
   grp: { marginHorizontal: 16, borderRadius: 18, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16, gap: 10 },
   rowLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(46,41,37,0.09)' },
-  input: { flex: 1, fontSize: 22, fontFamily: 'NaikaiSubset-SemiBold', paddingVertical: 14 },
-  lab: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', minWidth: 44 },
+  input: { flex: 1, fontSize: 22, fontFamily: 'BeenAgesRounded-SemiBold', paddingVertical: 14 },
+  lab: { fontSize: 17, fontFamily: 'BeenAgesRounded-Regular', minWidth: 44 },
   secLab: { paddingHorizontal: 16 },
   catRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 16, paddingTop: 10 },
-  auto: { fontSize: 13, fontFamily: 'NaikaiSubset-Regular' },
+  auto: { fontSize: 13, fontFamily: 'BeenAgesRounded-Regular' },
   catPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingLeft: 4, paddingRight: 12, borderRadius: 16 },
   notes: {
     minHeight: 96,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 17,
-    fontFamily: 'NaikaiSubset-Regular',
+    fontFamily: 'BeenAgesRounded-Regular',
     textAlignVertical: 'top',
   },
   preview: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },

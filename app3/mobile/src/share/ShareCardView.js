@@ -51,7 +51,7 @@ export default function ShareCardView({
           numberOfLines={2}
           style={{
             marginTop: Math.round(height * 0.06),
-            fontFamily: 'NaikaiSubset-SemiBold',
+            fontFamily: 'BeenAgesRounded-SemiBold',
             fontSize: Math.round(width * 0.062),
             color: theme.ink,
           }}
@@ -62,7 +62,7 @@ export default function ShareCardView({
       <Text
         style={{
           marginTop: Math.round(height * 0.03),
-          fontFamily: 'NaikaiSubset-Regular',
+          fontFamily: 'BeenAgesRounded-Regular',
           fontSize: Math.round(width * 0.048),
           color: theme.accent,
         }}
@@ -71,7 +71,7 @@ export default function ShareCardView({
       </Text>
       <Text
         style={{
-          fontFamily: 'NaikaiSubset-Bold',
+          fontFamily: 'BeenAgesRounded-Bold',
           fontSize: Math.round(width * 0.22),
           lineHeight: Math.round(width * 0.24),
           color: theme.ink,
@@ -79,7 +79,7 @@ export default function ShareCardView({
       >
         {headline}
         {unit ? (
-          <Text style={{ fontFamily: 'NaikaiSubset-Regular', fontSize: Math.round(width * 0.07) }}>
+          <Text style={{ fontFamily: 'BeenAgesRounded-Regular', fontSize: Math.round(width * 0.07) }}>
             {` ${unit}`}
           </Text>
         ) : null}
@@ -87,7 +87,7 @@ export default function ShareCardView({
       <View style={{ marginTop: 'auto', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
         <Text
           style={{
-            fontFamily: 'NaikaiSubset-SemiBold',
+            fontFamily: 'BeenAgesRounded-SemiBold',
             fontSize: Math.round(width * 0.036),
             color: theme.accent,
           }}

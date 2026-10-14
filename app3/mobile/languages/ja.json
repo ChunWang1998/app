@@ -213,6 +213,8 @@
     "name": "名前",
     "keywords": "キーワード",
     "deleteMoved": "{n}件はその他へ",
+    "limit": "{n}件まで",
+    "duplicate": "使われている",
     "auto": "自動",
     "defaults": {
       "clean": "掃除",

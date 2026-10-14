@@ -39,9 +39,9 @@ export default function App() {
         } catch {}
         try {
           await Font.loadAsync({
-            'NaikaiSubset-Regular': require('../assets/fonts/naikai/NaikaiSubset-Regular.ttf'),
-            'NaikaiSubset-SemiBold': require('../assets/fonts/naikai/NaikaiSubset-SemiBold.ttf'),
-            'NaikaiSubset-Bold': require('../assets/fonts/naikai/NaikaiSubset-Bold.ttf'),
+            'BeenAgesRounded-Regular': require('../assets/fonts/naikai/NaikaiSubset-Regular.ttf'),
+            'BeenAgesRounded-SemiBold': require('../assets/fonts/naikai/NaikaiSubset-SemiBold.ttf'),
+            'BeenAgesRounded-Bold': require('../assets/fonts/naikai/NaikaiSubset-Bold.ttf'),
           });
         } catch {
           // fonts optional during tests

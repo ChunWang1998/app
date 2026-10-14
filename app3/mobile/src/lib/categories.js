@@ -1,9 +1,46 @@
 import ICON_TABLE from './iconKeywords.json';
 import { hasKey } from './suggestIcon';
+import { ICON_KINDS } from '../data/models';
+import en from '../../languages/en.json';
+import zhHant from '../../languages/zh-Hant.json';
+import ja from '../../languages/ja.json';
 
 /** Fixed fallback category. Not stored, cannot be renamed or deleted, always last. */
 export const OTHER_ID = 'other';
 export const OTHER_ICON = 'dots';
+export const MAX_CATEGORIES = 30;
+/** Persist marker after the categories migration. */
+export const CATEGORIES_STATE_VERSION = 2;
+
+const LOCALES = [en, zhHant, ja];
+
+function foldName(s) {
+  return String(s || '').trim().toLowerCase();
+}
+
+export function normalizeCategoryIcon(icon) {
+  return ICON_KINDS.includes(icon) ? icon : 'mono';
+}
+
+/** True if `name` collides with another category or Other, in any locale. */
+export function categoryNameTaken(name, categories, { exceptId } = {}) {
+  const n = foldName(name);
+  if (!n) return false;
+  for (const loc of LOCALES) {
+    if (foldName(loc.category.other) === n) return true;
+  }
+  for (const c of categories || []) {
+    if (exceptId && c.id === exceptId) continue;
+    if (c.name != null && foldName(c.name) === n) return true;
+    if (!c.name && c.key) {
+      for (const loc of LOCALES) {
+        const d = loc.category.defaults?.[c.key];
+        if (d && foldName(d) === n) return true;
+      }
+    }
+  }
+  return false;
+}
 
 /** Default categories, in list order. Names come from i18n until the user renames one. */
 export const DEFAULT_CATEGORIES = [
@@ -60,10 +97,10 @@ export function normalizeKeywords(list) {
 export function normalizeCategory(raw) {
   if (!raw || typeof raw !== 'object' || !raw.id || raw.id === OTHER_ID) return null;
   return {
-    id: String(raw.id),
+    id: String(raw.id).slice(0, 64),
     key: raw.key ? String(raw.key) : null,
     name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim().slice(0, 40) : null,
-    icon: typeof raw.icon === 'string' ? raw.icon : 'mono',
+    icon: normalizeCategoryIcon(raw.icon),
     keywords: normalizeKeywords(raw.keywords),
   };
 }
@@ -103,7 +140,7 @@ export function migrateCategories(state) {
     if (a.categoryId && categoryExists(a.categoryId, categories)) return a;
     return { ...a, categoryId: matchCategory(a.title, categories) };
   });
-  return { ...state, categories, activities };
+  return { ...state, version: CATEGORIES_STATE_VERSION, categories, activities };
 }
 
 export function newCategoryId() {

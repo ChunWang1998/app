@@ -1,4 +1,4 @@
-import { activitySchema } from '../src/data/schema';
+import { activitySchema, categorySchema } from '../src/data/schema';
 
 const base = {
   id: 'act_test',
@@ -54,5 +54,13 @@ describe('icon', () => {
   it('accepts built-in kinds including mono', () => {
     expect(activitySchema.parse({ ...base, icon: 'drop' }).icon).toBe('drop');
     expect(activitySchema.parse({ ...base, icon: 'mono' }).icon).toBe('mono');
+  });
+});
+
+describe('category schema', () => {
+  const cat = { id: 'clean', key: 'clean', name: null, icon: 'brush', keywords: ['soap'] };
+  it('accepts a normalized category and rejects unknown icons', () => {
+    expect(categorySchema.parse(cat).icon).toBe('brush');
+    expect(() => categorySchema.parse({ ...cat, icon: 'evil' })).toThrow();
   });
 });
