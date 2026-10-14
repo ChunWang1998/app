@@ -177,9 +177,16 @@ const BeenAgesHome = (props, environment) => {
     <VStack spacing={4} modifiers={[padding({ all: 12 }), frame({ maxWidth: 1000, maxHeight: 1000 })]}>
       <HStack spacing={6}>
         {glyph(item, 20)}
-        <Text modifiers={[font({ size: 14, weight: 'semibold' }), foregroundStyle(LABEL)]}>
-          {item.title}
-        </Text>
+        <VStack spacing={0}>
+          <Text modifiers={[font({ size: 14, weight: 'semibold' }), foregroundStyle(LABEL)]}>
+            {item.title}
+          </Text>
+          {item.reminderLabel ? (
+            <Text modifiers={[font({ size: 11 }), foregroundStyle(LABEL)]}>
+              {item.reminderLabel}
+            </Text>
+          ) : null}
+        </VStack>
       </HStack>
       <HStack>
         <Text modifiers={[font({ size: 40, weight: 'bold' }), foregroundStyle(LABEL)]}>

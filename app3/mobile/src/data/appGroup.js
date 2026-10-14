@@ -79,6 +79,13 @@ export function activityToSnapshotRow(a) {
     icon: a.icon || 'brush',
     lastDoneAt: a.lastDoneAt ?? null,
     reminderDays: a.reminderDays ?? null,
+    reminderMode: a.reminderMode ?? null,
+    reminderUnit: a.reminderUnit ?? null,
+    reminderN: a.reminderN ?? null,
+    reminderWeekdays: Array.isArray(a.reminderWeekdays) ? a.reminderWeekdays : [],
+    reminderMonthDay: a.reminderMonthDay ?? null,
+    reminderTime: a.reminderTime ?? '09:00',
+    snoozeEnabled: a.snoozeEnabled !== false,
     createdAt: a.createdAt ?? null,
     updatedAt: a.updatedAt ?? null,
   };

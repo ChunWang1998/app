@@ -13,6 +13,7 @@ import { DateChips } from '../components/DateChips';
 import { dueStatus } from '../lib/today';
 import * as Haptics from 'expo-haptics';
 import { getLocale, t } from '../i18n';
+import { formatClockFromTime, formatReminderLabel, hasReminder } from '../lib/reminderSchedule';
 
 export default function DetailScreen() {
   const { params } = useRoute();
@@ -41,7 +42,7 @@ export default function DetailScreen() {
   const od = dueStatus(due) === 'overdue';
   const elapsed = elapsedMs(item);
   const just = elapsed != null && elapsed < 60e3;
-  const hasReminder = !!item.reminderDays;
+  const reminderOn = hasReminder(item);
   const lastWhen = item.lastDoneAt
     ? `${formatLastDoneLine(item.lastDoneAt, Date.now(), getLocale())}${preciseTime ? ` ${formatTime(item.lastDoneAt)}` : ''}`
     : '';
@@ -49,7 +50,7 @@ export default function DetailScreen() {
   const mood = just ? 'happy' : od ? 'worry' : 'idle';
   const hist = item.history || [];
   const stats = historyStats(hist);
-  const remLabel = hasReminder ? t('detail.everyDays', { n: item.reminderDays }) : t('detail.noReminder');
+  const remLabel = formatReminderLabel(item);
 
   async function logNow() {
     await logActivityNow(item.id);
@@ -103,7 +104,7 @@ export default function DetailScreen() {
                 ) : null}
               </View>
             ) : null}
-            {hasReminder ? (
+            {reminderOn ? (
               <View style={[styles.trk, { backgroundColor: 'rgba(255,255,255,0.35)' }]}>
                 <View
                   style={[
@@ -131,7 +132,7 @@ export default function DetailScreen() {
             <ShareIcon color={c.brand} size={18} />
             <Text style={[styles.extraText, { color: c.label }]}>{t('detail.shareCard')}</Text>
           </TouchableOpacity>
-          {hasReminder ? (
+          {reminderOn ? (
             <TouchableOpacity
               onPress={async () => {
                 const loc = getLocale();
@@ -181,7 +182,7 @@ export default function DetailScreen() {
             </View>
             <Text style={[styles.rowTitle, { color: c.label }]}>{remLabel}</Text>
             <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', marginRight: 6 }}>
-              {item.reminderTime || '09:00'}
+              {formatClockFromTime(item.reminderTime || '09:00')}
             </Text>
             <ChevronRightIcon color={c.l3} />
           </TouchableOpacity>

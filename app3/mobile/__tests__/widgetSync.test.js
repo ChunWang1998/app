@@ -44,6 +44,30 @@ describe('widget item pick + Pro gate', () => {
     expect(dueClassOf(item('ok', 1, 10), now)).toBe('');
   });
 
+  it('puts natural reminder copy on widget items', () => {
+    const { toWidgetItem } = require('../src/widgets/pick');
+    const weekly = toWidgetItem({
+      id: 'w',
+      title: 'Brush',
+      icon: 'brush',
+      lastDoneAt: new Date(now).toISOString(),
+      reminderMode: 'week',
+      reminderWeekdays: [1, 4],
+      reminderTime: '09:00',
+    }, { now, locale: 'zh-Hant' });
+    expect(weekly.reminderLabel).toBe('每週一、四');
+    const monthly = toWidgetItem({
+      id: 'm',
+      title: 'Brush',
+      icon: 'brush',
+      lastDoneAt: new Date(now).toISOString(),
+      reminderMode: 'month',
+      reminderMonthDay: 15,
+      reminderTime: '09:00',
+    }, { now, locale: 'en' });
+    expect(monthly.reminderLabel).toBe('Monthly on the 15th');
+  });
+
   it('hides items entirely when not Pro', () => {
     const props = buildWidgetProps({
       proUnlocked: false,

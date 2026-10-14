@@ -24,6 +24,7 @@ import { filterByCategory } from '../lib/categories';
 import * as Haptics from 'expo-haptics';
 import { isProUnlocked } from '../lib/entitlements';
 import { getLocale, t } from '../i18n';
+import { hasReminder } from '../lib/reminderSchedule';
 
 const JUST_MS = 60e3;
 
@@ -228,11 +229,11 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
   const elapsed = elapsedMs(item);
   const just = elapsed != null && elapsed < JUST_MS;
   const ratio = progressRatio(item);
-  const hasReminder = !!item.reminderDays;
+  const hasReminderOn = hasReminder(item);
 
   let status;
   if (!item.lastDoneAt) status = t('home.neverLogged');
-  else if (!hasReminder) status = formatLastDoneShort(item.lastDoneAt, Date.now(), getLocale());
+  else if (!hasReminderOn) status = formatLastDoneShort(item.lastDoneAt, Date.now(), getLocale());
   else if (ds === 'today') status = t('common.today');
   else if (od) status = `${t('home.overdue')}\u2009${formatSpan(-due)}`;
   else status = `${t('home.remaining')}\u2009${formatSpan(due)}`;
@@ -257,7 +258,7 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
         <TouchableOpacity style={styles.tx} onPress={onOpen} activeOpacity={0.7}>
           <Text numberOfLines={1} style={[styles.nm, { color: c.label }]}>{item.title}</Text>
           <Text numberOfLines={1} style={[styles.st, { color: od ? c.red : c.l2 }]}>{status}</Text>
-          {hasReminder ? (
+          {hasReminderOn ? (
             <View style={[styles.trk, { backgroundColor: c.track }]}>
               <View
                 style={[

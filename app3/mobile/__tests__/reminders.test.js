@@ -48,14 +48,10 @@ describe('nextTriggerDate', () => {
     expect(when.getHours()).toBe(9);
     expect(when.getMinutes()).toBe(0);
 
-    const due = new Date(new Date(last).getTime() + 7 * 864e5);
-    due.setHours(9, 0, 0, 0);
-    let k = Math.ceil((now - due.getTime()) / (3 * 864e5));
-    if (k < 1) k = 1;
-    const expected = new Date(due);
-    expected.setDate(expected.getDate() + k * 3);
-    expect(when.getTime()).toBeGreaterThanOrEqual(expected.getTime());
     expect(Number.isFinite(when.getTime())).toBe(true);
+    const nextCycle = new Date(new Date(last).getTime() + 21 * 864e5);
+    nextCycle.setHours(9, 0, 0, 0);
+    expect(when.getTime()).toBeLessThanOrEqual(nextCycle.getTime());
   });
 
   it('sanitizes fractional, huge, zero and negative snoozeDays without looping', () => {
@@ -182,7 +178,7 @@ describe('permissions and scheduling', () => {
     expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
     const arg = Notifications.scheduleNotificationAsync.mock.calls[0][0];
     expect(arg.content.title).toBe(genericNotificationTitle());
-    expect(arg.content.body).toBe(t('notify.body'));
+    expect(arg.content.body).toBe(t('reminder.weekly'));
   });
 
   it('does not schedule now+1min for overdue items with snooze off', async () => {

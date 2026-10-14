@@ -1,4 +1,5 @@
 import { getLocale, resolveLocale, t, tLocale } from '../i18n';
+import { hasReminder, firstDueInstant, reminderConfigFromActivity, lastAnchor } from './reminderSchedule';
 
 function unitLabel(key, locale) {
   return locale ? tLocale(locale, key) : t(key);
@@ -116,21 +117,21 @@ export function formatLastDoneLine(ts, now = Date.now(), locale) {
 }
 
 export function dueInMs(item, now = Date.now()) {
-  if (!item?.reminderDays) return Infinity;
-  const last = item.lastDoneAt
-    ? new Date(item.lastDoneAt).getTime()
-    : (item.createdAt ? new Date(item.createdAt).getTime() : 0);
-  if (!last) return Infinity;
-  return last + item.reminderDays * DAY - now;
+  if (!hasReminder(item)) return Infinity;
+  const due = firstDueInstant(item, reminderConfigFromActivity(item), now);
+  if (!due) return Infinity;
+  return due.getTime() - now;
 }
 
 export function progressRatio(item, now = Date.now()) {
-  if (!item?.reminderDays) return 0;
-  const last = item.lastDoneAt
-    ? new Date(item.lastDoneAt).getTime()
-    : (item.createdAt ? new Date(item.createdAt).getTime() : 0);
+  if (!hasReminder(item)) return 0;
+  const last = lastAnchor(item);
   if (!last) return 0;
-  return Math.min(1, Math.max(0, (now - last) / (item.reminderDays * DAY)));
+  const due = firstDueInstant(item, reminderConfigFromActivity(item), now);
+  if (!due) return 0;
+  const span = due.getTime() - last.getTime();
+  if (span <= 0) return 1;
+  return Math.min(1, Math.max(0, (now - last.getTime()) / span));
 }
 
 export function dueClass(due) {
