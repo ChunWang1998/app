@@ -4,7 +4,7 @@ import { quickDateIso, quickDateFor, pickedDateIso, QUICK_DATES } from '../src/l
 import { suggestReminderDays } from '../src/lib/suggestReminder';
 import { isDueToday, splitToday, homeMood } from '../src/lib/today';
 import { reminderOptions } from '../src/components/ReminderChips';
-import { FREE_ACTIVITY_LIMIT, resetRepositoryForTests, addActivity } from '../src/data/repository';
+import { FREE_ACTIVITY_LIMIT, parseFreeLimit, resetRepositoryForTests, addActivity } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
 import en from '../languages/en.json';
 import zh from '../languages/zh-Hant.json';
@@ -65,6 +65,18 @@ describe('free limit and paywall', () => {
     jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(false);
     for (let i = 0; i < 10; i++) await addActivity({ title: `F${i}` });
     await expect(addActivity({ title: 'F10' })).rejects.toHaveProperty('code', 'FREE_LIMIT');
+  });
+  it('env limit must be a positive integer, else 10', () => {
+    expect(parseFreeLimit(undefined)).toBe(10);
+    expect(parseFreeLimit('')).toBe(10);
+    expect(parseFreeLimit('abc')).toBe(10);
+    expect(parseFreeLimit('0')).toBe(10);
+    expect(parseFreeLimit('-5')).toBe(10);
+    expect(parseFreeLimit('2.5')).toBe(10);
+    expect(parseFreeLimit('Infinity')).toBe(10);
+    expect(parseFreeLimit('99999999999999999999')).toBe(10);
+    expect(parseFreeLimit('7')).toBe(7);
+    expect(parseFreeLimit(' 12 ')).toBe(12);
   });
   it('paywall headline uses the limit in all languages', () => {
     for (const l of [en, zh, ja]) expect(l.paywall.headline).toMatch(/\{n\}/);

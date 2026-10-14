@@ -8,7 +8,17 @@ let state = { version: 1, activities: [] };
 let initialized = false;
 const listeners = new Set();
 
-export const FREE_ACTIVITY_LIMIT = Number(process.env.EXPO_PUBLIC_FREE_ACTIVITY_LIMIT || 10);
+export const DEFAULT_FREE_ACTIVITY_LIMIT = 10;
+
+/** Positive integer from env, else 10. */
+export function parseFreeLimit(raw) {
+  const s = String(raw ?? '').trim();
+  if (!/^\d+$/.test(s)) return DEFAULT_FREE_ACTIVITY_LIMIT;
+  const n = Number(s);
+  return Number.isSafeInteger(n) && n > 0 ? n : DEFAULT_FREE_ACTIVITY_LIMIT;
+}
+
+export const FREE_ACTIVITY_LIMIT = parseFreeLimit(process.env.EXPO_PUBLIC_FREE_ACTIVITY_LIMIT);
 
 function notify() {
   for (const l of listeners) l(state);

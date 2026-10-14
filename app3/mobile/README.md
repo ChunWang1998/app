@@ -4,7 +4,7 @@ v1.1:
 - List / add / edit / log / swipe-delete with a 5s undo, then Recently Deleted (30 days)
 - History, notes, reminder editor (on/off, interval, time, snooze)
 - Dark mode via Settings → Display (auto / light / dark) and exact time
-- IAP unlock + Restore Purchases + Redeem Code (expo-iap), free tier = 3 items
+- IAP unlock + Restore Purchases + Redeem Code (expo-iap), free tier = 10 items
 - i18n follows the device locale (en, zh-Hant, ja)
 - Local reminders with expo-notifications (one per item, iOS 64 cap, snooze)
 - Share cards: line-art, 9:16 and 4:5; one free style, more Pro. System share sheet only
