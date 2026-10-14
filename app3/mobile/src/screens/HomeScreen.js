@@ -17,6 +17,7 @@ import { Mascot } from '../components/Mascot';
 import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort } from '../lib/time';
 import { monogramLetter } from '../lib/suggestIcon';
+import { splitToday, homeMood } from '../lib/today';
 import * as Haptics from 'expo-haptics';
 import { isProUnlocked } from '../lib/entitlements';
 import { getLocale, t } from '../i18n';
@@ -47,6 +48,8 @@ export default function HomeScreen() {
     return mapped.sort((x, y) => (x._due === y._due ? 0 : x._due - y._due));
   }, [activities, sort]);
   const overdueCount = data.filter((x) => x._due < 0).length;
+  const { today, rest } = useMemo(() => splitToday(data), [data]);
+  const mood = overdueCount > 0 ? 'worry' : homeMood(data);
 
   function showToast(next) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -133,14 +136,33 @@ export default function HomeScreen() {
             </Text>
           ) : null}
           {data.length > 0 ? (
-            <Mascot size={70} mood={overdueCount > 0 ? 'worry' : 'idle'} />
+            <Mascot size={70} mood={mood} />
           ) : null}
         </View>
       </View>
       <View style={styles.listWrap}>
         {!ready ? null : (
           <FlatList
-            data={data}
+            data={rest}
+            ListHeaderComponent={today.length ? (
+              <View testID="today-section">
+                <Text style={[styles.todayH, { color: c.label }]}>
+                  {t('home.dueToday')}
+                  <Text style={{ color: c.l2 }}>{'\u2009'}{today.length}</Text>
+                </Text>
+                {today.map((item) => (
+                  <Row
+                    key={item.id}
+                    item={item}
+                    onCheck={() => handleCheck(item)}
+                    onOpen={() => nav.navigate('Detail', { id: item.id })}
+                    onDelete={() => handleDelete(item)}
+                    preciseTime={preciseTime}
+                  />
+                ))}
+                {rest.length ? <View style={[styles.todayGap, { backgroundColor: c.band }]} /> : null}
+              </View>
+            ) : null}
             keyExtractor={(item) => item.id}
             contentContainerStyle={data.length === 0 ? styles.emptyContainer : undefined}
             renderItem={({ item }) => (
@@ -273,6 +295,8 @@ function Numeral({ ms, just, color, dim, preciseTime }) {
 }
 
 const styles = StyleSheet.create({
+  todayH: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 15, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },
+  todayGap: { height: 10 },
   root: { flex: 1 },
   band: { borderBottomLeftRadius: 30, borderBottomRightRadius: 30, paddingBottom: 14, marginBottom: 8 },
   nav: {

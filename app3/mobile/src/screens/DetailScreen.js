@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useActivities, logActivityNow, backfillHistory } from '../data/repository';
@@ -9,15 +9,9 @@ import { ChevronLeftIcon, CheckIcon, BellIcon, PlusIcon, ChevronRightIcon, Share
 import { addNextDueToCalendar, openSystemSettings } from '../lib/calendar';
 import { formatDate, formatTime, formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneLine } from '../lib/time';
 import { historyStats } from '../lib/historyStats';
+import { DateChips } from '../components/DateChips';
 import * as Haptics from 'expo-haptics';
 import { getLocale, t } from '../i18n';
-
-function daysAgo(n, hours = 0) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  d.setHours(d.getHours() - hours);
-  return d.toISOString();
-}
 
 export default function DetailScreen() {
   const { params } = useRoute();
@@ -27,6 +21,7 @@ export default function DetailScreen() {
   const insets = useSafeAreaInsets();
   const { activities } = useActivities();
   const item = useMemo(() => activities.find((a) => a.id === params?.id), [activities, params]);
+  const [backfillAt, setBackfillAt] = useState(null);
 
   if (!item) {
     return (
@@ -61,12 +56,13 @@ export default function DetailScreen() {
   }
 
   function addBackfill() {
-    Alert.alert(t('detail.backfill'), t('detail.backfillAsk'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.today'), onPress: () => backfillHistory(item.id, new Date().toISOString()) },
-      { text: t('common.yesterday'), onPress: () => backfillHistory(item.id, daysAgo(1)) },
-      { text: t('common.daysAgo', { n: 3 }), onPress: () => backfillHistory(item.id, daysAgo(3)) },
-    ]);
+    setBackfillAt(new Date().toISOString());
+  }
+
+  async function saveBackfill() {
+    const at = backfillAt;
+    setBackfillAt(null);
+    if (at) await backfillHistory(item.id, at);
   }
 
   return (
@@ -229,6 +225,22 @@ export default function DetailScreen() {
           </>
         ) : null}
       </ScrollView>
+      <Modal visible={!!backfillAt} transparent animationType="fade" onRequestClose={() => setBackfillAt(null)}>
+        <View style={styles.sheetWrap}>
+          <View style={[styles.sheet, { backgroundColor: c.cell }]}>
+            <Text style={[styles.sheetTitle, { color: c.label }]}>{t('detail.backfillAsk')}</Text>
+            <DateChips value={backfillAt} onChange={(v) => v && setBackfillAt(v)} allowUnknown={false} />
+            <View style={styles.sheetBtns}>
+              <TouchableOpacity onPress={() => setBackfillAt(null)} style={styles.sheetBtn}>
+                <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular', fontSize: 17 }}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={saveBackfill} style={styles.sheetBtn} testID="backfill-save">
+                <Text style={{ color: c.brand, fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 }}>{t('edit.add')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -243,6 +255,11 @@ function Stat({ label, value, c }) {
 }
 
 const styles = StyleSheet.create({
+  sheetWrap: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.3)' },
+  sheet: { borderRadius: 20, paddingTop: 18, paddingBottom: 6 },
+  sheetTitle: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17, paddingHorizontal: 16 },
+  sheetBtns: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 8 },
+  sheetBtn: { paddingHorizontal: 12, height: 44, justifyContent: 'center' },
   heroblk: { borderBottomLeftRadius: 32, borderBottomRightRadius: 32, paddingBottom: 24 },
   nav: {
     height: 44,
