@@ -10,6 +10,7 @@ import { paletteForItem } from '../theme/colors';
 import { SettingsRow } from '../components/SettingsRow';
 import { loadWidgetSelection, saveWidgetSelection } from '../widgets/sync';
 import { t } from '../i18n';
+import { isProUnlocked } from '../lib/entitlements';
 
 export default function WidgetPickerScreen() {
   const nav = useNavigation();
@@ -17,6 +18,14 @@ export default function WidgetPickerScreen() {
   const insets = useSafeAreaInsets();
   const { activities } = useActivities();
   const [sel, setSel] = React.useState({ small: 'auto', medium: [] });
+
+  React.useEffect(() => {
+    let live = true;
+    isProUnlocked()
+      .then((pro) => { if (live && !pro) nav.replace('Paywall'); })
+      .catch(() => { if (live) nav.replace('Paywall'); });
+    return () => { live = false; };
+  }, [nav]);
 
   React.useEffect(() => {
     loadWidgetSelection().then(setSel).catch(() => {});

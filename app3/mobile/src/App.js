@@ -10,6 +10,9 @@ import { Platform, StatusBar } from 'react-native';
 import { startPurchaseUpdates, verifyProOnLaunch } from './lib/iap';
 import { ThemeProvider, useForcedScheme } from './theme/useTheme';
 import { setProUnlocked } from './lib/entitlements';
+import { installWebAlert } from './lib/webAlert';
+
+installWebAlert();
 import { initWidgets } from './widgets/sync';
 if (Platform.OS !== 'web') {
   require('./widgets/BeenAgesHome');
