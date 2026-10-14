@@ -55,6 +55,20 @@ describe('widget item pick + Pro gate', () => {
     expect(props.upgradeLabel).toMatch(/升級就能用/);
   });
 
+  it('localizes widget copy with the same locale resolver as the app', () => {
+    const snap = { proUnlocked: false, activities: [], selectedIds: { small: 'auto', medium: [] } };
+    expect(buildWidgetProps(snap, { now, locale: 'ja' }).upgradeLabel).toBe('アップグレードで使う');
+    expect(buildWidgetProps(snap, { now, locale: 'ja-JP' }).upgradeLabel).toBe('アップグレードで使う');
+    expect(buildWidgetProps(snap, { now, locale: 'zh-CN' }).upgradeLabel).toBe('升級就能用');
+    expect(buildWidgetProps(snap, { now, locale: 'fr' }).upgradeLabel).toBe('Upgrade to use');
+    const jaDays = buildWidgetProps({
+      proUnlocked: true,
+      activities: [item('a', 10, 3)],
+      selectedIds: { small: 'auto', medium: [] },
+    }, { now, locale: 'ja' });
+    expect(jaDays.items[0].daysUnit).toBe('日');
+  });
+
   it('free-cap snapshot items cannot exceed 3 even if queue is tampered', () => {
     expect(FREE_ACTIVITY_LIMIT).toBe(3);
     const logs = ['a1', 'a2', 'a3', 'a4'].map((id) => ({ itemId: id, timestamp: new Date(now).toISOString() }));

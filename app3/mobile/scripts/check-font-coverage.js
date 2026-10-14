@@ -11,16 +11,21 @@ function collectStrings() {
   const langs = [
     'languages/en.json',
     'languages/zh-Hant.json',
+    'languages/ja.json',
     'languages/ios/en.json',
     'languages/ios/zh-Hant.json',
+    'languages/ios/ja.json',
   ];
   const texts = [];
   for (const rel of langs) {
     const p = path.join(root, rel);
     const obj = readJson(p);
-    function walk(o) {
+    function walk(o, key) {
+      if (key === '_meta') return;
       if (typeof o === 'string') texts.push(o);
-      else if (o && typeof o === 'object') Object.values(o).forEach(walk);
+      else if (o && typeof o === 'object') {
+        for (const [k, v] of Object.entries(o)) walk(v, k);
+      }
     }
     walk(obj);
   }

@@ -1,27 +1,33 @@
-import { t } from '../i18n';
+import { t, tLocale } from '../i18n';
+
+function unitLabel(key, locale) {
+  return locale ? tLocale(locale, key) : t(key);
+}
 
 const DAY = 864e5;
 const H = 36e5;
 const MIN = 60e3;
 
-export function formatSpan(ms) {
-  if (!Number.isFinite(ms) || ms < MIN) return `0\u2009${t('time.min')}`;
+export function formatSpan(ms, locale) {
+  const u = (key) => unitLabel(key, locale);
+  if (!Number.isFinite(ms) || ms < MIN) return `0\u2009${u('time.min')}`;
   const d = Math.floor(ms / DAY);
   const h = Math.floor((ms % DAY) / H);
   const m = Math.floor((ms % H) / MIN);
   if (d >= 30) {
     const mo = Math.floor(d / 30);
     const dd = d % 30;
-    return `${mo}\u2009${t('time.month')}${dd ? `\u2009${dd}\u2009${t('time.day')}` : ''}`;
+    return `${mo}\u2009${u('time.month')}${dd ? `\u2009${dd}\u2009${u('time.day')}` : ''}`;
   }
-  if (d >= 1) return `${d}\u2009${t('time.day')}${h ? `\u2009${h}\u2009${t('time.hour')}` : ''}`;
-  if (h >= 1) return `${h}\u2009${t('time.hour')}${m ? `\u2009${m}\u2009${t('time.min')}` : ''}`;
-  return `${m}\u2009${t('time.minute')}`;
+  if (d >= 1) return `${d}\u2009${u('time.day')}${h ? `\u2009${h}\u2009${u('time.hour')}` : ''}`;
+  if (h >= 1) return `${h}\u2009${u('time.hour')}${m ? `\u2009${m}\u2009${u('time.min')}` : ''}`;
+  return `${m}\u2009${u('time.minute')}`;
 }
 
 /** Split span into up to `n` number/unit pairs for hero numerals. */
-export function formatSpanParts(ms, n = 2) {
-  if (!Number.isFinite(ms) || ms < MIN) return [{ n: 0, unit: t('time.min') }];
+export function formatSpanParts(ms, n = 2, locale) {
+  const u = (key) => unitLabel(key, locale);
+  if (!Number.isFinite(ms) || ms < MIN) return [{ n: 0, unit: u('time.min') }];
   const d = Math.floor(ms / DAY);
   const h = Math.floor((ms % DAY) / H);
   const m = Math.floor((ms % H) / MIN);
@@ -29,13 +35,13 @@ export function formatSpanParts(ms, n = 2) {
   if (d >= 30) {
     const mo = Math.floor(d / 30);
     const dd = d % 30;
-    parts = [{ n: mo, unit: t('time.month') }, ...(dd ? [{ n: dd, unit: t('time.day') }] : [])];
+    parts = [{ n: mo, unit: u('time.month') }, ...(dd ? [{ n: dd, unit: u('time.day') }] : [])];
   } else if (d >= 1) {
-    parts = [{ n: d, unit: t('time.day') }, ...(h ? [{ n: h, unit: t('time.hour') }] : [])];
+    parts = [{ n: d, unit: u('time.day') }, ...(h ? [{ n: h, unit: u('time.hour') }] : [])];
   } else if (h >= 1) {
-    parts = [{ n: h, unit: t('time.hour') }, ...(m ? [{ n: m, unit: t('time.min') }] : [])];
+    parts = [{ n: h, unit: u('time.hour') }, ...(m ? [{ n: m, unit: u('time.min') }] : [])];
   } else {
-    parts = [{ n: m, unit: t('time.minute') }];
+    parts = [{ n: m, unit: u('time.minute') }];
   }
   return parts.slice(0, n);
 }

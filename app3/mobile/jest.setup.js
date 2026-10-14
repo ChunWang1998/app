@@ -1,42 +1,54 @@
 // Basic jest setup for non-UI logic tests
 jest.mock('expo-iap', () => {
   let purchased = false;
-  let onUpdate = null;
+  const listeners = new Set();
+  const sku = process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack';
+  const emitUpdate = (purchase) => {
+    purchased = true;
+    for (const cb of [...listeners]) {
+      try { cb(purchase); } catch {}
+    }
+  };
   return {
     initConnection: jest.fn(async () => {}),
     endConnection: jest.fn(async () => {}),
     fetchProducts: jest.fn(async () => [{
-      id: process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack',
-      productId: process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack',
+      id: sku,
+      productId: sku,
       displayPrice: 'NT$90',
       type: 'in-app',
     }]),
     requestPurchase: jest.fn(async () => {
-      purchased = true;
       setTimeout(() => {
-        onUpdate?.({ productId: process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack' });
+        emitUpdate({ productId: sku });
       }, 5);
     }),
     finishTransaction: jest.fn(async () => {}),
-    purchaseUpdatedListener: (cb) => {
-      onUpdate = cb;
-      return { remove: () => { onUpdate = null; } };
-    },
-    purchaseErrorListener: (cb) => {
-      return { remove: () => {} };
-    },
-    getAvailablePurchases: jest.fn(async () => (purchased ? [{ productId: process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack' }] : [])),
+    purchaseUpdatedListener: jest.fn((cb) => {
+      listeners.add(cb);
+      return { remove: () => { listeners.delete(cb); } };
+    }),
+    purchaseErrorListener: jest.fn(() => ({ remove: () => {} })),
+    getAvailablePurchases: jest.fn(async () => (purchased ? [{ productId: sku }] : [])),
     restorePurchases: jest.fn(async () => {
       setTimeout(() => {
-        onUpdate?.({ productId: process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack' });
+        emitUpdate({ productId: sku });
       }, 5);
     }),
+    presentCodeRedemptionSheet: jest.fn(async () => null),
+    presentCodeRedemptionSheetIOS: jest.fn(async () => null),
+    isTransactionVerifiedIOS: jest.fn(async () => true),
+    __emitPurchaseUpdated: emitUpdate,
+    __resetIapMock: () => {
+      purchased = false;
+      listeners.clear();
+    },
   };
 });
 
 jest.mock('expo-localization', () => ({
   locale: 'en',
-  getLocales: () => [{ languageTag: 'en' }],
+  getLocales: jest.fn(() => [{ languageTag: 'en' }]),
 }));
 
 jest.mock('expo-constants', () => ({

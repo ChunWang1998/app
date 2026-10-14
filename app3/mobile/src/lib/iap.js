@@ -22,11 +22,21 @@ function runningInExpoGo() {
   }
 }
 
-function allowSimulate() {
-  if (process.env.EXPO_PUBLIC_IAP_SIMULATE === '1') return true;
+function easBuildProfile() {
+  return String(
+    process.env.EXPO_PUBLIC_EAS_BUILD_PROFILE || process.env.EAS_BUILD_PROFILE || '',
+  );
+}
+
+/** Never true for the EAS production profile, even if the simulate flag leaks in. */
+export function allowSimulate() {
+  if (easBuildProfile() === 'production') return false;
+  if (process.env.EXPO_PUBLIC_IAP_SIMULATE === '0') return false;
+  if (typeof __DEV__ !== 'undefined' && __DEV__ === true) return true;
   if (runningInExpoGo()) return true;
-  if (typeof __DEV__ !== 'undefined' && __DEV__) return true;
-  return false;
+  return easBuildProfile() !== ''
+    && easBuildProfile() !== 'production'
+    && process.env.EXPO_PUBLIC_IAP_SIMULATE === '1';
 }
 
 function purchaseMatches(p) {
@@ -36,6 +46,106 @@ function purchaseMatches(p) {
     p?.sku === PRO_PRODUCT_ID ||
     (Array.isArray(p?.ids) && p.ids.includes(PRO_PRODUCT_ID))
   );
+}
+
+let keepIapConnection = false;
+let purchaseSub = null;
+
+export function canPresentRedeemCode(os = Platform.OS) {
+  return os === 'ios';
+}
+
+async function endIapIfEphemeral(iap) {
+  if (keepIapConnection) return;
+  try {
+    await iap.endConnection?.();
+  } catch {}
+}
+
+function isRevoked(purchase) {
+  const d = purchase?.revocationDate ?? purchase?.revocationDateIOS;
+  return d != null && d !== '';
+}
+
+/** StoreKit 2 / expo-iap transaction check. Fail closed. */
+async function transactionVerified(iap, purchase) {
+  if (!purchaseMatches(purchase)) return false;
+  if (isRevoked(purchase)) return false;
+  if (typeof iap?.isTransactionVerifiedIOS !== 'function') return false;
+  try {
+    const sku = purchase.productId || purchase.id || purchase.sku || PRO_PRODUCT_ID;
+    const ok = await iap.isTransactionVerifiedIOS(sku);
+    return ok === true;
+  } catch {
+    return false;
+  }
+}
+
+async function hasVerifiedFullpack(iap, purchases) {
+  for (const p of purchases || []) {
+    if (await transactionVerified(iap, p)) return true;
+  }
+  return false;
+}
+
+export async function grantFullpackPurchase(purchase) {
+  try {
+    const iap = require('expo-iap');
+    if (!(await transactionVerified(iap, purchase))) return false;
+    if (typeof iap.finishTransaction === 'function') {
+      try {
+        await iap.finishTransaction({ purchase, isConsumable: false });
+      } catch {}
+    }
+    await setProUnlocked(true);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function startPurchaseUpdates() {
+  try {
+    const iap = require('expo-iap');
+    if (!iap?.initConnection || typeof iap.purchaseUpdatedListener !== 'function') return;
+    await iap.initConnection();
+    keepIapConnection = true;
+    try {
+      purchaseSub?.remove?.();
+    } catch {}
+    purchaseSub = iap.purchaseUpdatedListener((purchase) => {
+      grantFullpackPurchase(purchase).catch(() => {});
+    });
+  } catch {
+    keepIapConnection = false;
+  }
+}
+
+export async function stopPurchaseUpdates() {
+  try {
+    purchaseSub?.remove?.();
+  } catch {}
+  purchaseSub = null;
+  keepIapConnection = false;
+  try {
+    const iap = require('expo-iap');
+    await iap.endConnection?.();
+  } catch {}
+}
+
+export async function presentRedeemCodeSheet() {
+  if (!canPresentRedeemCode()) return { ok: false, unavailable: true };
+  try {
+    const iap = require('expo-iap');
+    const present = (typeof iap.presentCodeRedemptionSheet === 'function' && iap.presentCodeRedemptionSheet)
+      || (typeof iap.presentCodeRedemptionSheetIOS === 'function' && iap.presentCodeRedemptionSheetIOS);
+    if (typeof present !== 'function') return { ok: false, unavailable: true };
+    if (typeof iap.initConnection === 'function') await iap.initConnection();
+    await present();
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
 }
 
 function waitForPurchaseEvent(iap, timeoutMs = 120000) {
@@ -96,21 +206,11 @@ async function tryNativePurchase() {
 
     const result = await pending;
     if (!result.ok) return result;
-
-    if (result.purchase && typeof iap.finishTransaction === 'function') {
-      try {
-        await iap.finishTransaction({
-          purchase: result.purchase,
-          isConsumable: false
-        });
-      } catch {}
-    }
-    await setProUnlocked(true);
+    const granted = await grantFullpackPurchase(result.purchase);
+    if (!granted) return { ok: false };
     return { ok: true };
   } finally {
-    try {
-      await iap.endConnection?.();
-    } catch {}
+    await endIapIfEphemeral(iap);
   }
 }
 
@@ -130,16 +230,13 @@ async function tryNativeRestore() {
       }
     }
     const purchases = await iap.getAvailablePurchases();
-    const mine = (purchases || []).some(purchaseMatches);
-    if (mine) {
+    if (await hasVerifiedFullpack(iap, purchases)) {
       await setProUnlocked(true);
       return { ok: true, restored: true };
     }
     return { ok: true, restored: false };
   } finally {
-    try {
-      await iap.endConnection?.();
-    } catch {}
+    await endIapIfEphemeral(iap);
   }
 }
 
@@ -246,9 +343,7 @@ export async function getProDisplayPrice() {
       return pickDisplayPrice(match);
     } finally {
       if (timer) clearTimeout(timer);
-      try {
-        await iap.endConnection?.();
-      } catch {}
+      await endIapIfEphemeral(iap);
     }
   } catch {
     if (timer) clearTimeout(timer);
@@ -275,8 +370,7 @@ export async function verifyProOnLaunch() {
     await iap.initConnection();
     try {
       const purchases = await iap.getAvailablePurchases();
-      const mine = (purchases || []).some(purchaseMatches);
-      if (mine) {
+      if (await hasVerifiedFullpack(iap, purchases)) {
         await setProUnlocked(true);
         await setEmptyPurchaseStreak(0);
         return;
@@ -287,9 +381,7 @@ export async function verifyProOnLaunch() {
         await setProUnlocked(false);
       }
     } finally {
-      try {
-        await iap.endConnection?.();
-      } catch {}
+      await endIapIfEphemeral(iap);
     }
   } catch {
     // Network / StoreKit errors: do not increment streak or revoke.

@@ -128,6 +128,7 @@ function walkAppSource(dir, acc = []) {
 function keyPaths(obj, prefix = '') {
   const out = [];
   for (const [k, v] of Object.entries(obj || {})) {
+    if (k === '_meta') continue;
     const next = prefix ? `${prefix}.${k}` : k;
     if (v && typeof v === 'object' && !Array.isArray(v)) out.push(...keyPaths(v, next));
     else out.push(next);
@@ -165,10 +166,14 @@ describe('i18n: no hardcoded CJK in app source', () => {
     expect(hits).toEqual([]);
   });
 
-  it('keeps en and zh-Hant keys in sync', () => {
+  it('keeps en, zh-Hant, and ja keys in sync', () => {
     const en = require('../languages/en.json');
     const zh = require('../languages/zh-Hant.json');
-    expect(keyPaths(en).sort()).toEqual(keyPaths(zh).sort());
+    const ja = require('../languages/ja.json');
+    expect(ja._meta?.status).toBe('machine-draft');
+    const enKeys = keyPaths(en).sort();
+    expect(keyPaths(zh).sort()).toEqual(enKeys);
+    expect(keyPaths(ja).sort()).toEqual(enKeys);
   });
 
   it('does not embed ASC API key fields in eas.json', () => {

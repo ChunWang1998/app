@@ -7,7 +7,7 @@ import { initPrefs, updatePrefs } from './data/prefs';
 import AppNavigator from './navigation/AppNavigator';
 import * as Font from 'expo-font';
 import { StatusBar } from 'react-native';
-import { verifyProOnLaunch } from './lib/iap';
+import { startPurchaseUpdates, verifyProOnLaunch } from './lib/iap';
 import { ThemeProvider, useForcedScheme } from './theme/useTheme';
 import { setProUnlocked } from './lib/entitlements';
 import { initWidgets } from './widgets/sync';
@@ -37,8 +37,9 @@ export default function App() {
         }
         await initPrefs();
         await initRepository();
+        try { await startPurchaseUpdates(); } catch {}
         await verifyProOnLaunch();
-        try { await initWidgets({ locale: getLocale() === 'en' ? 'en' : 'zh' }); } catch {}
+        try { await initWidgets({ locale: getLocale() }); } catch {}
         try {
           if (typeof __DEV__ !== 'undefined' && __DEV__ && typeof window !== 'undefined') {
             const url = new URL(window.location.href);
