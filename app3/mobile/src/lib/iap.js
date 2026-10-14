@@ -22,11 +22,21 @@ function runningInExpoGo() {
   }
 }
 
-function allowSimulate() {
-  if (process.env.EXPO_PUBLIC_IAP_SIMULATE === '1') return true;
+function easBuildProfile() {
+  return String(
+    process.env.EXPO_PUBLIC_EAS_BUILD_PROFILE || process.env.EAS_BUILD_PROFILE || '',
+  );
+}
+
+/** Never true for the EAS production profile, even if the simulate flag leaks in. */
+export function allowSimulate() {
+  if (easBuildProfile() === 'production') return false;
+  if (process.env.EXPO_PUBLIC_IAP_SIMULATE === '0') return false;
+  if (typeof __DEV__ !== 'undefined' && __DEV__ === true) return true;
   if (runningInExpoGo()) return true;
-  if (typeof __DEV__ !== 'undefined' && __DEV__) return true;
-  return false;
+  return easBuildProfile() !== ''
+    && easBuildProfile() !== 'production'
+    && process.env.EXPO_PUBLIC_IAP_SIMULATE === '1';
 }
 
 function purchaseMatches(p) {
@@ -69,6 +79,13 @@ async function transactionVerified(iap, purchase) {
   } catch {
     return false;
   }
+}
+
+async function hasVerifiedFullpack(iap, purchases) {
+  for (const p of purchases || []) {
+    if (await transactionVerified(iap, p)) return true;
+  }
+  return false;
 }
 
 export async function grantFullpackPurchase(purchase) {
@@ -213,8 +230,7 @@ async function tryNativeRestore() {
       }
     }
     const purchases = await iap.getAvailablePurchases();
-    const mine = (purchases || []).some(purchaseMatches);
-    if (mine) {
+    if (await hasVerifiedFullpack(iap, purchases)) {
       await setProUnlocked(true);
       return { ok: true, restored: true };
     }
@@ -354,8 +370,7 @@ export async function verifyProOnLaunch() {
     await iap.initConnection();
     try {
       const purchases = await iap.getAvailablePurchases();
-      const mine = (purchases || []).some(purchaseMatches);
-      if (mine) {
+      if (await hasVerifiedFullpack(iap, purchases)) {
         await setProUnlocked(true);
         await setEmptyPurchaseStreak(0);
         return;
