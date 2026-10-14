@@ -17,6 +17,7 @@
     "eas:env:list": "eas env:list preview && eas env:list production"
   },
   "dependencies": {
+    "@expo/ui": "~57.0.23",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/native-stack": "^7.1.7",
@@ -31,6 +32,7 @@
     "expo-iap": "^5.3.1",
     "expo-localization": "~57.0.2",
     "expo-sharing": "~57.0.23",
+    "expo-widgets": "~57.0.24",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",

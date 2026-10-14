@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, useTheme } from '../theme/useTheme';
 import { restoreProUnlock } from '../lib/iap';
 import { isProUnlocked } from '../lib/entitlements';
-import { ChevronLeftIcon, ChevronRightIcon, CheckIcon, RestoreIcon, MailIcon, LockIcon, PaintIcon, ClockIcon } from '../components/Icons';
+import { ChevronLeftIcon, ChevronRightIcon, CheckIcon, RestoreIcon, MailIcon, LockIcon, GridIcon, PaintIcon, ClockIcon } from '../components/Icons';
 
 const PRIVACY_URL = 'https://chunwang1998.github.io/app/app3/store/privacy.html';
 const SUPPORT_URL = 'https://chunwang1998.github.io/app/app3/store/support.html';
@@ -78,6 +78,13 @@ export default function SettingsScreen() {
             icon={<Sq bg="#8E8E93"><RestoreIcon color="#fff" size={15} /></Sq>}
             title="恢復購買"
             onPress={restore}
+            c={c}
+          />
+          <Row
+            icon={<Sq bg="#5DBB7A"><GridIcon color="#fff" size={15} /></Sq>}
+            title="小工具"
+            onPress={() => nav.navigate('WidgetPicker')}
+            chev
             c={c}
             last
           />
