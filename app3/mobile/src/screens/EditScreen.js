@@ -19,6 +19,7 @@ import { clearDraftReminder, subscribeDraftReminder } from '../data/reminderDraf
 import {
   chipDaysFromConfig,
   configFromChipDays,
+  ensureReminderEnabled,
   formatReminderLabel,
   reminderConfigFromActivity,
   reminderFieldsFromConfig,
@@ -73,12 +74,17 @@ export default function EditScreen() {
   }
 
   function openMore() {
+    const next = ensureReminderEnabled(reminderCfg);
+    if (!reminderCfg.enabled) {
+      setReminderManual(true);
+      setReminderCfg(next);
+    }
     nav.navigate('Reminder', {
       draft: true,
       title: title.trim() || t('edit.newItem'),
       lastDoneAt,
       createdAt: new Date().toISOString(),
-      value: reminderFieldsFromConfig(reminderCfg),
+      value: reminderFieldsFromConfig(next),
     });
   }
 

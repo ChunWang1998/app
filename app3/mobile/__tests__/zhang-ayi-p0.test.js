@@ -55,6 +55,8 @@ describe('reminder suggestion from name', () => {
     expect(src).toMatch(/\n\s+reminderDays,\n/);
     expect(src).not.toMatch(/reminderNew/);
     expect(src).toMatch(/onMore/);
+    expect(src).toMatch(/ensureReminderEnabled/);
+    expect(read('../src/screens/HomeScreen.js')).not.toMatch(/formatReminderLabel/);
     expect(read('../src/components/ReminderChips.js')).toMatch(/reminder\.more/);
     const reminder = read('../src/screens/ReminderScreen.js');
     expect(reminder).toMatch(/reminder-mode-\$\{m\.mode\}/);

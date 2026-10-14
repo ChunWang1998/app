@@ -143,8 +143,7 @@ export function addInterval(from, n, unit) {
   if (unit === UNIT_WEEK) return addCalendarDays(d, count * 7);
   if (unit === UNIT_MONTH) return addCalendarMonths(d, count, d.getDate());
   if (unit === UNIT_YEAR) return addCalendarYears(d, count, d.getDate());
-  // Interval-days keep last-done time of day so due-status matches historical last+N*864e5.
-  return new Date(d.getTime() + count * 864e5);
+  return addCalendarDays(d, count);
 }
 
 export function defaultReminderConfig() {
@@ -245,6 +244,19 @@ export function reminderConfigFromActivity(item) {
     snoozeEnabled,
     snoozeDays,
     enabled: false,
+  };
+}
+
+/** Turn a draft/off config on so More… from the add screen opens with reminder enabled. */
+export function ensureReminderEnabled(cfg) {
+  const c = { ...defaultReminderConfig(), ...(cfg || {}) };
+  if (c.enabled) return c;
+  return {
+    ...c,
+    enabled: true,
+    mode: normalizeMode(c.mode),
+    unit: normalizeUnit(c.unit),
+    n: clampN(c.n, normalizeMode(c.mode) === MODE_INTERVAL ? normalizeUnit(c.unit) : UNIT_DAY),
   };
 }
 
@@ -420,8 +432,6 @@ export function firstDueInstant(item, cfg = reminderConfigFromActivity(item), no
   const anchor = skipDayAnchor || createdAnchor;
   if (!anchor) return null;
   const due = addInterval(anchor, cfg.n, cfg.unit);
-  // Interval-days keep last-done time of day so due-status matches historical last+N*864e5.
-  if (cfg.unit === UNIT_DAY) return due;
   return applyTime(due, time);
 }
 

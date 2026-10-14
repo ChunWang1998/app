@@ -2,12 +2,15 @@ import { migrateActivity, createActivity } from '../src/data/models';
 import {
   reminderConfigFromActivity,
   reminderFieldsFromConfig,
+  ensureReminderEnabled,
+  defaultReminderConfig,
   firstDueInstant,
   nextFireDate,
   nextRegularAfter,
   addCalendarMonths,
   addCalendarYears,
   formatReminderLabel,
+  formatNextOccurrence,
   formatWeekdayList,
   hasReminder,
   MODE_WEEK,
@@ -204,6 +207,44 @@ describe('interval months and years keep the same calendar day', () => {
     const due = firstDueInstant(a, reminderConfigFromActivity(a));
     expect(due.getMonth()).toBe(3);
     expect(due.getDate()).toBe(15);
+    expect(due.getHours()).toBe(9);
+  });
+});
+
+describe('interval-day next time uses reminderTime everywhere', () => {
+  it('preview, notification, widget and calendar agree on 90 days at 09:00', () => {
+    const last = at(2026, 9, 14, 23, 28);
+    const now = at(2026, 9, 14, 23, 40).getTime();
+    const a = item({
+      reminderDays: 90,
+      reminderTime: '09:00',
+      lastDoneAt: last.toISOString(),
+      createdAt: last.toISOString(),
+    });
+    const cfg = reminderConfigFromActivity(a);
+    const due = firstDueInstant(a, cfg, now);
+    expect(due.getFullYear()).toBe(2027);
+    expect(due.getMonth()).toBe(0);
+    expect(due.getDate()).toBe(12);
+    expect(due.getHours()).toBe(9);
+    expect(due.getMinutes()).toBe(0);
+    expect(due.getTime()).not.toBe(last.getTime() + 90 * 864e5);
+
+    const preview = formatNextOccurrence(due, 'zh-Hant', now);
+    expect(preview).toMatch(/09:00/);
+    expect(preview).not.toMatch(/23:28/);
+
+    const fire = nextTriggerDate(a, now);
+    expect(fire.getTime()).toBe(due.getTime());
+    expect(nextFireDate(a, now).getHours()).toBe(9);
+
+    expect(dueInMs(a, now)).toBe(due.getTime() - now);
+    expect(dueClassOf(a, now)).not.toBe('od');
+
+    const cal = nextDueDate(a, new Date(now));
+    expect(cal.getFullYear()).toBe(2027);
+    expect(cal.getMonth()).toBe(0);
+    expect(cal.getDate()).toBe(12);
   });
 });
 
@@ -246,11 +287,27 @@ describe('snooze cap', () => {
 describe('due-status parity across app, widget and calendar', () => {
   const now = at(2026, 9, 14, 12).getTime();
 
-  it('interval days still match historical last+N*864e5', () => {
-    const last = new Date(now - 5 * 864e5).toISOString();
-    const a = { lastDoneAt: last, reminderDays: 3, createdAt: last };
-    expect(dueInMs(a, now)).toBe(-2 * 864e5);
+  it('interval days fire at reminderTime, not last + N×864e5', () => {
+    const last = at(2026, 9, 9, 23, 28);
+    const a = {
+      lastDoneAt: last.toISOString(),
+      reminderDays: 3,
+      reminderTime: '09:00',
+      createdAt: last.toISOString(),
+    };
+    const due = firstDueInstant(a, reminderConfigFromActivity(a), now);
+    expect(due.getFullYear()).toBe(2026);
+    expect(due.getMonth()).toBe(9);
+    expect(due.getDate()).toBe(12);
+    expect(due.getHours()).toBe(9);
+    expect(due.getMinutes()).toBe(0);
+    expect(due.getTime()).not.toBe(last.getTime() + 3 * 864e5);
     expect(dueStatus(dueInMs(a, now), now)).toBe('overdue');
+    expect(nextTriggerDate(a, now).getHours()).toBe(9);
+    expect(dueClassOf(a, now)).toBe('od');
+    const cal = nextDueDate(a, new Date(now));
+    expect(cal.getDate()).toBe(12);
+    expect(cal.getHours()).toBe(0);
   });
 
   it('weekly due today / overdue / upcoming agree with the widget class', () => {
@@ -301,11 +358,33 @@ describe('natural copy en / zh-Hant / ja', () => {
     expect(formatWeekdayList([1, 4], 'zh-Hant')).toBe('一、四');
   });
 
-  it('keeps interval-day presets short', () => {
+  it('keeps interval-day presets short, with 每 / Every on numeric chips', () => {
     setLocale('en');
-    expect(formatReminderLabel({ reminderDays: 90 }, 'en')).toBe('3 months');
-    expect(formatReminderLabel({ reminderDays: 90 }, 'zh-Hant')).toBe('3 個月');
+    expect(formatReminderLabel({ reminderDays: 90 }, 'en')).toBe('Every 3 months');
+    expect(formatReminderLabel({ reminderDays: 90 }, 'zh-Hant')).toBe('每 3 個月');
+    expect(formatReminderLabel({ reminderDays: 90 }, 'ja')).toBe('3か月ごと');
+    expect(formatReminderLabel({ reminderDays: 14 }, 'en')).toBe('Every 2 weeks');
+    expect(formatReminderLabel({ reminderDays: 14 }, 'zh-Hant')).toBe('每 2 週');
+    expect(formatReminderLabel({ reminderDays: 14 }, 'ja')).toBe('2週間ごと');
     expect(formatReminderLabel({ reminderDays: 7 }, 'ja')).toBe('毎週');
+  });
+});
+
+describe('ensureReminderEnabled for add-screen 更多…', () => {
+  it('turns a default-off draft on without changing the interval', () => {
+    const off = defaultReminderConfig();
+    expect(off.enabled).toBe(false);
+    const on = ensureReminderEnabled(off);
+    expect(on.enabled).toBe(true);
+    expect(on.mode).toBe(MODE_INTERVAL);
+    expect(on.unit).toBe('d');
+    expect(on.n).toBe(14);
+    expect(ensureReminderEnabled({
+      ...off,
+      enabled: true,
+      mode: MODE_WEEK,
+      weekdays: [1, 4],
+    }).mode).toBe(MODE_WEEK);
   });
 });
 

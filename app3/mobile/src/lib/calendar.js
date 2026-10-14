@@ -4,8 +4,6 @@ import { tLocale } from '../i18n';
 import {
   firstDueInstant,
   reminderConfigFromActivity,
-  MODE_INTERVAL,
-  UNIT_DAY,
 } from './reminderSchedule';
 
 const MEMORY_KEY = 'beenages/calendarAdded/v1';
@@ -28,16 +26,6 @@ export function dateKey(d) {
 export function nextDueDate(item, now = new Date()) {
   const cfg = reminderConfigFromActivity(item);
   if (!cfg.enabled) return null;
-  if (cfg.mode === MODE_INTERVAL && cfg.unit === UNIT_DAY) {
-    const startRaw = item.lastDoneAt || item.createdAt;
-    if (!startRaw) return null;
-    const start = new Date(startRaw);
-    if (Number.isNaN(start.getTime())) return null;
-    const due = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-    due.setDate(due.getDate() + cfg.n);
-    void now;
-    return due;
-  }
   const due = firstDueInstant(item, cfg, now instanceof Date ? now.getTime() : now);
   if (!due) return null;
   return new Date(due.getFullYear(), due.getMonth(), due.getDate());
