@@ -1,5 +1,5 @@
 import React from 'react';
-import { createActivity, nowIso, migrateActivity } from './models';
+import { createActivity, nowIso, migrateActivity, normalizeHistory, lastDoneFromHistory } from './models';
 import { KeyValueStorage, loadState, saveState } from './storage';
 import { validateExport } from './schema';
 import { isProUnlocked } from '../lib/entitlements';
@@ -84,31 +84,57 @@ export async function addActivity(input) {
 
 export async function updateActivity(id, changes) {
   const ts = nowIso();
-  const next = state.activities.map(a => (a.id === id ? { ...a, ...changes, updatedAt: ts } : a));
+  const next = state.activities.map((a) => {
+    if (a.id !== id) return a;
+    const merged = { ...a, ...changes, updatedAt: ts };
+    if (changes.history || changes.lastDoneAt !== undefined) {
+      const history = normalizeHistory(merged.history, merged.lastDoneAt);
+      return { ...merged, history, lastDoneAt: lastDoneFromHistory(history) };
+    }
+    return merged;
+  });
   await persist({ ...state, activities: next });
 }
 
 export async function logActivityAt(id, atIso) {
   const ts = atIso || nowIso();
   let previousLastDoneAt = null;
+  let previousHistory = [];
   const next = state.activities.map((a) => {
     if (a.id !== id) return a;
     previousLastDoneAt = a.lastDoneAt ?? null;
-    return { ...a, lastDoneAt: ts, updatedAt: nowIso() };
+    previousHistory = Array.isArray(a.history) ? a.history : [];
+    const history = normalizeHistory([{ at: ts }, ...previousHistory]);
+    return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: nowIso() };
   });
   await persist({ ...state, activities: next });
-  return { previousLastDoneAt, loggedAt: ts };
+  return { previousLastDoneAt, previousHistory, loggedAt: ts };
 }
 
 export async function logActivityNow(id) {
   return logActivityAt(id, nowIso());
 }
 
-export async function undoLogActivity(id, previousLastDoneAt) {
+export async function undoLogActivity(id, previousLastDoneAt, previousHistory) {
   const ts = nowIso();
-  const next = state.activities.map((a) => (
-    a.id === id ? { ...a, lastDoneAt: previousLastDoneAt ?? null, updatedAt: ts } : a
-  ));
+  const next = state.activities.map((a) => {
+    if (a.id !== id) return a;
+    const history = Array.isArray(previousHistory)
+      ? normalizeHistory(previousHistory)
+      : normalizeHistory(a.history?.slice(1), previousLastDoneAt);
+    return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: ts };
+  });
+  await persist({ ...state, activities: next });
+}
+
+export async function backfillHistory(id, atIso) {
+  const at = new Date(atIso).toISOString();
+  const ts = nowIso();
+  const next = state.activities.map((a) => {
+    if (a.id !== id) return a;
+    const history = normalizeHistory([{ at }, ...(a.history || [])]);
+    return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: ts };
+  });
   await persist({ ...state, activities: next });
 }
 
@@ -141,7 +167,7 @@ export async function exportToJson() {
     schema: 'been-ages/export',
     version: 1,
     exportedAt: nowIso(),
-    activities: state.activities.filter((a) => !a.deletedAt),
+    activities: state.activities.filter((a) => !a.deletedAt).map(migrateActivity),
   };
   return validateExport(blob);
 }

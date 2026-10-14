@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
-import { ChevronLeftIcon, InfinityIcon, GridIcon } from '../components/Icons';
+import { ChevronLeftIcon, InfinityIcon, GridIcon, CloudIcon } from '../components/Icons';
 import { purchaseProUnlock, restoreProUnlock, getProDisplayPrice } from '../lib/iap';
 import { isProUnlocked } from '../lib/entitlements';
 import { FREE_ACTIVITY_LIMIT } from '../data/repository';
@@ -95,9 +95,14 @@ export default function PaywallScreen() {
             sub={`免費版 ${FREE_ACTIVITY_LIMIT} 個`}
           />
           <Feature
-            icon={<GridIcon color={c.brand} size={22} />}
+            icon={<GridIcon color={c.brand} size={20} />}
             title="桌面小工具"
             sub="鎖定畫面也能記"
+          />
+          <Feature
+            icon={<CloudIcon color={c.brand} size={20} />}
+            title="iCloud 備份"
+            sub="v1.2"
           />
         </View>
       </View>

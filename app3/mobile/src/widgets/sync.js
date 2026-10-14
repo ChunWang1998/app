@@ -232,11 +232,11 @@ export async function handleWidgetInteraction(event, { now = Date.now() } = {}) 
     const prev = recentLogs.get(itemId);
     recentLogs.delete(itemId);
     if (prev) {
-      await undoLogActivity(itemId, prev.previousLastDoneAt);
+      await undoLogActivity(itemId, prev.previousLastDoneAt, prev.previousHistory);
     } else {
       const live = await readLiveWidgetProps();
       const pending = live.find((p) => p?.pending?.itemId === itemId)?.pending;
-      if (pending) await undoLogActivity(itemId, pending.previousLastDoneAt);
+      if (pending) await undoLogActivity(itemId, pending.previousLastDoneAt, pending.previousHistory);
     }
     await syncWidgetsNow({ now });
     return { undone: true };
