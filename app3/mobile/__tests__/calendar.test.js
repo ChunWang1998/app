@@ -35,6 +35,20 @@ describe('add to calendar', () => {
     expect(r.status).toBe('duplicate');
   });
 
+  it('writes via getDefaultCalendarSync().createEvent when permitted', async () => {
+    const start = new Date(2026, 9, 1, 12, 0, 0);
+    const item = {
+      id: 'w1',
+      title: '換牙刷',
+      lastDoneAt: start.toISOString(),
+      reminderDays: 90,
+      createdAt: start.toISOString(),
+    };
+    const r = await addNextDueToCalendar(item);
+    expect(r.status).toBe('added');
+    expect(r.dateKey).toBe('2026-12-30');
+  });
+
   it('plugin requests write-only access only', () => {
     const appJson = require('../app.json');
     const plugin = (appJson.expo.plugins || []).find((p) => Array.isArray(p) && p[0] === 'expo-calendar');

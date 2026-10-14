@@ -24,3 +24,5 @@ jobs:
       - run: npm test --silent
       - name: Audit (high/critical) with allowlist
         run: npx audit-ci --config audit-ci.json
+      - name: Expo export iOS JS bundle
+        run: npx expo export --platform ios --output-dir /tmp/beenages-ios-export

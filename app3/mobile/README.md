@@ -1,6 +1,12 @@
 # Been Ages (app3/mobile)
 
-v1.1 core UI (this slice):
+v1.1 share cards + calendar (this slice):
+- Share cards: line-art, 9:16 and 4:5, hide-name toggle; one free style, more Pro
+- System share sheet only (`expo-sharing`). Direct IG Stories waits on a Meta App ID
+- Add to Calendar: write-only next-due all-day event, 9:00 alert, no recurrence, duplicate memory
+- Privacy copy for calendar, widgets, and share cards
+
+v1.1 core UI (already on main):
 - List / add / edit / log / swipe-delete with a 5s undo, then hard-delete
 - History, 補記, notes, reminder editor (on/off, interval, time, snooze — scheduling in a follow-up PR)
 - Dark mode via 設定 → 顯示 (自動 / 淺色 / 深色) and 精確時間
