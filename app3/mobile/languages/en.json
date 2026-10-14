@@ -1,6 +1,7 @@
 {
   "ios": {
-    "CFBundleDisplayName": "Been Ages"
+    "CFBundleDisplayName": "Been Ages",
+    "NSCalendarsWriteOnlyAccessUsageDescription": "Adds the next due date to your calendar."
   },
   "app": {
     "title": "Been Ages",

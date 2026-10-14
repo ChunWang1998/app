@@ -7,6 +7,7 @@ import EditScreen from '../screens/EditScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import ReminderScreen from '../screens/ReminderScreen';
+import ShareCardScreen from '../screens/ShareCardScreen';
 import { useTheme } from '../theme/useTheme';
 
 const Stack = createNativeStackNavigator();
@@ -47,6 +48,11 @@ export default function AppNavigator({ initial }) {
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="Paywall" component={PaywallScreen} />
         <Stack.Screen name="Reminder" component={ReminderScreen} />
+        <Stack.Screen
+          name="ShareCard"
+          component={ShareCardScreen}
+          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

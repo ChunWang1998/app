@@ -8,10 +8,12 @@ describe('v1.1 hides unfinished entry points', () => {
   const app = fs.readFileSync(path.join(__dirname, '../src/App.js'), 'utf8');
   const appJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../app.json'), 'utf8'));
 
-  it('ships Reminder but not RecentlyDeleted or widgets', () => {
+  it('ships Reminder and ShareCard, not RecentlyDeleted', () => {
     expect(nav).toMatch(/ReminderScreen/);
+    expect(nav).toMatch(/ShareCardScreen/);
     expect(nav).not.toMatch(/RecentlyDeleted/);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/ReminderScreen.js'))).toBe(true);
+    expect(fs.existsSync(path.join(__dirname, '../src/screens/ShareCardScreen.js'))).toBe(true);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(false);
   });
 

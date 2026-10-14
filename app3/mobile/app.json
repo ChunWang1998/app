@@ -49,7 +49,14 @@
         }
       ],
       "expo-iap",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-calendar",
+        {
+          "writeOnlyAccess": true,
+          "writeOnlyCalendarPermission": "Adds the next due date to your calendar."
+        }
+      ]
     ],
     "locales": {
       "en": "./languages/en.json",

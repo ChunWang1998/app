@@ -52,6 +52,26 @@ jest.mock('expo-haptics', () => ({
   NotificationFeedbackType: { Success: 'success' },
 }));
 
+jest.mock('expo-calendar', () => ({
+  requestCalendarPermissions: jest.fn(async () => ({ status: 'granted', granted: true, writeOnly: true })),
+  getDefaultCalendarSync: jest.fn(() => ({
+    createEvent: jest.fn(async (details) => ({ id: 'evt', ...details })),
+  })),
+}), { virtual: true });
+
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn(async () => true),
+  shareAsync: jest.fn(async () => {}),
+}));
+
+jest.mock('react-native-view-shot', () => ({
+  captureRef: jest.fn(async () => 'file:///tmp/card.png'),
+}), { virtual: true });
+
+jest.mock('expo-file-system', () => ({
+  deleteAsync: jest.fn(async () => {}),
+}), { virtual: true });
+
 // Force simulate IAP in tests
 process.env.EXPO_PUBLIC_IAP_SIMULATE = '1';
 
