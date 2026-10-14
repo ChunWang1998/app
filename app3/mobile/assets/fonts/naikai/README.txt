@@ -6,6 +6,7 @@ Subset Naikai TTFs (generated, committed):
 Family name in the name table: BeenAgesRounded (Regular / SemiBold / Bold).
 Code loads them as BeenAgesRounded-Regular, BeenAgesRounded-SemiBold, BeenAgesRounded-Bold.
 
+Char list: assets/fonts/subset-chars.txt (UI copy plus category/icon/reminder keyword chips).
 Regenerate with: ./scripts/subset-naikai.sh
 (scripts/rename-font-family.py rewrites the name table after subsetting.)
 Source: https://github.com/max32002/naikaifont (tw/*.ttf)

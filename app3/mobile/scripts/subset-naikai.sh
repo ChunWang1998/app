@@ -8,6 +8,7 @@ set -euo pipefail
 DIR="$(cd "$(dirname "$0")"/.. && pwd)"
 OUT="$DIR/assets/fonts/naikai"
 TMP="$(mktemp -d)"
+# UI copy + keyword chips (categoryKeywords / iconKeywords / reminderKeywords).
 CHARLIST="$DIR/assets/fonts/subset-chars.txt"
 trap 'rm -rf "$TMP"' EXIT
 
