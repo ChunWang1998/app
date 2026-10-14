@@ -41,6 +41,7 @@ export async function loadState(storage = new KeyValueStorage()) {
     return {
       version: 1,
       activities: data.activities.map(migrateActivity),
+      ...(Array.isArray(data.categories) ? { categories: data.categories } : {}),
     };
   } catch {
     if (raw) {
@@ -58,6 +59,7 @@ export async function saveState(state, storage = new KeyValueStorage()) {
   const clean = {
     version: 1,
     activities: Array.isArray(state.activities) ? state.activities : [],
+    ...(Array.isArray(state.categories) ? { categories: state.categories } : {}),
   };
   await storage.setItem(STATE_KEY, JSON.stringify(clean));
 }
