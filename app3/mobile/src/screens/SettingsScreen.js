@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, useTheme } from '../theme/useTheme';
 import { restoreProUnlock, canPresentRedeemCode, presentRedeemCodeSheet } from '../lib/iap';
 import { isProUnlocked, subscribePro } from '../lib/entitlements';
-import { getRecentlyDeleted, subscribe, refreshReminders } from '../data/repository';
+import { getRecentlyDeleted, getCategories, subscribe, refreshReminders } from '../data/repository';
 import { ChevronLeftIcon, CheckIcon, RestoreIcon, LockIcon, GridIcon, PaintIcon, ClockIcon, BellIcon } from '../components/Icons';
 import { SettingsRow, SettingsSwitch } from '../components/SettingsRow';
 import { t } from '../i18n';
@@ -105,6 +105,12 @@ export default function SettingsScreen() {
 
         <Text style={[styles.sec, { color: c.label }]}>{t('settings.data')}</Text>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
+          <SettingsRow
+            title={t('category.title')}
+            value={String(getCategories().length + 1)}
+            onPress={() => nav.navigate('Categories')}
+            chev
+          />
           <SettingsRow
             title={t('settings.recentlyDeleted')}
             value={String(trash)}

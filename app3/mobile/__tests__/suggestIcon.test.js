@@ -25,7 +25,7 @@ describe('suggestIcon', () => {
   it('covers 60+ household / health / pet / car items and only built-in icons', () => {
     expect(itemCount()).toBeGreaterThanOrEqual(60);
     expect(keywordCount()).toBeGreaterThanOrEqual(150);
-    expect(SUGGEST_ICONS).toEqual(['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw']);
+    expect(SUGGEST_ICONS).toEqual(['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'plug']);
   });
 
   it('falls back to a monogram when nothing matches', () => {
