@@ -58,6 +58,15 @@ export function getVisibleActivities() {
   return (state.activities || []).filter((a) => !a.deletedAt);
 }
 
+export async function refreshReminders() {
+  try {
+    const { enforceReminderBudget } = require('../notifications/reminders');
+    await enforceReminderBudget(state.activities);
+  } catch {
+    // web / tests / missing permission — never block a save
+  }
+}
+
 async function persist(nextState) {
   state = { ...nextState, activities: nextState.activities || [] };
   await saveState(state, storage);
@@ -70,6 +79,7 @@ async function persist(nextState) {
       // widgets optional in tests / web
     }
   }
+  await refreshReminders();
 }
 
 export async function addActivity(input) {

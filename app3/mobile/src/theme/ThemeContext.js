@@ -10,10 +10,12 @@ export const ThemeContext = React.createContext({
   preciseTime: true,
   sort: 'due',
   reminderTime: '09:00',
+  showNameInNotifications: false,
   setAppearance: async () => {},
   setPreciseTime: async () => {},
   setSort: async () => {},
   setReminderTime: async () => {},
+  setShowNameInNotifications: async () => {},
 });
 
 export function ThemeProvider({ children }) {
@@ -36,10 +38,13 @@ export function ThemeProvider({ children }) {
     preciseTime: prefs.preciseTime !== false,
     sort: prefs.sort === 'last' ? 'last' : 'due',
     reminderTime: prefs.reminderTime || '09:00',
+    showNameInNotifications: prefs.showNameInNotifications === true,
     setAppearance: (appearance) => updatePrefs({ appearance }),
     setPreciseTime: (preciseTime) => updatePrefs({ preciseTime }),
     setSort: (sort) => updatePrefs({ sort }),
     setReminderTime: (reminderTime) => updatePrefs({ reminderTime }),
+    setShowNameInNotifications: (showNameInNotifications) =>
+      updatePrefs({ showNameInNotifications: !!showNameInNotifications }),
   }), [scheme, colors, prefs]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

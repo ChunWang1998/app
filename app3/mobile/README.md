@@ -6,7 +6,8 @@ v1.1 core UI (this slice):
 - Dark mode via 設定 → 顯示 (自動 / 淺色 / 深色) and 精確時間
 - IAP unlock + Restore Purchases (expo-iap), free tier = 3 items
 - i18n (en, zh-Hant)
-- Import/export, Recently Deleted, and push scheduling are the next slices
+- Local reminders are scheduled with expo-notifications (one per item, iOS 64 cap, snooze)
+- Import/export and Recently Deleted are the next slice
 
 v1.1 widgets (this slice):
 - App Group `group.com.beenages.app` snapshot + check-in queue

@@ -43,7 +43,15 @@ export default function ReminderScreen() {
 
   async function toggleOn(v) {
     setOn(v);
-    if (v && days < 1) setDays(14);
+    if (v) {
+      if (days < 1) setDays(14);
+      try {
+        const { requestNotificationPermissions } = require('../notifications/reminders');
+        await requestNotificationPermissions();
+      } catch {
+        // web / denied — persist the setting; scheduling skips if not granted
+      }
+    }
     await persist({ on: v, days: v ? (days || 14) : days });
   }
 

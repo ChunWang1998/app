@@ -17,12 +17,18 @@ describe('v1.1 hides unfinished entry points', () => {
     expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(false);
   });
 
-  it('does not depend on expo-notifications yet', () => {
+  it('schedules reminders with expo-notifications', () => {
     const plugins = JSON.stringify(appJson.expo.plugins || []);
-    expect(plugins).not.toMatch(/expo-notifications/);
+    expect(plugins).toMatch(/expo-notifications/);
+    expect(plugins).toMatch(/with-strip-aps-environment/);
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
-    expect(pkg.dependencies['expo-notifications']).toBeUndefined();
-    expect(fs.existsSync(path.join(__dirname, '../src/notifications'))).toBe(false);
+    expect(pkg.dependencies['expo-notifications']).toBeDefined();
+    expect(fs.existsSync(path.join(__dirname, '../src/notifications/reminders.js'))).toBe(true);
+    const reminders = fs.readFileSync(path.join(__dirname, '../src/notifications/reminders.js'), 'utf8');
+    const reminderScreen = fs.readFileSync(path.join(__dirname, '../src/screens/ReminderScreen.js'), 'utf8');
+    expect(reminderScreen).toMatch(/requestNotificationPermissions/);
+    expect(reminders).toMatch(/async function enforceReminderBudget/);
+    expect(reminders).not.toMatch(/enforceReminderBudget[\s\S]*requestPermissionsAsync/);
   });
 
   it('does not expose import/export or recently deleted in Settings', () => {
@@ -32,6 +38,7 @@ describe('v1.1 hides unfinished entry points', () => {
     expect(settings).toMatch(/恢復購買/);
     expect(settings).toMatch(/小工具/);
     expect(settings).toMatch(/顯示/);
+    expect(settings).toMatch(/通知含名稱/);
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/privacy.html');
     expect(settings).toMatch('chunwang1998.github.io/app/app3/store/support.html');
   });
