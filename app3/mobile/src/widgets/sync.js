@@ -8,6 +8,7 @@ import {
   appendQueueLog,
   applyWidgetUndo,
   buildSnapshot,
+  clampWidgetCompletionTime,
   pendingShouldCommit,
   planQueueMerge,
   queueFromPending,
@@ -165,6 +166,7 @@ export async function mergeAppGroupQueue({ now = Date.now() } = {}) {
     logs: queued.logs,
     activities,
     proUnlocked: pro,
+    now,
   });
   for (const entry of applied) {
     await logActivityAt(entry.itemId, entry.timestamp);
@@ -180,11 +182,12 @@ async function ingestWidgetProps(props, { now = Date.now() } = {}) {
   const s = await resolveFileStore();
   let queue = await readQueue(s);
   if (props.pending && pendingShouldCommit(props.pending, now)) {
+    const item = getVisibleActivities().find((a) => a.id === props.pending.itemId && !a.deletedAt);
+    if (!item) return;
+    const clamped = clampWidgetCompletionTime(props.pending.at, item.createdAt, now);
     queue = appendQueueLog(queue, {
       itemId: props.pending.itemId,
-      timestamp: typeof props.pending.at === 'number'
-        ? new Date(props.pending.at).toISOString()
-        : String(props.pending.at),
+      timestamp: new Date(clamped).toISOString(),
       source: 'widget',
     });
     await writeQueue(s, queue);
@@ -215,6 +218,22 @@ export async function mergeLiveWidgetsAndQueue({ now = Date.now() } = {}) {
   await syncWidgetsNow({ now });
 }
 
+export function widgetEventTimestamp(event, fallbackNow) {
+  const candidates = [
+    event?.pending?.at,
+    event?.props?.pending?.at,
+    event?.nextProps?.pending?.at,
+    event?.at,
+    event?.timestamp,
+  ];
+  for (const c of candidates) {
+    if (c == null || c === '') continue;
+    const t = typeof c === 'number' ? c : Date.parse(c);
+    if (Number.isFinite(t)) return t;
+  }
+  return fallbackNow;
+}
+
 export async function handleWidgetInteraction(event, { now = Date.now() } = {}) {
   const target = String(event?.target || '');
   const source = event?.source;
@@ -222,7 +241,13 @@ export async function handleWidgetInteraction(event, { now = Date.now() } = {}) 
 
   if (target.startsWith('check:')) {
     const itemId = target.slice('check:'.length);
-    const result = await logActivityAt(itemId, new Date(now).toISOString());
+    const pro = await isProUnlocked();
+    if (!pro) return { skipped: 'NOT_PRO' };
+    const item = getVisibleActivities().find((a) => a.id === itemId && !a.deletedAt);
+    if (!item) return { skipped: 'UNKNOWN_ITEM' };
+    const sent = widgetEventTimestamp(event, now);
+    const clamped = clampWidgetCompletionTime(sent, item.createdAt, now);
+    const result = await logActivityAt(itemId, new Date(clamped).toISOString());
     recentLogs.set(itemId, { ...result, expiresAt: now + WIDGET_UNDO_MS });
     await syncWidgetsNow({ now });
     return result;

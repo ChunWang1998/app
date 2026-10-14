@@ -10,7 +10,8 @@ import { elapsedMs, formatSpanParts } from '../lib/time';
 import ShareCardView from '../share/ShareCardView';
 import { SHARE_SIZES, SHARE_STYLES, canUseStyle, styleById } from '../share/config';
 import { captureCard } from '../share/capture';
-import { cleanupShareFile, shareCardImage } from '../share/shareSheet';
+import { shareCardImage } from '../share/shareSheet';
+import { getPrefs, updatePrefs } from '../data/prefs';
 
 const PREVIEW_W = 220;
 
@@ -22,7 +23,7 @@ export default function ShareCardScreen() {
   const { activities } = useActivities();
   const item = useMemo(() => activities.find((a) => a.id === params?.id), [activities, params]);
   const cardRef = useRef(null);
-  const [hideName, setHideName] = useState(false);
+  const [hideName, setHideName] = useState(() => !!getPrefs().hideName);
   const [styleId, setStyleId] = useState('cream');
   const [sizeKey, setSizeKey] = useState('story');
   const [pro, setPro] = useState(false);
@@ -69,7 +70,6 @@ export default function ShareCardScreen() {
     } catch (e) {
       Alert.alert('失敗', String(e?.message || e));
     } finally {
-      await cleanupShareFile(uri);
       setBusy(false);
     }
   }
@@ -106,7 +106,14 @@ export default function ShareCardScreen() {
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 22 }]}>
           <View style={styles.row}>
             <Text style={[styles.rowTitle, { color: c.label }]}>隱藏名稱</Text>
-            <Switch value={hideName} onValueChange={setHideName} trackColor={{ false: c.fill, true: c.brand }} />
+            <Switch
+              value={hideName}
+              onValueChange={(v) => {
+                setHideName(v);
+                updatePrefs({ hideName: v }).catch(() => {});
+              }}
+              trackColor={{ false: c.fill, true: c.brand }}
+            />
           </View>
         </View>
 

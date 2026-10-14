@@ -18,6 +18,9 @@ describe('add to calendar', () => {
     const alert = new Date(payload.alarms[0].absoluteDate);
     expect(alert.getHours()).toBe(CALENDAR_ALERT_HOUR);
     expect(eventTitle({ title: 'Brush' }, 'en')).toBe('Brush | Been Ages');
+    expect(eventTitle({ title: '換牙刷' }, 'zh', true)).toBe('好久沒了');
+    expect(eventTitle({ title: 'Brush' }, 'en', true)).toBe('Been Ages');
+    expect(eventPayload(item, 'zh', true).title).toBe('好久沒了');
   });
 
   it('hides the action when there is no interval', () => {
@@ -53,11 +56,17 @@ describe('add to calendar', () => {
     const appJson = require('../app.json');
     const plugin = (appJson.expo.plugins || []).find((p) => Array.isArray(p) && p[0] === 'expo-calendar');
     expect(plugin[1].writeOnlyAccess).toBe(true);
-    expect(plugin[1].writeOnlyCalendarPermission).toMatch(/calendar/i);
+    expect(plugin[1].calendarPermission).toBe(false);
+    expect(plugin[1].remindersPermission).toBe(false);
+    expect(plugin[1].writeOnlyCalendarPermission).toMatch(/item's next due date/i);
     const zh = require('../languages/zh-Hant.json');
     const en = require('../languages/en.json');
-    expect(zh.ios.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/行事曆/);
-    expect(en.ios.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/calendar/);
+    expect(zh.ios.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/項目的下次該做日子/);
+    expect(en.ios.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/item's next due date/i);
+    expect(zh.ios.NSCalendarsUsageDescription).toBeUndefined();
+    expect(en.ios.NSCalendarsUsageDescription).toBeUndefined();
+    expect(zh.ios.NSRemindersUsageDescription).toBeUndefined();
+    expect(en.ios.NSRemindersUsageDescription).toBeUndefined();
     const src = require('fs').readFileSync(require('path').join(__dirname, '../src/lib/calendar.js'), 'utf8');
     expect(src).toMatch(/requestCalendarPermissions\(true\)/);
     expect(src).not.toMatch(/getCalendars\(/);

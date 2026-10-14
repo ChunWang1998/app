@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Switch } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useActivities } from '../data/repository';
@@ -14,7 +14,7 @@ export default function WidgetPickerScreen() {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
   const { activities } = useActivities();
-  const [sel, setSel] = React.useState({ small: 'auto', medium: [] });
+  const [sel, setSel] = React.useState({ small: 'auto', medium: [], hideLockNames: false });
 
   React.useEffect(() => {
     loadWidgetSelection().then(setSel).catch(() => {});
@@ -47,7 +47,7 @@ export default function WidgetPickerScreen() {
         <View style={styles.navBtn} />
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
-        <Text style={[styles.hint, { color: c.l2 }]}>長按桌面小工具也可選項目。沒選時顯示最該做的。</Text>
+        <Text style={[styles.hint, { color: c.l2 }]}>長按桌面或鎖定畫面小工具也可選項目。沒選時顯示最該做的。</Text>
         <Text style={[styles.sec, { color: c.l2 }]}>小尺寸</Text>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
           <Row
@@ -88,6 +88,22 @@ export default function WidgetPickerScreen() {
               last={i === activities.length - 1}
             />
           ))}
+        </View>
+        <Text style={[styles.sec, { color: c.l2 }]}>鎖定畫面</Text>
+        <View style={[styles.grp, { backgroundColor: c.cell }]}>
+          <View style={styles.row}>
+            <Text style={[styles.rowTitle, { color: c.label }]}>隱藏名稱</Text>
+            <Switch
+              value={!!sel.hideLockNames}
+              onValueChange={async (v) => {
+                const next = { ...sel, hideLockNames: v };
+                setSel(next);
+                await saveWidgetSelection(next);
+              }}
+              trackColor={{ false: c.fill, true: c.brand }}
+              accessibilityLabel="鎖定畫面隱藏名稱"
+            />
+          </View>
         </View>
       </ScrollView>
     </View>

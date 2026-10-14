@@ -60,7 +60,9 @@
         "expo-calendar",
         {
           "writeOnlyAccess": true,
-          "writeOnlyCalendarPermission": "Adds the next due date to your calendar."
+          "calendarPermission": false,
+          "remindersPermission": false,
+          "writeOnlyCalendarPermission": "Adds an item's next due date to your calendar."
         }
       ],
       [

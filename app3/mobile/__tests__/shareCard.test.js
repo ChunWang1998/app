@@ -1,5 +1,5 @@
 import { SHARE_SIZES, SHARE_STYLES, canUseStyle, headlineForDays, IG_STORIES_DIRECT } from '../src/share/config';
-import { igStoriesStatus } from '../src/share/shareSheet';
+import { igStoriesStatus, shareCardImage } from '../src/share/shareSheet';
 
 describe('share cards', () => {
   it('ships 9:16 and 4:5', () => {
@@ -23,5 +23,20 @@ describe('share cards', () => {
   it('skips direct IG Stories until a Meta App ID exists', () => {
     expect(IG_STORIES_DIRECT).toBe(false);
     expect(igStoriesStatus().reason).toBe('waiting-for-meta-app-id');
+  });
+
+  it('deletes the temp file only after shareAsync resolves', async () => {
+    const order = [];
+    const Sharing = require('expo-sharing');
+    const FS = require('expo-file-system');
+    Sharing.shareAsync.mockImplementation(async () => { order.push('share'); });
+    FS.deleteAsync.mockImplementation(async () => { order.push('delete'); });
+    await shareCardImage('file:///tmp/card.png');
+    expect(order).toEqual(['share', 'delete']);
+    const screen = require('fs').readFileSync(
+      require('path').join(__dirname, '../src/screens/ShareCardScreen.js'),
+      'utf8',
+    );
+    expect(screen).not.toMatch(/cleanupShareFile/);
   });
 });

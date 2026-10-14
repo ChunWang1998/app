@@ -22,6 +22,14 @@ describe('expo-widgets config', () => {
     const lock = plugin[1].widgets[1];
     expect(home.ios.supportedFamilies).toEqual(['systemSmall', 'systemMedium']);
     expect(lock.ios.supportedFamilies).toEqual(['accessoryCircular', 'accessoryRectangular']);
+    expect(lock.ios.configuration.parameters.hideNames).toMatchObject({
+      title: 'Hide names',
+      type: 'boolean',
+      default: false,
+    });
+    const lockSrc = fs.readFileSync(path.join(__dirname, '../src/widgets/BeenAgesLock.js'), 'utf8');
+    expect(lockSrc).toMatch(/hideNames/);
+    expect(lockSrc).toMatch(/hideLockNames/);
   });
 
   it('does not depend on Meta / IG Stories in this slice', () => {
