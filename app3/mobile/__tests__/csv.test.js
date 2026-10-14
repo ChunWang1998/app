@@ -2,9 +2,14 @@ import { csvEscape, exportFileName } from '../src/data/csv';
 import { resetRepositoryForTests, addActivity, exportToCsv } from '../src/data/repository';
 
 describe('csvEscape', () => {
+  function unquote(s) {
+    if (s.startsWith('"') && s.endsWith('"')) return s.slice(1, -1).replace(/""/g, '"');
+    return s;
+  }
+
   it('prefixes a quote when a field starts with a formula character', () => {
     for (const ch of ['=', '+', '-', '@', '\t', '\r']) {
-      expect(csvEscape(`${ch}1+1`)).toMatch(/^'/);
+      expect(unquote(csvEscape(`${ch}1+1`)).startsWith("'")).toBe(true);
     }
     expect(csvEscape('hello')).toBe('hello');
   });
