@@ -69,8 +69,8 @@ describe('widget item pick + Pro gate', () => {
     expect(jaDays.items[0].daysUnit).toBe('日');
   });
 
-  it('free-cap snapshot items cannot exceed 3 even if queue is tampered', () => {
-    expect(FREE_ACTIVITY_LIMIT).toBe(3);
+  it('free cap is 10; tampered queue ids are skipped even if queue is tampered', () => {
+    expect(FREE_ACTIVITY_LIMIT).toBe(10);
     const logs = ['a1', 'a2', 'a3', 'a4'].map((id) => ({ itemId: id, timestamp: new Date(now).toISOString() }));
     const activities = ['a1', 'a2', 'a3'].map((id) => item(id, 1));
     const { applied, skipped } = planQueueMerge({ logs, activities, proUnlocked: true });
