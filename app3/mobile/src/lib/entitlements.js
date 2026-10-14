@@ -2,6 +2,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PRO_KEY = 'beenages/proUnlocked/v1';
 const EMPTY_PURCHASE_STREAK_KEY = 'beenages/emptyPurchaseStreak/v1';
+const proListeners = new Set();
+
+export function subscribePro(listener) {
+  proListeners.add(listener);
+  return () => proListeners.delete(listener);
+}
+
+function notifyPro(unlocked) {
+  for (const l of proListeners) {
+    try {
+      l(!!unlocked);
+    } catch {}
+  }
+}
 
 export async function isProUnlocked() {
   try {
@@ -23,6 +37,7 @@ export async function setProUnlocked(unlocked) {
   } catch {
     // ignore
   }
+  notifyPro(unlocked);
   try {
     require('../widgets/sync').scheduleWidgetSync();
   } catch {}
@@ -35,6 +50,7 @@ export async function clearProUnlocked() {
   } catch {
     // ignore
   }
+  notifyPro(false);
   try {
     require('../widgets/sync').scheduleWidgetSync();
   } catch {}

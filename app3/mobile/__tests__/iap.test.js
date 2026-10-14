@@ -1,9 +1,35 @@
-import { purchaseProUnlock, restoreProUnlock, verifyProOnLaunch, getProDisplayPrice } from '../src/lib/iap';
-import { isProUnlocked, clearProUnlocked, setProUnlocked } from '../src/lib/entitlements';
+import { Platform } from 'react-native';
+import {
+  purchaseProUnlock,
+  restoreProUnlock,
+  verifyProOnLaunch,
+  getProDisplayPrice,
+  startPurchaseUpdates,
+  stopPurchaseUpdates,
+  grantFullpackPurchase,
+  canPresentRedeemCode,
+  presentRedeemCodeSheet,
+} from '../src/lib/iap';
+import { isProUnlocked, clearProUnlocked, setProUnlocked, subscribePro } from '../src/lib/entitlements';
+
+const FULLPACK = process.env.EXPO_PUBLIC_IAP_PRODUCT_ID || 'com.beenages.app.fullpack';
 
 describe('iap', () => {
   beforeEach(async () => {
+    await stopPurchaseUpdates();
+    const iap = require('expo-iap');
+    iap.__resetIapMock?.();
+    iap.finishTransaction.mockClear();
+    iap.purchaseUpdatedListener.mockClear();
+    iap.presentCodeRedemptionSheet.mockClear();
+    iap.presentCodeRedemptionSheetIOS.mockClear();
+    iap.isTransactionVerifiedIOS.mockReset();
+    iap.isTransactionVerifiedIOS.mockResolvedValue(true);
     await clearProUnlocked();
+  });
+
+  afterEach(async () => {
+    await stopPurchaseUpdates();
   });
 
   it('simulates purchase in test env', async () => {
@@ -35,5 +61,86 @@ describe('iap', () => {
     expect(paywall).not.toMatch(/iCloud/);
     expect(paywall).not.toMatch(/v1\.2/);
     expect(paywall).toMatch(/displayPrice|getProDisplayPrice/);
+  });
+
+  it('registers a persistent purchase listener at app start', async () => {
+    const iap = require('expo-iap');
+    const app = require('fs').readFileSync(require('path').join(__dirname, '../src/App.js'), 'utf8');
+    expect(app).toMatch(/startPurchaseUpdates/);
+    await startPurchaseUpdates();
+    expect(iap.initConnection).toHaveBeenCalled();
+    expect(iap.purchaseUpdatedListener).toHaveBeenCalled();
+  });
+
+  it('unlocks Pro from a fullpack purchase-updated event and finishes the transaction', async () => {
+    const iap = require('expo-iap');
+    await startPurchaseUpdates();
+    expect(await isProUnlocked()).toBe(false);
+    const unlocked = new Promise((resolve) => {
+      const unsub = subscribePro((v) => {
+        if (v) {
+          unsub();
+          resolve();
+        }
+      });
+    });
+    iap.__emitPurchaseUpdated({ productId: FULLPACK });
+    await unlocked;
+    expect(await isProUnlocked()).toBe(true);
+    expect(iap.finishTransaction).toHaveBeenCalledWith({
+      purchase: { productId: FULLPACK },
+      isConsumable: false,
+    });
+    expect(iap.isTransactionVerifiedIOS).toHaveBeenCalledWith(FULLPACK);
+  });
+
+  it('ignores purchase-updated events for other products', async () => {
+    const iap = require('expo-iap');
+    await startPurchaseUpdates();
+    expect(await grantFullpackPurchase({ productId: 'com.other.app.sku' })).toBe(false);
+    iap.__emitPurchaseUpdated({ productId: 'com.other.app.sku' });
+    await new Promise((r) => setImmediate(r));
+    expect(await isProUnlocked()).toBe(false);
+    expect(iap.finishTransaction).not.toHaveBeenCalled();
+  });
+
+  it('does not unlock when the transaction check fails', async () => {
+    const iap = require('expo-iap');
+    iap.isTransactionVerifiedIOS.mockResolvedValue(false);
+    await startPurchaseUpdates();
+    expect(await grantFullpackPurchase({ productId: FULLPACK })).toBe(false);
+    expect(await isProUnlocked()).toBe(false);
+    expect(iap.finishTransaction).not.toHaveBeenCalled();
+  });
+
+  it('handles listener errors quietly', async () => {
+    const iap = require('expo-iap');
+    iap.isTransactionVerifiedIOS.mockRejectedValue(new Error('storekit'));
+    iap.finishTransaction.mockRejectedValue(new Error('finish'));
+    await startPurchaseUpdates();
+    await expect(grantFullpackPurchase({ productId: FULLPACK })).resolves.toBe(true);
+    expect(await isProUnlocked()).toBe(true);
+  });
+
+  it('shows Redeem Code next to Restore on iOS only', () => {
+    const paywall = require('fs').readFileSync(require('path').join(__dirname, '../src/screens/PaywallScreen.js'), 'utf8');
+    const settings = require('fs').readFileSync(require('path').join(__dirname, '../src/screens/SettingsScreen.js'), 'utf8');
+    expect(paywall).toMatch(/settings\.redeem/);
+    expect(paywall).toMatch(/canPresentRedeemCode/);
+    expect(paywall).toMatch(/presentRedeemCodeSheet/);
+    expect(settings).toMatch(/settings\.redeem/);
+    expect(settings).toMatch(/canPresentRedeemCode/);
+    expect(settings).toMatch(/presentRedeemCodeSheet/);
+    expect(canPresentRedeemCode('ios')).toBe(true);
+    expect(canPresentRedeemCode('android')).toBe(false);
+    expect(canPresentRedeemCode('web')).toBe(false);
+  });
+
+  it('presents the App Store code redemption sheet on iOS', async () => {
+    const iap = require('expo-iap');
+    expect(Platform.OS).toBe('ios');
+    const r = await presentRedeemCodeSheet();
+    expect(r.ok).toBe(true);
+    expect(iap.presentCodeRedemptionSheet).toHaveBeenCalled();
   });
 });

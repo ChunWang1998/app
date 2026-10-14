@@ -5,8 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
 import { ChevronLeftIcon, InfinityIcon, GridIcon, ShareIcon } from '../components/Icons';
-import { purchaseProUnlock, restoreProUnlock, getProDisplayPrice } from '../lib/iap';
-import { isProUnlocked } from '../lib/entitlements';
+import { purchaseProUnlock, restoreProUnlock, getProDisplayPrice, canPresentRedeemCode, presentRedeemCodeSheet } from '../lib/iap';
+import { isProUnlocked, subscribePro } from '../lib/entitlements';
 import { FREE_ACTIVITY_LIMIT } from '../data/repository';
 import { t } from '../i18n';
 
@@ -33,6 +33,10 @@ export default function PaywallScreen() {
 
   React.useEffect(() => {
     isProUnlocked().then(setPro);
+    return subscribePro(setPro);
+  }, []);
+
+  React.useEffect(() => {
     loadPrice();
   }, [loadPrice]);
 
@@ -128,9 +132,21 @@ export default function PaywallScreen() {
         >
           <Text style={[styles.ctaText, { color: c.onbrand }]}>{pro ? t('common.unlocked') : t('paywall.buy')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={restore} disabled={busy} style={{ alignItems: 'center', padding: 16 }}>
-          <Text style={{ color: c.brand, fontSize: 15, fontFamily: 'NaikaiSubset-Regular' }}>{t('settings.restore')}</Text>
-        </TouchableOpacity>
+        <View style={styles.links}>
+          <TouchableOpacity onPress={restore} disabled={busy} style={styles.linkBtn} accessibilityLabel={t('settings.restore')}>
+            <Text style={{ color: c.brand, fontSize: 15, fontFamily: 'NaikaiSubset-Regular' }}>{t('settings.restore')}</Text>
+          </TouchableOpacity>
+          {canPresentRedeemCode() ? (
+            <TouchableOpacity
+              onPress={() => { presentRedeemCodeSheet().catch(() => {}); }}
+              disabled={busy}
+              style={styles.linkBtn}
+              accessibilityLabel={t('settings.redeem')}
+            >
+              <Text style={{ color: c.l2, fontSize: 15, fontFamily: 'NaikaiSubset-Regular' }}>{t('settings.redeem')}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -171,4 +187,6 @@ const styles = StyleSheet.create({
   once: { textAlign: 'center', fontSize: 13, marginTop: 2, fontFamily: 'NaikaiSubset-Regular' },
   cta: { marginTop: 18, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   ctaText: { fontSize: 18, fontFamily: 'NaikaiSubset-SemiBold' },
+  links: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 20, paddingVertical: 16 },
+  linkBtn: { paddingVertical: 4, paddingHorizontal: 4 },
 });

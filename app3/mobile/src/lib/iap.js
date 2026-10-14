@@ -38,6 +38,95 @@ function purchaseMatches(p) {
   );
 }
 
+let keepIapConnection = false;
+let purchaseSub = null;
+
+export function canPresentRedeemCode(os = Platform.OS) {
+  return os === 'ios';
+}
+
+async function endIapIfEphemeral(iap) {
+  if (keepIapConnection) return;
+  try {
+    await iap.endConnection?.();
+  } catch {}
+}
+
+/** StoreKit 2 / expo-iap transaction check; product-id match is required first. */
+async function transactionVerified(iap, purchase) {
+  if (!purchaseMatches(purchase)) return false;
+  if (Platform.OS === 'ios' && typeof iap.isTransactionVerifiedIOS === 'function') {
+    try {
+      const sku = purchase.productId || purchase.id || purchase.sku || PRO_PRODUCT_ID;
+      const ok = await iap.isTransactionVerifiedIOS(sku);
+      if (ok === false) return false;
+    } catch {
+      // helper missing or failed: product-id match still stands
+    }
+  }
+  return true;
+}
+
+export async function grantFullpackPurchase(purchase) {
+  try {
+    const iap = require('expo-iap');
+    if (!(await transactionVerified(iap, purchase))) return false;
+    if (typeof iap.finishTransaction === 'function') {
+      try {
+        await iap.finishTransaction({ purchase, isConsumable: false });
+      } catch {}
+    }
+    await setProUnlocked(true);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function startPurchaseUpdates() {
+  try {
+    const iap = require('expo-iap');
+    if (!iap?.initConnection || typeof iap.purchaseUpdatedListener !== 'function') return;
+    await iap.initConnection();
+    keepIapConnection = true;
+    try {
+      purchaseSub?.remove?.();
+    } catch {}
+    purchaseSub = iap.purchaseUpdatedListener((purchase) => {
+      grantFullpackPurchase(purchase).catch(() => {});
+    });
+  } catch {
+    keepIapConnection = false;
+  }
+}
+
+export async function stopPurchaseUpdates() {
+  try {
+    purchaseSub?.remove?.();
+  } catch {}
+  purchaseSub = null;
+  keepIapConnection = false;
+  try {
+    const iap = require('expo-iap');
+    await iap.endConnection?.();
+  } catch {}
+}
+
+export async function presentRedeemCodeSheet() {
+  if (!canPresentRedeemCode()) return { ok: false, unavailable: true };
+  try {
+    const iap = require('expo-iap');
+    const present = (typeof iap.presentCodeRedemptionSheet === 'function' && iap.presentCodeRedemptionSheet)
+      || (typeof iap.presentCodeRedemptionSheetIOS === 'function' && iap.presentCodeRedemptionSheetIOS);
+    if (typeof present !== 'function') return { ok: false, unavailable: true };
+    if (typeof iap.initConnection === 'function') await iap.initConnection();
+    await present();
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
 function waitForPurchaseEvent(iap, timeoutMs = 120000) {
   return new Promise((resolve) => {
     let settled = false;
@@ -96,21 +185,10 @@ async function tryNativePurchase() {
 
     const result = await pending;
     if (!result.ok) return result;
-
-    if (result.purchase && typeof iap.finishTransaction === 'function') {
-      try {
-        await iap.finishTransaction({
-          purchase: result.purchase,
-          isConsumable: false
-        });
-      } catch {}
-    }
-    await setProUnlocked(true);
+    await grantFullpackPurchase(result.purchase);
     return { ok: true };
   } finally {
-    try {
-      await iap.endConnection?.();
-    } catch {}
+    await endIapIfEphemeral(iap);
   }
 }
 
@@ -137,9 +215,7 @@ async function tryNativeRestore() {
     }
     return { ok: true, restored: false };
   } finally {
-    try {
-      await iap.endConnection?.();
-    } catch {}
+    await endIapIfEphemeral(iap);
   }
 }
 
@@ -246,9 +322,7 @@ export async function getProDisplayPrice() {
       return pickDisplayPrice(match);
     } finally {
       if (timer) clearTimeout(timer);
-      try {
-        await iap.endConnection?.();
-      } catch {}
+      await endIapIfEphemeral(iap);
     }
   } catch {
     if (timer) clearTimeout(timer);
@@ -287,9 +361,7 @@ export async function verifyProOnLaunch() {
         await setProUnlocked(false);
       }
     } finally {
-      try {
-        await iap.endConnection?.();
-      } catch {}
+      await endIapIfEphemeral(iap);
     }
   } catch {
     // Network / StoreKit errors: do not increment streak or revoke.

@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Linking, Alert, Switch, Scrol
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, useTheme } from '../theme/useTheme';
-import { restoreProUnlock } from '../lib/iap';
-import { isProUnlocked } from '../lib/entitlements';
+import { restoreProUnlock, canPresentRedeemCode, presentRedeemCodeSheet } from '../lib/iap';
+import { isProUnlocked, subscribePro } from '../lib/entitlements';
 import { getPrefs, subscribePrefs, updatePrefs } from '../data/prefs';
 import { exportToJson, exportToCsv, importFromJson, getRecentlyDeleted, subscribe, refreshReminders } from '../data/repository';
 import { exportFileName } from '../data/csv';
@@ -38,7 +38,10 @@ export default function SettingsScreen() {
   const [pro, setPro] = React.useState(false);
   const [hideName, setHideName] = React.useState(() => !!getPrefs().hideName);
   const [trash, setTrash] = React.useState(() => getRecentlyDeleted().length);
-  React.useEffect(() => { isProUnlocked().then(setPro); }, []);
+  React.useEffect(() => {
+    isProUnlocked().then(setPro);
+    return subscribePro(setPro);
+  }, []);
   React.useEffect(() => subscribePrefs((p) => setHideName(!!p.hideName)), []);
   React.useEffect(() => subscribe(() => setTrash(getRecentlyDeleted().length)), []);
 
@@ -178,12 +181,22 @@ export default function SettingsScreen() {
             chev
             c={c}
           />
-          <Row
-            icon={<Sq bg="#8E8E93"><RestoreIcon color="#fff" size={15} /></Sq>}
-            title={t('settings.restore')}
-            onPress={restore}
-            c={c}
-          />
+          <View style={[styles.row, styles.rowLine]}>
+            <TouchableOpacity onPress={restore} style={styles.rowMain} activeOpacity={0.6} accessibilityLabel={t('settings.restore')}>
+              <Sq bg="#8E8E93"><RestoreIcon color="#fff" size={15} /></Sq>
+              <Text style={[styles.rowTitle, { color: c.label }]}>{t('settings.restore')}</Text>
+            </TouchableOpacity>
+            {canPresentRedeemCode() ? (
+              <TouchableOpacity
+                onPress={() => { presentRedeemCodeSheet().catch(() => {}); }}
+                hitSlop={8}
+                style={styles.redeemBtn}
+                accessibilityLabel={t('settings.redeem')}
+              >
+                <Text style={{ color: c.l2, fontSize: 15, fontFamily: 'NaikaiSubset-Regular' }}>{t('settings.redeem')}</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
           <Row
             icon={<Sq bg="#5DBB7A"><GridIcon color="#fff" size={15} /></Sq>}
             title={t('settings.widgets')}
@@ -341,6 +354,8 @@ const styles = StyleSheet.create({
   sec: { fontSize: 20, fontFamily: 'NaikaiSubset-Bold', paddingTop: 28, paddingHorizontal: 20, paddingBottom: 8 },
   grp: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16, gap: 12 },
+  rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46 },
+  redeemBtn: { paddingVertical: 8, paddingHorizontal: 2 },
   rowLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(46,41,37,0.09)' },
   rowTitle: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', flex: 1 },
   rowVal: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', marginRight: 8 },
