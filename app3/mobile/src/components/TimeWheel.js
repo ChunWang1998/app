@@ -13,12 +13,57 @@ export function snapIndex(y, max) {
   return Math.min(max, Math.max(0, idx));
 }
 
+/** Next wheel value at offset `y`. `changed` is false when it matches the last commit. */
+export function pickWheelValue(y, values, committed) {
+  const idx = snapIndex(y, values.length - 1);
+  const next = values[idx];
+  if (!next || next.value === committed) return { idx, value: committed, changed: false };
+  return { idx, value: next.value, changed: true };
+}
+
+/** Debounce so web (no momentum end) and iOS share one commit path. */
+export function createSettleCommit(commit, ms = WHEEL_SETTLE_MS) {
+  let timer = null;
+  return {
+    schedule(y) {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        commit(y);
+      }, ms);
+    },
+    flush(y) {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      commit(y);
+    },
+    cancel() {
+      if (timer) clearTimeout(timer);
+      timer = null;
+    },
+  };
+}
+
 function WheelColumn({ values, selected, onChange, width = 88, testID }) {
   const c = useThemeColors();
   const ref = useRef(null);
   const ready = useRef(false);
-  const settleTimer = useRef(null);
   const committed = useRef(selected);
+  const valuesRef = useRef(values);
+  const onChangeRef = useRef(onChange);
+  valuesRef.current = values;
+  onChangeRef.current = onChange;
+  const settle = useRef(null);
+  if (!settle.current) {
+    settle.current = createSettleCommit((y) => {
+      const picked = pickWheelValue(y, valuesRef.current, committed.current);
+      if (picked.changed) {
+        committed.current = picked.value;
+        onChangeRef.current(picked.value);
+      }
+      ref.current?.scrollTo({ y: picked.idx * ITEM, animated: true });
+    });
+  }
   const selectedIndex = Math.max(0, values.findIndex((v) => v.value === selected));
 
   useEffect(() => {
@@ -35,24 +80,7 @@ function WheelColumn({ values, selected, onChange, width = 88, testID }) {
     });
   }, [selectedIndex]);
 
-  useEffect(() => () => {
-    if (settleTimer.current) clearTimeout(settleTimer.current);
-  }, []);
-
-  function commit(y) {
-    const idx = snapIndex(y, values.length - 1);
-    const next = values[idx];
-    if (next && next.value !== committed.current) {
-      committed.current = next.value;
-      onChange(next.value);
-    }
-    ref.current?.scrollTo({ y: idx * ITEM, animated: true });
-  }
-
-  function scheduleCommit(y) {
-    if (settleTimer.current) clearTimeout(settleTimer.current);
-    settleTimer.current = setTimeout(() => commit(y), WHEEL_SETTLE_MS);
-  }
+  useEffect(() => () => settle.current?.cancel(), []);
 
   return (
     <ScrollView
@@ -66,12 +94,9 @@ function WheelColumn({ values, selected, onChange, width = 88, testID }) {
       decelerationRate="fast"
       nestedScrollEnabled
       scrollEventThrottle={16}
-      onScroll={(e) => scheduleCommit(e.nativeEvent.contentOffset.y)}
-      onMomentumScrollEnd={(e) => {
-        if (settleTimer.current) clearTimeout(settleTimer.current);
-        commit(e.nativeEvent.contentOffset.y);
-      }}
-      onScrollEndDrag={(e) => scheduleCommit(e.nativeEvent.contentOffset.y)}
+      onScroll={(e) => settle.current.schedule(e.nativeEvent.contentOffset.y)}
+      onMomentumScrollEnd={(e) => settle.current.flush(e.nativeEvent.contentOffset.y)}
+      onScrollEndDrag={(e) => settle.current.schedule(e.nativeEvent.contentOffset.y)}
     >
       {values.map((v) => {
         const on = v.value === selected;
