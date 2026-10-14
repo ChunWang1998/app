@@ -1,13 +1,4 @@
 {
-  "ios": {
-    "CFBundleDisplayName": "Been Ages",
-    "NSCalendarsWriteOnlyAccessUsageDescription": "Adds an item's next due date to your calendar.",
-    "NSPhotoLibraryAddUsageDescription": "Saves a share card image to your Photos.",
-    "NSCalendarsUsageDescription": "Been Ages only adds an item's next due date to your calendar when you tap Add to Calendar. It never reads your events.",
-    "NSCalendarsFullAccessUsageDescription": "Been Ages only adds an item's next due date to your calendar when you tap Add to Calendar. It never reads your events.",
-    "NSRemindersUsageDescription": "Been Ages does not use the Reminders app. Its reminders are local notifications.",
-    "NSRemindersFullAccessUsageDescription": "Been Ages does not use the Reminders app. Its reminders are local notifications."
-  },
   "app": {
     "title": "Been Ages",
     "placeholderUi": "(placeholder UI for logic only)",
