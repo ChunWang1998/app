@@ -11,7 +11,7 @@ function isLatinKey(key) {
   return /^[\x00-\x7F]+$/.test(key) && /[a-z]/i.test(key);
 }
 
-function hasKey(title, key) {
+export function hasKey(title, key) {
   if (!key) return false;
   const raw = String(title || '');
   if (isLatinKey(key)) {
