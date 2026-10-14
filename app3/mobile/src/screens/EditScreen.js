@@ -8,6 +8,7 @@ import { ItemGlyph } from '../components/ItemGlyph';
 import { ChevronRightIcon } from '../components/Icons';
 import { isProUnlocked } from '../lib/entitlements';
 import { formatDate, formatTime } from '../lib/time';
+import { t } from '../i18n';
 
 const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car'];
 
@@ -26,7 +27,7 @@ export default function EditScreen() {
   const [lastDoneAt, setLastDoneAt] = useState(current?.lastDoneAt || null);
   const [busy, setBusy] = useState(false);
 
-  const remLabel = current?.reminderDays ? `每 ${current.reminderDays} 天` : '不提醒';
+  const remLabel = current?.reminderDays ? t('detail.everyDays', { n: current.reminderDays }) : t('detail.noReminder');
 
   async function save() {
     if (busy) return;
@@ -66,7 +67,7 @@ export default function EditScreen() {
       }
       nav.goBack();
     } catch (e) {
-      Alert.alert('失敗', String(e?.message || e));
+      Alert.alert(t('common.fail'), String(e?.message || e));
     } finally {
       setBusy(false);
     }
@@ -75,9 +76,9 @@ export default function EditScreen() {
   function del() {
     if (!current) return nav.goBack();
     Alert.alert(current.title, '', [
-      { text: '取消', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: '刪除',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await softDeleteActivity(current.id);
@@ -108,12 +109,12 @@ export default function EditScreen() {
     >
       <View style={[styles.nav, { paddingTop: 8 }]}>
         <TouchableOpacity onPress={() => nav.goBack()} style={styles.navSide}>
-          <Text style={{ color: c.brand, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>取消</Text>
+          <Text style={{ color: c.brand, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>{t('common.cancel')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.title, { color: c.label }]}>{isNew ? '新項目' : '編輯'}</Text>
+        <Text style={[styles.title, { color: c.label }]}>{isNew ? t('edit.newItem') : t('edit.edit')}</Text>
         <TouchableOpacity onPress={save} style={styles.navSideRight} disabled={busy || !title.trim()}>
           <Text style={{ color: title.trim() ? c.brand : c.l3, fontSize: 17, fontFamily: 'NaikaiSubset-SemiBold' }}>
-            {isNew ? '加入' : '完成'}
+            {isNew ? t('edit.add') : t('common.done')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -123,7 +124,7 @@ export default function EditScreen() {
             <TextInput
               value={title}
               onChangeText={setTitle}
-              placeholder="要記的事"
+              placeholder={t('edit.placeholder')}
               placeholderTextColor={c.l3}
               style={[styles.input, { color: c.label }, Platform.OS === 'web' ? { outlineStyle: 'none' } : null]}
               autoFocus={isNew}
@@ -138,10 +139,10 @@ export default function EditScreen() {
 
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 18 }]}>
           <View style={[styles.row, styles.rowLine]}>
-            <Text style={[styles.lab, { color: c.label }]}>上次</Text>
+            <Text style={[styles.lab, { color: c.label }]}>{t('edit.last')}</Text>
             <TouchableOpacity onPress={setLastToday} style={[styles.pill, { backgroundColor: c.fill }]}>
               <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular' }}>
-                {lastDoneAt ? formatDate(lastDoneAt) : '今天'}
+                {lastDoneAt ? formatDate(lastDoneAt) : t('common.today')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={setLastNowTime} style={[styles.pill, { backgroundColor: c.fill }]}>
@@ -154,10 +155,10 @@ export default function EditScreen() {
             style={styles.row}
             onPress={() => {
               if (current) nav.navigate('Reminder', { id: current.id });
-              else Alert.alert('提醒', '先加入項目，再到詳情設定提醒。');
+              else Alert.alert(t('edit.reminder'), t('edit.reminderNew'));
             }}
           >
-            <Text style={[styles.lab, { color: c.label }]}>提醒</Text>
+            <Text style={[styles.lab, { color: c.label }]}>{t('edit.reminder')}</Text>
             <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular', marginLeft: 'auto', marginRight: 6 }}>
               {remLabel}
             </Text>
@@ -169,7 +170,7 @@ export default function EditScreen() {
           <TextInput
             value={notes}
             onChangeText={setNotes}
-            placeholder="備註"
+            placeholder={t('edit.notes')}
             placeholderTextColor={c.l3}
             multiline
             style={[styles.notes, { color: c.label }, Platform.OS === 'web' ? { outlineStyle: 'none' } : null]}
@@ -179,7 +180,7 @@ export default function EditScreen() {
         {!!current && (
           <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 24 }]}>
             <TouchableOpacity onPress={del} style={[styles.row, { justifyContent: 'center' }]}>
-              <Text style={{ color: c.red, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>刪除</Text>
+              <Text style={{ color: c.red, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>{t('common.delete')}</Text>
             </TouchableOpacity>
           </View>
         )}

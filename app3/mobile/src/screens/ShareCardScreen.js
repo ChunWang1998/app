@@ -12,6 +12,7 @@ import { SHARE_SIZES, SHARE_STYLES, canUseStyle, styleById } from '../share/conf
 import { captureCard } from '../share/capture';
 import { shareCardImage } from '../share/shareSheet';
 import { getPrefs, updatePrefs } from '../data/prefs';
+import { getLocale, t } from '../i18n';
 
 const PREVIEW_W = 220;
 
@@ -68,7 +69,7 @@ export default function ShareCardScreen() {
       uri = await captureCard(cardRef, sizeKey);
       await shareCardImage(uri);
     } catch (e) {
-      Alert.alert('失敗', String(e?.message || e));
+      Alert.alert(t('common.fail'), String(e?.message || e));
     } finally {
       setBusy(false);
     }
@@ -77,10 +78,10 @@ export default function ShareCardScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.sheetbg, paddingTop: insets.top }}>
       <View style={styles.nav}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel="返回">
+        <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel={t('common.back')}>
           <ChevronLeftIcon color={c.brand} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: c.label }]}>分享卡片</Text>
+        <Text style={[styles.title, { color: c.label }]}>{t('share.title')}</Text>
         <View style={styles.navBtn} />
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom, alignItems: 'center' }}>
@@ -95,17 +96,18 @@ export default function ShareCardScreen() {
               title={item.title}
               hideName={hideName}
               daysNum={part?.n ?? null}
-              daysUnit={part?.unit || '天'}
+              daysUnit={part?.unit || t('time.day')}
               icon={item.icon}
               width={size.width}
               height={size.height}
+              locale={getLocale() === 'en' ? 'en' : 'zh'}
             />
           </View>
         </View>
 
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 22 }]}>
           <View style={styles.row}>
-            <Text style={[styles.rowTitle, { color: c.label }]}>隱藏名稱</Text>
+            <Text style={[styles.rowTitle, { color: c.label }]}>{t('share.hideName')}</Text>
             <Switch
               value={hideName}
               onValueChange={(v) => {
@@ -117,7 +119,7 @@ export default function ShareCardScreen() {
           </View>
         </View>
 
-        <Text style={[styles.sec, { color: c.l2 }]}>樣式</Text>
+        <Text style={[styles.sec, { color: c.l2 }]}>{t('share.styles')}</Text>
         <View style={styles.swatches}>
           {SHARE_STYLES.map((s) => {
             const locked = !canUseStyle(s, pro);
@@ -127,10 +129,10 @@ export default function ShareCardScreen() {
                 key={s.id}
                 onPress={() => pickStyle(s.id)}
                 style={[styles.swatch, { backgroundColor: s.bg, borderColor: on ? c.brand : 'transparent' }]}
-                accessibilityLabel={s.name}
+                accessibilityLabel={t(`share.${s.id}`)}
               >
                 <Text style={{ color: s.ink, fontFamily: 'NaikaiSubset-Regular', fontSize: 13 }}>
-                  {s.name}{locked ? ' ·Pro' : ''}
+                  {t(`share.${s.id}`)}{locked ? ' ·Pro' : ''}
                 </Text>
               </TouchableOpacity>
             );
@@ -155,10 +157,10 @@ export default function ShareCardScreen() {
           onPress={share}
           disabled={busy}
           style={[styles.cta, { backgroundColor: c.brand, opacity: busy ? 0.7 : 1 }]}
-          accessibilityLabel="分享"
+          accessibilityLabel={t('common.share')}
         >
           {busy ? <ActivityIndicator color={c.onbrand} /> : (
-            <Text style={{ color: c.onbrand, fontFamily: 'NaikaiSubset-SemiBold', fontSize: 18 }}>分享</Text>
+            <Text style={{ color: c.onbrand, fontFamily: 'NaikaiSubset-SemiBold', fontSize: 18 }}>{t('common.share')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { footerBrand } from './config';
+import { tLocale } from '../i18n';
 
 /**
  * Off-screen / preview card. Line-art on a cream (or Pro) wash.
@@ -18,11 +19,9 @@ export default function ShareCardView({
   height,
   locale = 'zh',
 }) {
-  const headline = daysNum == null
-    ? (locale === 'en' ? 'Not yet' : '還沒記錄')
-    : (locale === 'en' ? `${daysNum}` : `${daysNum}`);
-  const unit = daysNum == null ? '' : (locale === 'en' && daysUnit === '天' ? 'days' : daysUnit);
-  const prefix = locale === 'en' ? 'Been ages' : '好久沒了';
+  const headline = daysNum == null ? tLocale(locale, 'share.notYet') : `${daysNum}`;
+  const unit = daysNum == null ? '' : daysUnit;
+  const prefix = tLocale(locale, 'share.prefix');
   const glyph = Math.round(width * 0.22);
   return (
     <View

@@ -1,11 +1,14 @@
 import * as Notifications from 'expo-notifications';
 import { getPrefs } from '../data/prefs';
 import { sanitizeSnoozeDays } from '../data/snooze';
+import { t } from '../i18n';
 
 const MAX_IOS_PENDING = 64;
 const CHANNEL_ID = 'default';
 
-export const GENERIC_NOTIFICATION_TITLE = '好久沒了';
+export function genericNotificationTitle() {
+  return t('notify.title');
+}
 
 function parseHm(time) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(time || '09:00'));
@@ -54,13 +57,13 @@ export function notificationTitle(activity) {
   if (prefs.showNameInNotifications === true && activity?.title) {
     return activity.title;
   }
-  return GENERIC_NOTIFICATION_TITLE;
+  return genericNotificationTitle();
 }
 
 async function ensureChannel() {
   try {
     await Notifications.setNotificationChannelAsync?.(CHANNEL_ID, {
-      name: 'Reminders',
+      name: t('notify.channel'),
       importance: 3,
     });
   } catch {
@@ -103,7 +106,7 @@ export async function enforceReminderBudget(activities) {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: notificationTitle(a),
-        body: '該做這件事了',
+        body: t('notify.body'),
         sound: true,
       },
       trigger: {

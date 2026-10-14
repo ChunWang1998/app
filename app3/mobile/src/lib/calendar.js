@@ -1,10 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking } from 'react-native';
 import { getPrefs } from '../data/prefs';
+import { tLocale } from '../i18n';
 
 const MEMORY_KEY = 'beenages/calendarAdded/v1';
-export const CALENDAR_NOTE = '從好久沒了加入';
 export const CALENDAR_ALERT_HOUR = 9;
+
+export function calendarNote(locale = 'zh') {
+  return tLocale(locale, 'calendar.note');
+}
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -29,11 +33,9 @@ export function nextDueDate(item, now = new Date()) {
 }
 
 export function eventTitle(item, locale = 'zh', hideName = false) {
-  if (hideName) {
-    return locale === 'en' ? 'Been Ages' : '好久沒了';
-  }
-  const name = String(item?.title || '').trim() || (locale === 'en' ? 'Item' : '項目');
-  return locale === 'en' ? `${name} | Been Ages` : `${name}｜好久沒了`;
+  if (hideName) return tLocale(locale, 'calendar.titleHidden');
+  const name = String(item?.title || '').trim() || tLocale(locale, 'calendar.itemFallback');
+  return tLocale(locale, 'calendar.titleNamed', { name });
 }
 
 export function eventPayload(item, locale = 'zh', hideName = false) {
@@ -47,7 +49,7 @@ export function eventPayload(item, locale = 'zh', hideName = false) {
     startDate: due,
     endDate: end,
     allDay: true,
-    notes: CALENDAR_NOTE,
+    notes: calendarNote(locale),
     alarms: [{ absoluteDate: alertAt.toISOString() }],
     recurrenceRule: undefined,
     dateKey: dateKey(due),

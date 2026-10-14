@@ -16,7 +16,8 @@ describe('share cards', () => {
   });
 
   it('headline is name-free (days only) and has no date', () => {
-    expect(headlineForDays(47, '天')).toBe('好久沒了 47 天');
+    expect(headlineForDays(47, '天', 'zh')).toBe('好久沒了 47 天');
+    expect(headlineForDays(47, 'd', 'en')).toBe('Been ages 47 d');
     expect(headlineForDays(47, '天')).not.toMatch(/\d{4}/);
   });
 

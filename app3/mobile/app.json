@@ -2,7 +2,7 @@
   "expo": {
     "name": "Been Ages",
     "slug": "been-ages",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "beenages",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.beenages.app",
-      "buildNumber": "1",
+      "buildNumber": "6",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.beenages.app"
@@ -18,7 +18,13 @@
       },
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryAddUsageDescription": "Saves a share card image to your Photos.",
+        "NSCalendarsUsageDescription": "Been Ages only adds an item's next due date to your calendar when you tap Add to Calendar. It never reads your events.",
+        "NSCalendarsFullAccessUsageDescription": "Been Ages only adds an item's next due date to your calendar when you tap Add to Calendar. It never reads your events.",
+        "NSCalendarsWriteOnlyAccessUsageDescription": "Adds an item's next due date to your calendar.",
+        "NSRemindersUsageDescription": "Been Ages does not use the Reminders app. Its reminders are local notifications.",
+        "NSRemindersFullAccessUsageDescription": "Been Ages does not use the Reminders app. Its reminders are local notifications."
       },
       "runtimeVersion": {
         "policy": "sdkVersion"
@@ -61,8 +67,8 @@
         "expo-calendar",
         {
           "writeOnlyAccess": true,
-          "calendarPermission": false,
-          "remindersPermission": false,
+          "calendarPermission": "Been Ages only adds an item's next due date to your calendar when you tap Add to Calendar. It never reads your events.",
+          "remindersPermission": "Been Ages does not use the Reminders app. Its reminders are local notifications.",
           "writeOnlyCalendarPermission": "Adds an item's next due date to your calendar."
         }
       ],
@@ -77,7 +83,10 @@
               "displayName": "Been Ages",
               "description": "How long since last time. Tap ✓ to log.",
               "ios": {
-                "supportedFamilies": ["systemSmall", "systemMedium"],
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium"
+                ],
                 "configuration": {
                   "title": "Been Ages",
                   "description": "Leave blank for the most-due item.",
@@ -101,7 +110,10 @@
               "displayName": "Been Ages",
               "description": "Days on the Lock Screen.",
               "ios": {
-                "supportedFamilies": ["accessoryCircular", "accessoryRectangular"],
+                "supportedFamilies": [
+                  "accessoryCircular",
+                  "accessoryRectangular"
+                ],
                 "configuration": {
                   "title": "Been Ages",
                   "parameters": {

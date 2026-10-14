@@ -30,8 +30,10 @@ describe('iap', () => {
     const paywall = require('fs').readFileSync(require('path').join(__dirname, '../src/screens/PaywallScreen.js'), 'utf8');
     expect(paywall).not.toMatch(/NT\$90/);
     expect(paywall).not.toMatch(/US\$2\.99/);
-    expect(paywall).toMatch(/一次買斷/);
-    expect(paywall).toMatch(/無法取得價格/);
+    expect(paywall).toMatch(/paywall\.once/);
+    expect(paywall).toMatch(/paywall\.priceFail/);
+    expect(paywall).not.toMatch(/iCloud/);
+    expect(paywall).not.toMatch(/v1\.2/);
     expect(paywall).toMatch(/displayPrice|getProDisplayPrice/);
   });
 });

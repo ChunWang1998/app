@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 export const IMPORT_MAX_BYTES = 1024 * 1024;
 
 export function utf8ByteLength(text) {
@@ -17,7 +19,7 @@ export function resolveImportSize({ fileSize, infoSize, text } = {}) {
 }
 
 export function importSizeError(size) {
-  if (size == null) return '無法確認檔案大小';
-  if (size > IMPORT_MAX_BYTES) return '檔案太大';
+  if (size == null) return t('import.sizeUnknown');
+  if (size > IMPORT_MAX_BYTES) return t('import.tooLarge');
   return null;
 }

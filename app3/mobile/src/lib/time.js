@@ -1,25 +1,27 @@
+import { t } from '../i18n';
+
 const DAY = 864e5;
 const H = 36e5;
 const MIN = 60e3;
 
 export function formatSpan(ms) {
-  if (!Number.isFinite(ms) || ms < MIN) return '0\u2009分';
+  if (!Number.isFinite(ms) || ms < MIN) return `0\u2009${t('time.min')}`;
   const d = Math.floor(ms / DAY);
   const h = Math.floor((ms % DAY) / H);
   const m = Math.floor((ms % H) / MIN);
   if (d >= 30) {
     const mo = Math.floor(d / 30);
     const dd = d % 30;
-    return `${mo}\u2009個月${dd ? `\u2009${dd}\u2009天` : ''}`;
+    return `${mo}\u2009${t('time.month')}${dd ? `\u2009${dd}\u2009${t('time.day')}` : ''}`;
   }
-  if (d >= 1) return `${d}\u2009天${h ? `\u2009${h}\u2009小時` : ''}`;
-  if (h >= 1) return `${h}\u2009小時${m ? `\u2009${m}\u2009分` : ''}`;
-  return `${m}\u2009分鐘`;
+  if (d >= 1) return `${d}\u2009${t('time.day')}${h ? `\u2009${h}\u2009${t('time.hour')}` : ''}`;
+  if (h >= 1) return `${h}\u2009${t('time.hour')}${m ? `\u2009${m}\u2009${t('time.min')}` : ''}`;
+  return `${m}\u2009${t('time.minute')}`;
 }
 
 /** Split span into up to `n` number/unit pairs for hero numerals. */
 export function formatSpanParts(ms, n = 2) {
-  if (!Number.isFinite(ms) || ms < MIN) return [{ n: 0, unit: '分' }];
+  if (!Number.isFinite(ms) || ms < MIN) return [{ n: 0, unit: t('time.min') }];
   const d = Math.floor(ms / DAY);
   const h = Math.floor((ms % DAY) / H);
   const m = Math.floor((ms % H) / MIN);
@@ -27,13 +29,13 @@ export function formatSpanParts(ms, n = 2) {
   if (d >= 30) {
     const mo = Math.floor(d / 30);
     const dd = d % 30;
-    parts = [{ n: mo, unit: '個月' }, ...(dd ? [{ n: dd, unit: '天' }] : [])];
+    parts = [{ n: mo, unit: t('time.month') }, ...(dd ? [{ n: dd, unit: t('time.day') }] : [])];
   } else if (d >= 1) {
-    parts = [{ n: d, unit: '天' }, ...(h ? [{ n: h, unit: '小時' }] : [])];
+    parts = [{ n: d, unit: t('time.day') }, ...(h ? [{ n: h, unit: t('time.hour') }] : [])];
   } else if (h >= 1) {
-    parts = [{ n: h, unit: '小時' }, ...(m ? [{ n: m, unit: '分' }] : [])];
+    parts = [{ n: h, unit: t('time.hour') }, ...(m ? [{ n: m, unit: t('time.min') }] : [])];
   } else {
-    parts = [{ n: m, unit: '分鐘' }];
+    parts = [{ n: m, unit: t('time.minute') }];
   }
   return parts.slice(0, n);
 }

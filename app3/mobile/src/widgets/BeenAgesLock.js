@@ -25,7 +25,7 @@ const BeenAgesLock = (props, environment) => {
     return (
       <Link destination="beenages://paywall">
         <Text modifiers={[font({ size: 13 }), foregroundStyle(LABEL)]}>
-          {props && props.upgradeLabel ? props.upgradeLabel : '升級就能用'}
+          {props && props.upgradeLabel ? props.upgradeLabel : 'Upgrade to use'}
         </Text>
       </Link>
     );
@@ -56,7 +56,7 @@ const BeenAgesLock = (props, environment) => {
     return (
       <VStack spacing={0}>
         <Text modifiers={[font({ size: 22, weight: 'bold' }), foregroundStyle(LABEL)]}>{num}</Text>
-        <Text modifiers={[font({ size: 10 }), foregroundStyle(LABEL)]}>{item.daysUnit || '天'}</Text>
+        <Text modifiers={[font({ size: 10 }), foregroundStyle(LABEL)]}>{item.daysUnit || 'd'}</Text>
       </VStack>
     );
   }

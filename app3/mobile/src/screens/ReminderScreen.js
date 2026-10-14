@@ -5,13 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useActivities, updateActivity } from '../data/repository';
 import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { ChevronLeftIcon } from '../components/Icons';
+import { t } from '../i18n';
 
 const CHIPS = [
-  { d: 1, label: '每天' },
-  { d: 7, label: '每週' },
-  { d: 14, label: '2 週' },
-  { d: 30, label: '每月' },
-  { d: 90, label: '3 個月' },
+  { d: 1, key: 'reminder.daily' },
+  { d: 7, key: 'reminder.weekly' },
+  { d: 14, key: 'reminder.twoWeeks' },
+  { d: 30, key: 'reminder.monthly' },
+  { d: 90, key: 'reminder.threeMonths' },
 ];
 
 const TIMES = ['08:00', '09:00', '10:00', '18:00', '21:00'];
@@ -73,7 +74,7 @@ export default function ReminderScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: c.set, paddingTop: insets.top }}>
         <View style={styles.nav}>
-          <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel="返回">
+          <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel={t('common.back')}>
             <ChevronLeftIcon color={c.brand} />
           </TouchableOpacity>
         </View>
@@ -84,10 +85,10 @@ export default function ReminderScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.set, paddingTop: insets.top }}>
       <View style={styles.nav}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel="返回">
+          <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel={t('common.back')}>
           <ChevronLeftIcon color={c.brand} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: c.label }]}>提醒</Text>
+        <Text style={[styles.title, { color: c.label }]}>{t('reminder.title')}</Text>
         <View style={styles.navBtn} />
       </View>
 
@@ -106,10 +107,10 @@ export default function ReminderScreen() {
             </TouchableOpacity>
             <View>
               <Text style={[styles.num, { color: c.label }]}>{days}</Text>
-              <Text style={{ textAlign: 'center', color: c.l2, marginTop: 6, fontFamily: 'NaikaiSubset-Regular' }}>天一次</Text>
+              <Text style={{ textAlign: 'center', color: c.l2, marginTop: 6, fontFamily: 'NaikaiSubset-Regular' }}>{t('reminder.everyNDays')}</Text>
             </View>
             <TouchableOpacity onPress={() => changeDays(days + 1)} style={[styles.rb, { backgroundColor: c.cell }]}>
-              <Text style={{ color: c.label, fontSize: 24, fontFamily: 'NaikaiSubset-Regular' }}>＋</Text>
+              <Text style={{ color: c.label, fontSize: 24, fontFamily: 'NaikaiSubset-Regular' }}>+</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.chips}>
@@ -122,7 +123,7 @@ export default function ReminderScreen() {
                   style={[styles.chip, { backgroundColor: sel ? c.brand : c.cell }]}
                 >
                   <Text style={{ color: sel ? c.onbrand : c.label, fontFamily: sel ? 'NaikaiSubset-Bold' : 'NaikaiSubset-Regular', fontSize: 14 }}>
-                    {ch.label}
+                    {t(ch.key)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -132,13 +133,13 @@ export default function ReminderScreen() {
 
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 18 }]}>
           <TouchableOpacity style={[styles.row, styles.rowLine]} onPress={cycleTime}>
-            <Text style={[styles.rowTitle, { color: c.label }]}>時間</Text>
+            <Text style={[styles.rowTitle, { color: c.label }]}>{t('reminder.time')}</Text>
             <View style={[styles.pill, { backgroundColor: c.fill }]}>
               <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-SemiBold' }}>{time}</Text>
             </View>
           </TouchableOpacity>
           <View style={styles.row}>
-            <Text style={[styles.rowTitle, { color: c.label }]}>沒做的話，再提醒 3 天</Text>
+            <Text style={[styles.rowTitle, { color: c.label }]}>{t('reminder.snooze')}</Text>
             <Switch
               value={snooze}
               onValueChange={async (v) => {

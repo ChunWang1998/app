@@ -18,6 +18,7 @@ import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { formatSpan, formatDateShort, dueInMs, progressRatio, elapsedMs, formatSpanParts } from '../lib/time';
 import * as Haptics from 'expo-haptics';
 import { isProUnlocked } from '../lib/entitlements';
+import { t } from '../i18n';
 
 const JUST_MS = 60e3;
 
@@ -56,7 +57,7 @@ export default function HomeScreen() {
     const result = await logActivityNow(a.id);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     showToast({
-      text: '已記錄',
+      text: t('home.logged'),
       undo: async () => {
         await undoLogActivity(a.id, result.previousLastDoneAt, result.previousHistory);
       },
@@ -75,7 +76,7 @@ export default function HomeScreen() {
   async function handleDelete(a) {
     await softDeleteActivity(a.id);
     showToast({
-      text: '已刪除',
+      text: t('home.deleted'),
       undo: async () => {
         try {
           await undoDelete(a.id);
@@ -97,7 +98,7 @@ export default function HomeScreen() {
         <View style={styles.nav}>
           <TouchableOpacity
             onPress={() => nav.navigate('Settings')}
-            accessibilityLabel="設定"
+            accessibilityLabel={t('home.a11ySettings')}
             style={styles.ib}
             hitSlop={8}
           >
@@ -106,7 +107,7 @@ export default function HomeScreen() {
           <View style={{ flexDirection: 'row' }}>
             <TouchableOpacity
               onPress={() => setSort(sort === 'due' ? 'last' : 'due')}
-              accessibilityLabel="排序"
+              accessibilityLabel={t('home.a11ySort')}
               style={styles.ib}
               hitSlop={8}
             >
@@ -114,7 +115,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleAdd}
-              accessibilityLabel="新增項目"
+              accessibilityLabel={t('home.a11yAdd')}
               style={styles.ib}
               hitSlop={8}
             >
@@ -123,11 +124,11 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.bandRow}>
-          <Text style={[styles.lt, { color: c.label }]}>好久沒了</Text>
+          <Text style={[styles.lt, { color: c.label }]}>{t('app.title')}</Text>
           {overdueCount > 0 ? (
             <Text style={[styles.bandn, { color: c.l2 }]}>
               <Text style={{ color: c.red, fontFamily: 'NaikaiSubset-Bold', fontSize: 18 }}>{overdueCount}</Text>
-              {' '}件逾期
+              {' '}{t('home.overdueSuffix')}
             </Text>
           ) : null}
           {data.length > 0 ? (
@@ -153,9 +154,9 @@ export default function HomeScreen() {
             ListEmptyComponent={
               <View style={styles.empty}>
                 <Mascot size={150} mood="sleepy" />
-                <Text style={[styles.emptyT1, { color: c.label }]}>還沒有要記的事</Text>
+                <Text style={[styles.emptyT1, { color: c.label }]}>{t('home.empty')}</Text>
                 <TouchableOpacity onPress={handleAdd} style={[styles.cta, { backgroundColor: c.brand }]}>
-                  <Text style={[styles.ctaText, { color: c.onbrand }]}>+ 新增</Text>
+                  <Text style={[styles.ctaText, { color: c.onbrand }]}>{t('home.add')}</Text>
                 </TouchableOpacity>
               </View>
             }
@@ -174,7 +175,7 @@ export default function HomeScreen() {
               }}
               hitSlop={8}
             >
-              <Text style={{ color: c.brand, fontFamily: 'NaikaiSubset-SemiBold', fontSize: 15 }}>復原</Text>
+              <Text style={{ color: c.brand, fontFamily: 'NaikaiSubset-SemiBold', fontSize: 15 }}>{t('common.undo')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -195,18 +196,18 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
   const hasReminder = !!item.reminderDays;
 
   let status;
-  if (!item.lastDoneAt) status = '還沒記錄';
+  if (!item.lastDoneAt) status = t('home.neverLogged');
   else if (!hasReminder) status = formatDateShort(item.lastDoneAt);
-  else if (od) status = `逾期\u2009${formatSpan(-due)}`;
-  else status = `還有\u2009${formatSpan(due)}`;
+  else if (od) status = `${t('home.overdue')}\u2009${formatSpan(-due)}`;
+  else status = `${t('home.remaining')}\u2009${formatSpan(due)}`;
 
   const renderRight = () => (
     <TouchableOpacity
       onPress={onDelete}
       style={[styles.swipeDel, { backgroundColor: c.red }]}
-      accessibilityLabel={`刪除${item.title}`}
+      accessibilityLabel={t('home.a11yDelete', { title: item.title })}
     >
-      <Text style={styles.swipeDelText}>刪除</Text>
+      <Text style={styles.swipeDelText}>{t('common.delete')}</Text>
     </TouchableOpacity>
   );
 
@@ -245,7 +246,7 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
           onPress={onCheck}
           style={styles.ck}
           activeOpacity={0.85}
-          accessibilityLabel={`記錄${item.title}，剛剛做了`}
+          accessibilityLabel={t('home.a11yLog', { title: item.title })}
         >
           <View style={[styles.ckDot, { borderColor: c.brand, backgroundColor: just ? c.brand : 'transparent' }]}>
             {just ? <CheckIcon color={c.onbrand} size={16} /> : null}

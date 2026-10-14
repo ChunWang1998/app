@@ -30,13 +30,21 @@ function collectStrings() {
         const re = /(['"`])([\s\S]*?)\1/gm;
         let m;
         while ((m = re.exec(s))) {
-          if (/[\u4E00-\u9FFF]/.test(m[2])) texts.push(m[2]);
+          if (hasCjkGlyph(m[2])) texts.push(m[2]);
         }
       }
     }
   }
   scanDir(srcDir);
   return texts;
+}
+
+function hasCjkGlyph(s) {
+  for (const ch of s) {
+    const cp = ch.codePointAt(0);
+    if (cp >= 0x4e00 && cp <= 0x9fff) return true;
+  }
+  return false;
 }
 
 function loadCharSet() {

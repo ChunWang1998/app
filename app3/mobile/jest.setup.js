@@ -34,6 +34,11 @@ jest.mock('expo-iap', () => {
   };
 });
 
+jest.mock('expo-localization', () => ({
+  locale: 'en',
+  getLocales: () => [{ languageTag: 'en' }],
+}));
+
 jest.mock('expo-constants', () => ({
   default: {
     appOwnership: 'standalone',

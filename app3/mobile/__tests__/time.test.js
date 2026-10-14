@@ -1,6 +1,9 @@
 import { formatSpan, formatSpanParts, dueInMs, elapsedMs, progressRatio } from '../src/lib/time';
+import { setLocale } from '../src/i18n';
 
 describe('time helpers', () => {
+  beforeAll(() => setLocale('zh-Hant'));
+
   it('formats spans with thin spaces', () => {
     expect(formatSpan(2 * 864e5)).toBe('2\u2009天');
     expect(formatSpan(90 * 864e5)).toBe('3\u2009個月');

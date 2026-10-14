@@ -29,6 +29,10 @@ Security review notes
 Environment
 - See `.env.example` for non-secret placeholders. Do not commit `.env`.
 
+Submit (EAS)
+- Do not put Apple team IDs or App Store Connect API keys in `eas.json`.
+- Submission uses EAS credentials / env vars: `EXPO_ASC_API_KEY_PATH`, `EXPO_ASC_KEY_ID`, `EXPO_ASC_ISSUER_ID`, `EXPO_APPLE_TEAM_ID`.
+
 Store pages (GitHub Pages, `gh-pages` branch)
 - Privacy: https://chunwang1998.github.io/app/app3/store/privacy.html
 - Support: https://chunwang1998.github.io/app/app3/store/support.html

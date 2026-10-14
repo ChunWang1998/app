@@ -8,6 +8,7 @@ import { ChevronLeftIcon, CheckIcon } from '../components/Icons';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { itemPalette } from '../theme/colors';
 import { loadWidgetSelection, saveWidgetSelection } from '../widgets/sync';
+import { t } from '../i18n';
 
 export default function WidgetPickerScreen() {
   const nav = useNavigation();
@@ -45,18 +46,18 @@ export default function WidgetPickerScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.set, paddingTop: insets.top }}>
       <View style={styles.nav}>
-        <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel="返回">
+        <TouchableOpacity onPress={() => nav.goBack()} style={styles.navBtn} accessibilityLabel={t('common.back')}>
           <ChevronLeftIcon color={c.brand} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: c.label }]}>小工具</Text>
+        <Text style={[styles.title, { color: c.label }]}>{t('widget.title')}</Text>
         <View style={styles.navBtn} />
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
-        <Text style={[styles.hint, { color: c.l2 }]}>長按桌面或鎖定畫面小工具也可選項目。沒選時顯示最該做的。</Text>
-        <Text style={[styles.sec, { color: c.l2 }]}>小尺寸</Text>
+        <Text style={[styles.hint, { color: c.l2 }]}>{t('widget.hint')}</Text>
+        <Text style={[styles.sec, { color: c.l2 }]}>{t('widget.small')}</Text>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
           <Row
-            title="最該做的"
+            title={t('widget.mostDue')}
             on={sel.small === 'auto'}
             onPress={() => setSmall('auto')}
             c={c}
@@ -73,10 +74,10 @@ export default function WidgetPickerScreen() {
             />
           ))}
         </View>
-        <Text style={[styles.sec, { color: c.l2 }]}>中尺寸（最多 3 個）</Text>
+        <Text style={[styles.sec, { color: c.l2 }]}>{t('widget.medium')}</Text>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
           <Row
-            title="最該做的"
+            title={t('widget.mostDue')}
             on={!sel.medium?.length}
             onPress={() => saveWidgetSelection({ ...sel, medium: [] }).then(() => setSel({ ...sel, medium: [] }))}
             c={c}
@@ -94,10 +95,10 @@ export default function WidgetPickerScreen() {
             />
           ))}
         </View>
-        <Text style={[styles.sec, { color: c.l2 }]}>桌面</Text>
+        <Text style={[styles.sec, { color: c.l2 }]}>{t('widget.home')}</Text>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
           <View style={styles.row}>
-            <Text style={[styles.rowTitle, { color: c.label }]}>隱藏名稱</Text>
+            <Text style={[styles.rowTitle, { color: c.label }]}>{t('widget.hideName')}</Text>
             <Switch
               value={!!sel.hideHomeNames}
               onValueChange={async (v) => {
@@ -106,14 +107,14 @@ export default function WidgetPickerScreen() {
                 await saveWidgetSelection(next);
               }}
               trackColor={{ false: c.fill, true: c.brand }}
-              accessibilityLabel="桌面小工具隱藏名稱"
+              accessibilityLabel={t('widget.a11yHideHome')}
             />
           </View>
         </View>
-        <Text style={[styles.sec, { color: c.l2 }]}>鎖定畫面</Text>
+        <Text style={[styles.sec, { color: c.l2 }]}>{t('widget.lock')}</Text>
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
           <View style={styles.row}>
-            <Text style={[styles.rowTitle, { color: c.label }]}>隱藏名稱</Text>
+            <Text style={[styles.rowTitle, { color: c.label }]}>{t('widget.hideName')}</Text>
             <Switch
               value={!!sel.hideLockNames}
               onValueChange={async (v) => {
@@ -122,7 +123,7 @@ export default function WidgetPickerScreen() {
                 await saveWidgetSelection(next);
               }}
               trackColor={{ false: c.fill, true: c.brand }}
-              accessibilityLabel="鎖定畫面隱藏名稱"
+              accessibilityLabel={t('widget.a11yHideLock')}
             />
           </View>
         </View>
