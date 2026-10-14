@@ -34,7 +34,7 @@ export function DateChips({ value, onChange, allowUnknown = true }) {
               onPress={() => onChange(quickDateIso(k))}
               style={[styles.chip, { backgroundColor: on ? c.brand : c.fill }]}
             >
-              <Text style={{ color: on ? c.onbrand : c.label, fontFamily: on ? 'NaikaiSubset-Bold' : 'NaikaiSubset-Regular', fontSize: 14 }}>
+              <Text style={{ color: on ? c.onbrand : c.label, fontFamily: on ? 'BeenAgesRounded-Bold' : 'BeenAgesRounded-Regular', fontSize: 14 }}>
                 {t(QUICK_DATE_KEYS[k])}
               </Text>
             </TouchableOpacity>

@@ -201,5 +201,26 @@
     "weekAgo": "1 week ago",
     "monthAgo": "1 month ago",
     "unknown": "Not sure"
+  },
+  "category": {
+    "title": "Categories",
+    "all": "All",
+    "other": "Other",
+    "newCategory": "New category",
+    "name": "Name",
+    "keywords": "Keywords",
+    "deleteMoved": "{n} moved to Other",
+    "limit": "Up to {n}",
+    "duplicate": "Name already used",
+    "auto": "Auto",
+    "defaults": {
+      "clean": "Cleaning",
+      "care": "Grooming",
+      "pet": "Pets",
+      "plant": "Plants",
+      "car": "Car",
+      "health": "Health",
+      "appl": "Appliances"
+    }
   }
 }

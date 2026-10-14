@@ -2,7 +2,7 @@ import React from 'react';
 import { Text } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'mono'];
+export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'plug', 'dots', 'mono'];
 
 export function ItemGlyph({ kind = 'brush', color = '#3E9180', size = 20, strokeWidth = 1.7, letter = '' }) {
   if (kind === 'mono') {
@@ -16,7 +16,7 @@ export function ItemGlyph({ kind = 'brush', color = '#3E9180', size = 20, stroke
           height: size,
           width: size,
           textAlign: 'center',
-          fontFamily: 'NaikaiSubset-Bold',
+          fontFamily: 'BeenAgesRounded-Bold',
           color,
         }}
       >
@@ -52,6 +52,22 @@ export function ItemGlyph({ kind = 'brush', color = '#3E9180', size = 20, stroke
     return (
       <Svg width={size} height={size} viewBox="0 0 22 20">
         <Path d="M2 5v12M2 13h18v4M2 10h18v3M6 10V8a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 12 8v2" {...common} />
+      </Svg>
+    );
+  }
+  if (kind === 'plug') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 20 20">
+        <Path d="M7 2.5v4M13 2.5v4M5 6.5h10v3a5 5 0 0 1-10 0v-3ZM10 14.5v3" {...common} />
+      </Svg>
+    );
+  }
+  if (kind === 'dots') {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 20 20">
+        <Circle cx="4.5" cy="10" r="1.3" fill={color} />
+        <Circle cx="10" cy="10" r="1.3" fill={color} />
+        <Circle cx="15.5" cy="10" r="1.3" fill={color} />
       </Svg>
     );
   }

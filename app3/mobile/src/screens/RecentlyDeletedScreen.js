@@ -38,21 +38,21 @@ export default function RecentlyDeletedScreen() {
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom, paddingHorizontal: 16 }}>
         {items.length === 0 ? (
-          <Text style={{ color: c.l2, marginTop: 24, fontFamily: 'NaikaiSubset-Regular', textAlign: 'center' }}>{t('deleted.empty')}</Text>
+          <Text style={{ color: c.l2, marginTop: 24, fontFamily: 'BeenAgesRounded-Regular', textAlign: 'center' }}>{t('deleted.empty')}</Text>
         ) : items.map((it) => (
           <View key={it.id} style={[styles.row, { backgroundColor: c.cell }]}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 }}>{it.title}</Text>
-              <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular', marginTop: 2, fontSize: 13 }}>
+              <Text style={{ color: c.label, fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 }}>{it.title}</Text>
+              <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', marginTop: 2, fontSize: 13 }}>
                 {it.deletedAt ? formatDate(it.deletedAt) : ''}
               </Text>
             </View>
             <TouchableOpacity onPress={() => restore(it)} style={[styles.btn, { borderColor: c.brand }]}>
-              <Text style={{ color: c.brand, fontFamily: 'NaikaiSubset-SemiBold' }}>{t('deleted.restore')}</Text>
+              <Text style={{ color: c.brand, fontFamily: 'BeenAgesRounded-SemiBold' }}>{t('deleted.restore')}</Text>
             </TouchableOpacity>
           </View>
         ))}
-        <Text style={{ color: c.l3, fontSize: 13, marginTop: 20, textAlign: 'center', fontFamily: 'NaikaiSubset-Regular' }}>
+        <Text style={{ color: c.l3, fontSize: 13, marginTop: 20, textAlign: 'center', fontFamily: 'BeenAgesRounded-Regular' }}>
           {t('deleted.purge')}
         </Text>
       </ScrollView>
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
+  title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
   row: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 18, marginTop: 12, gap: 10 },
   btn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1.5 },
 });

@@ -201,5 +201,26 @@
     "weekAgo": "1 週前",
     "monthAgo": "1 個月前",
     "unknown": "不記得"
+  },
+  "category": {
+    "title": "類型",
+    "all": "全部",
+    "other": "其他",
+    "newCategory": "新類型",
+    "name": "名稱",
+    "keywords": "關鍵字",
+    "deleteMoved": "{n} 件到其他",
+    "limit": "最多 {n} 個",
+    "duplicate": "名稱已有",
+    "auto": "自動",
+    "defaults": {
+      "clean": "清潔",
+      "care": "個人保養",
+      "pet": "寵物",
+      "plant": "植物",
+      "car": "車",
+      "health": "健康",
+      "appl": "家電"
+    }
   }
 }

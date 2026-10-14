@@ -2,9 +2,13 @@ import React from 'react';
 import { createActivity, nowIso, migrateActivity, normalizeHistory, lastDoneFromHistory } from './models';
 import { KeyValueStorage, loadState, saveState } from './storage';
 import { isProUnlocked } from '../lib/entitlements';
+import {
+  OTHER_ID, MAX_CATEGORIES, CATEGORIES_STATE_VERSION, migrateCategories, matchCategory, categoryExists,
+  normalizeCategory, normalizeCategoryIcon, normalizeKeywords, newCategoryId, seedCategories, categoryNameTaken,
+} from '../lib/categories';
 
 const storage = new KeyValueStorage();
-let state = { version: 1, activities: [] };
+let state = { version: CATEGORIES_STATE_VERSION, activities: [], categories: seedCategories() };
 let initialized = false;
 const listeners = new Set();
 
@@ -45,8 +49,15 @@ export async function initRepository() {
     const t = new Date(a.deletedAt).getTime();
     return Number.isFinite(t) && now - t < TRASH_MS;
   });
-  state = { ...loaded, activities: kept };
+  state = migrateCategories({ ...loaded, activities: kept });
   initialized = true;
+  if (
+    loaded.version !== CATEGORIES_STATE_VERSION
+    || !Array.isArray(loaded.categories)
+    || kept.some((a, i) => a.categoryId !== state.activities[i].categoryId)
+  ) {
+    await saveState(state, storage);
+  }
   notify();
 }
 
@@ -56,11 +67,19 @@ export function getRecentlyDeleted() {
 
 export async function resetRepositoryForTests() {
   initialized = false;
-  state = { version: 1, activities: [] };
+  state = { version: CATEGORIES_STATE_VERSION, activities: [], categories: seedCategories() };
   await saveState(state, storage);
   initialized = true;
   notify();
 }
+
+/** Tests: re-run the launch path (load + migrate) against whatever is in storage. */
+export async function reloadRepositoryForTests() {
+  initialized = false;
+  await initRepository();
+}
+
+export { storage as repositoryStorageForTests, MAX_CATEGORIES };
 
 export function subscribe(cb) {
   listeners.add(cb);
@@ -70,7 +89,7 @@ export function subscribe(cb) {
 export function useActivities() {
   const [snap, setSnap] = React.useState(state);
   React.useEffect(() => subscribe(setSnap), []);
-  return { activities: snap.activities.filter(a => !a.deletedAt), ready: initialized, raw: snap.activities };
+  return { activities: snap.activities.filter(a => !a.deletedAt), categories: snap.categories || [], ready: initialized, raw: snap.activities };
 }
 
 export function getVisibleActivities() {
@@ -106,7 +125,10 @@ export async function addActivity(input) {
   if (!pro && visibleCount() >= FREE_ACTIVITY_LIMIT) {
     throw freeLimitError();
   }
-  const a = createActivity(input);
+  const categoryId = input.categoryId && categoryExists(input.categoryId, state.categories)
+    ? input.categoryId
+    : matchCategory(input.title, state.categories);
+  const a = createActivity({ ...input, categoryId });
   await persist({ ...state, activities: [a, ...state.activities] });
   return a;
 }
@@ -191,3 +213,70 @@ export async function undoDelete(id) {
   await persist({ ...state, activities: next });
 }
 
+
+// ---- Categories (free; no Pro gate) ----
+
+export function getCategories() {
+  return state.categories || [];
+}
+
+function categoryError(code, message) {
+  const err = new Error(message);
+  err.code = code;
+  return err;
+}
+
+export async function addCategory({ name, icon, keywords } = {}) {
+  if (getCategories().length >= MAX_CATEGORIES) {
+    throw categoryError('CATEGORY_LIMIT', 'category limit');
+  }
+  const trimmed = String(name || '').trim().slice(0, 40);
+  if (categoryNameTaken(trimmed, getCategories())) {
+    throw categoryError('CATEGORY_DUP', 'duplicate name');
+  }
+  const cat = normalizeCategory({ id: newCategoryId(), name: trimmed, icon, keywords });
+  if (!cat) throw new Error('invalid category');
+  await persist({ ...state, categories: [...getCategories(), cat] });
+  return cat;
+}
+
+/** Keyword edits only affect items added later; existing items keep their category. */
+export async function updateCategory(id, changes = {}) {
+  if (changes.name !== undefined) {
+    const trimmed = String(changes.name || '').trim().slice(0, 40);
+    if (trimmed && categoryNameTaken(trimmed, getCategories(), { exceptId: id })) {
+      throw categoryError('CATEGORY_DUP', 'duplicate name');
+    }
+  }
+  const next = getCategories().map((c) => {
+    if (c.id !== id) return c;
+    const merged = { ...c };
+    if (changes.name !== undefined) merged.name = String(changes.name || '').trim().slice(0, 40) || null;
+    if (changes.icon !== undefined) merged.icon = normalizeCategoryIcon(changes.icon);
+    if (changes.keywords !== undefined) merged.keywords = normalizeKeywords(changes.keywords);
+    return normalizeCategory(merged) || c;
+  });
+  await persist({ ...state, categories: next });
+}
+
+/** Delete a category and move its items (including Recently Deleted ones) to Other. Returns the moved visible count. */
+export async function deleteCategory(id) {
+  if (id === OTHER_ID) return 0;
+  let moved = 0;
+  const activities = state.activities.map((a) => {
+    if (a.categoryId !== id) return a;
+    if (!a.deletedAt) moved += 1;
+    return { ...a, categoryId: OTHER_ID };
+  });
+  await persist({ ...state, activities, categories: getCategories().filter((c) => c.id !== id) });
+  return moved;
+}
+
+export function countByCategory(list = getVisibleActivities()) {
+  const out = {};
+  for (const a of list) {
+    const k = a.categoryId || OTHER_ID;
+    out[k] = (out[k] || 0) + 1;
+  }
+  return out;
+}

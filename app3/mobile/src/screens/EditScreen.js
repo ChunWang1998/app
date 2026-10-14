@@ -8,17 +8,20 @@ import { ItemGlyph } from '../components/ItemGlyph';
 import { ChevronRightIcon } from '../components/Icons';
 import { isProUnlocked } from '../lib/entitlements';
 import { DateChips } from '../components/DateChips';
+import { CategoryPicker } from '../components/CategoryPicker';
+import { CategoryGlyph } from '../components/CategoryGlyph';
+import { OTHER_ID, OTHER_ICON, matchCategory, categoryName } from '../lib/categories';
 import { ReminderChips } from '../components/ReminderChips';
 import { suggestReminderDays } from '../lib/suggestReminder';
 import { suggestIcon, monogramLetter } from '../lib/suggestIcon';
 import { t } from '../i18n';
 
-const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car', 'paw'];
+const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car', 'paw', 'plug'];
 
 export default function EditScreen() {
   const nav = useNavigation();
   const { params } = useRoute();
-  const { activities } = useActivities();
+  const { activities, categories } = useActivities();
   const current = activities.find((a) => a.id === params?.id);
   const c = useThemeColors();
   const { reminderTime: defaultTime } = useTheme();
@@ -31,7 +34,12 @@ export default function EditScreen() {
   const [lastDoneAt, setLastDoneAt] = useState(() => (isNew ? new Date().toISOString() : current?.lastDoneAt || null));
   const [reminderDays, setReminderDays] = useState(null);
   const [reminderManual, setReminderManual] = useState(false);
+  const [categoryId, setCategoryId] = useState(current?.categoryId || null);
+  const [picker, setPicker] = useState(false);
   const [busy, setBusy] = useState(false);
+  // New items: auto-match from the name until the user picks one.
+  const shownCategory = categoryId || (title.trim() ? matchCategory(title, categories) : null);
+  const catObj = shownCategory === OTHER_ID ? { id: OTHER_ID, icon: OTHER_ICON } : categories.find((x) => x.id === shownCategory);
 
   const remLabel = current?.reminderDays ? t('detail.everyDays', { n: current.reminderDays }) : t('detail.noReminder');
   const tone = useItemTone(icon, title);
@@ -49,7 +57,7 @@ export default function EditScreen() {
     setBusy(true);
     try {
       if (current) {
-        const patch = { title: trimmed, icon, notes };
+        const patch = { title: trimmed, icon, notes, ...(categoryId ? { categoryId } : {}) };
         if (lastDoneAt !== current.lastDoneAt) {
           const rest = (current.history || []).filter((e) => e.at !== current.lastDoneAt);
           patch.history = lastDoneAt ? [{ at: lastDoneAt }, ...rest] : rest;
@@ -69,6 +77,7 @@ export default function EditScreen() {
             lastDoneAt,
             reminderDays,
             reminderTime: defaultTime,
+            categoryId: shownCategory || OTHER_ID,
           });
           if (reminderDays) {
             try {
@@ -116,11 +125,11 @@ export default function EditScreen() {
     >
       <View style={[styles.nav, { paddingTop: 8 }]}>
         <TouchableOpacity onPress={() => nav.goBack()} style={styles.navSide}>
-          <Text style={{ color: c.brand, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>{t('common.cancel')}</Text>
+          <Text style={{ color: c.brand, fontSize: 17, fontFamily: 'BeenAgesRounded-Regular' }}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: c.label }]}>{isNew ? t('edit.newItem') : t('edit.edit')}</Text>
         <TouchableOpacity onPress={save} style={styles.navSideRight} disabled={busy || !title.trim()}>
-          <Text style={{ color: title.trim() ? c.brand : c.l3, fontSize: 17, fontFamily: 'NaikaiSubset-SemiBold' }}>
+          <Text style={{ color: title.trim() ? c.brand : c.l3, fontSize: 17, fontFamily: 'BeenAgesRounded-SemiBold' }}>
             {isNew ? t('edit.add') : t('common.done')}
           </Text>
         </TouchableOpacity>
@@ -142,6 +151,22 @@ export default function EditScreen() {
             />
           </View>
         </View>
+        {catObj ? (
+          <View style={styles.catRow}>
+            {!categoryId ? <Text style={[styles.auto, { color: c.l3 }]}>{t('category.auto')}</Text> : null}
+            <TouchableOpacity testID="cat-pill" onPress={() => setPicker(true)} style={[styles.catPill, { backgroundColor: c.cell }]}>
+              <CategoryGlyph icon={catObj.icon} name={categoryName(catObj, t)} size={22} glyph={13} />
+              <Text style={{ color: c.label, fontFamily: 'BeenAgesRounded-Regular', fontSize: 15 }}>{categoryName(catObj, t)}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+        <CategoryPicker
+          visible={picker}
+          categories={categories}
+          value={shownCategory}
+          onPick={(id) => { setCategoryId(id); setPicker(false); }}
+          onClose={() => setPicker(false)}
+        />
         <View style={styles.icp}>
           {PICKER.map((k) => (
             <IconBtn key={k} k={k} on={icon === k} onPress={() => { setIconManual(true); setIcon(k); }} idle={c.cell} dim={c.l2} />
@@ -164,7 +189,7 @@ export default function EditScreen() {
           ) : (
             <TouchableOpacity style={styles.row} onPress={() => nav.navigate('Reminder', { id: current.id })}>
               <Text style={[styles.lab, { color: c.label }]}>{t('edit.reminder')}</Text>
-              <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular', marginLeft: 'auto', marginRight: 6 }}>
+              <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', marginLeft: 'auto', marginRight: 6 }}>
                 {remLabel}
               </Text>
               <ChevronRightIcon color={c.l3} />
@@ -186,7 +211,7 @@ export default function EditScreen() {
         {!!current && (
           <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 24 }]}>
             <TouchableOpacity onPress={del} style={[styles.row, { justifyContent: 'center' }]}>
-              <Text style={{ color: c.red, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>{t('common.delete')}</Text>
+              <Text style={{ color: c.red, fontSize: 17, fontFamily: 'BeenAgesRounded-Regular' }}>{t('common.delete')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -220,19 +245,22 @@ const styles = StyleSheet.create({
   },
   navSide: { minWidth: 64, height: 44, justifyContent: 'center' },
   navSideRight: { minWidth: 64, height: 44, justifyContent: 'center', alignItems: 'flex-end' },
-  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
+  title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
   grp: { marginHorizontal: 16, borderRadius: 18, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16, gap: 10 },
   rowLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(46,41,37,0.09)' },
-  input: { flex: 1, fontSize: 22, fontFamily: 'NaikaiSubset-SemiBold', paddingVertical: 14 },
-  lab: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', minWidth: 44 },
+  input: { flex: 1, fontSize: 22, fontFamily: 'BeenAgesRounded-SemiBold', paddingVertical: 14 },
+  lab: { fontSize: 17, fontFamily: 'BeenAgesRounded-Regular', minWidth: 44 },
   secLab: { paddingHorizontal: 16 },
+  catRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 16, paddingTop: 10 },
+  auto: { fontSize: 13, fontFamily: 'BeenAgesRounded-Regular' },
+  catPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingLeft: 4, paddingRight: 12, borderRadius: 16 },
   notes: {
     minHeight: 96,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 17,
-    fontFamily: 'NaikaiSubset-Regular',
+    fontFamily: 'BeenAgesRounded-Regular',
     textAlignVertical: 'top',
   },
   preview: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },

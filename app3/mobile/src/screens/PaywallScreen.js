@@ -118,7 +118,7 @@ export default function PaywallScreen() {
           ) : (
             <TouchableOpacity onPress={loadPrice} style={styles.retry} accessibilityLabel={t('common.retry')}>
               <Text style={[styles.priceFail, { color: c.label }]}>{t('paywall.priceFail')}</Text>
-              <Text style={{ color: c.brand, fontSize: 15, fontFamily: 'NaikaiSubset-SemiBold', marginTop: 4 }}>{t('common.retry')}</Text>
+              <Text style={{ color: c.brand, fontSize: 15, fontFamily: 'BeenAgesRounded-SemiBold', marginTop: 4 }}>{t('common.retry')}</Text>
             </TouchableOpacity>
           )
         ) : (
@@ -134,7 +134,7 @@ export default function PaywallScreen() {
         </TouchableOpacity>
         <View style={styles.links}>
           <TouchableOpacity onPress={restore} disabled={busy} style={styles.linkBtn} accessibilityLabel={t('settings.restore')}>
-            <Text style={{ color: c.brand, fontSize: 15, fontFamily: 'NaikaiSubset-Regular' }}>{t('settings.restore')}</Text>
+            <Text style={{ color: c.brand, fontSize: 15, fontFamily: 'BeenAgesRounded-Regular' }}>{t('settings.restore')}</Text>
           </TouchableOpacity>
           {canPresentRedeemCode() ? (
             <TouchableOpacity
@@ -143,7 +143,7 @@ export default function PaywallScreen() {
               style={styles.linkBtn}
               accessibilityLabel={t('settings.redeem')}
             >
-              <Text style={{ color: c.l2, fontSize: 15, fontFamily: 'NaikaiSubset-Regular' }}>{t('settings.redeem')}</Text>
+              <Text style={{ color: c.l2, fontSize: 15, fontFamily: 'BeenAgesRounded-Regular' }}>{t('settings.redeem')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -158,8 +158,8 @@ function Feature({ icon, title, sub }) {
     <View style={styles.f}>
       <View style={[styles.g, { backgroundColor: c.band }]}>{icon}</View>
       <View style={{ flex: 1 }}>
-        <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 }}>{title}</Text>
-        <Text style={{ color: c.l2, fontSize: 13, fontFamily: 'NaikaiSubset-Regular', marginTop: 1 }}>{sub}</Text>
+        <Text style={{ color: c.label, fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 }}>{title}</Text>
+        <Text style={{ color: c.l2, fontSize: 13, fontFamily: 'BeenAgesRounded-Regular', marginTop: 1 }}>{sub}</Text>
       </View>
     </View>
   );
@@ -177,16 +177,16 @@ const styles = StyleSheet.create({
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   heroArt: { alignItems: 'center', paddingBottom: 8 },
   pw: { paddingHorizontal: 28, paddingTop: 24 },
-  h1: { fontSize: 34, fontFamily: 'NaikaiSubset-Bold', lineHeight: 44 },
+  h1: { fontSize: 34, fontFamily: 'BeenAgesRounded-Bold', lineHeight: 44 },
   f: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 14 },
   g: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   bottom: { marginTop: 'auto', paddingHorizontal: 20 },
-  price: { textAlign: 'center', fontFamily: 'NaikaiSubset-SemiBold', fontSize: 34 },
-  priceFail: { textAlign: 'center', fontFamily: 'NaikaiSubset-SemiBold', fontSize: 20 },
+  price: { textAlign: 'center', fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 34 },
+  priceFail: { textAlign: 'center', fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 20 },
   retry: { alignItems: 'center', paddingVertical: 4 },
-  once: { textAlign: 'center', fontSize: 13, marginTop: 2, fontFamily: 'NaikaiSubset-Regular' },
+  once: { textAlign: 'center', fontSize: 13, marginTop: 2, fontFamily: 'BeenAgesRounded-Regular' },
   cta: { marginTop: 18, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-  ctaText: { fontSize: 18, fontFamily: 'NaikaiSubset-SemiBold' },
+  ctaText: { fontSize: 18, fontFamily: 'BeenAgesRounded-SemiBold' },
   links: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 20, paddingVertical: 16 },
   linkBtn: { paddingVertical: 4, paddingHorizontal: 4 },
 });

@@ -1,7 +1,7 @@
 import { ICON_KINDS } from '../data/models';
 import TABLE from './iconKeywords.json';
 
-export const SUGGEST_ICONS = ICON_KINDS.filter((k) => k !== 'mono');
+export const SUGGEST_ICONS = ICON_KINDS.filter((k) => k !== 'mono' && k !== 'dots');
 
 const FLAT = TABLE.flatMap((row) =>
   (row.keys || []).map((key) => ({ icon: row.icon, key: String(key) })),

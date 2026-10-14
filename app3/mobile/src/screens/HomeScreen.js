@@ -18,6 +18,9 @@ import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort } from '../lib/time';
 import { monogramLetter } from '../lib/suggestIcon';
 import { splitToday, homeMood, dueStatus } from '../lib/today';
+import { CategoryChips } from '../components/CategoryChips';
+import { countByCategory } from '../data/repository';
+import { filterByCategory } from '../lib/categories';
 import * as Haptics from 'expo-haptics';
 import { isProUnlocked } from '../lib/entitlements';
 import { getLocale, t } from '../i18n';
@@ -29,7 +32,9 @@ export default function HomeScreen() {
   const c = useThemeColors();
   const { sort, setSort, preciseTime } = useTheme();
   const insets = useSafeAreaInsets();
-  const { activities, ready } = useActivities();
+  const { activities, categories, ready } = useActivities();
+  // Category filter. Adding an item never switches it (stays on All).
+  const [filter, setFilter] = useState('all');
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
 
@@ -48,7 +53,10 @@ export default function HomeScreen() {
     return mapped.sort((x, y) => (x._due === y._due ? 0 : x._due - y._due));
   }, [activities, sort]);
   const overdueCount = data.filter((x) => dueStatus(x._due) === 'overdue').length;
-  const { today, rest } = useMemo(() => splitToday(data), [data]);
+  const counts = useMemo(() => countByCategory(activities), [activities]);
+  const activeFilter = filter !== 'all' && counts[filter] ? filter : 'all';
+  const visible = useMemo(() => filterByCategory(data, activeFilter), [data, activeFilter]);
+  const { today, rest } = useMemo(() => splitToday(visible), [visible]);
   const mood = overdueCount > 0 ? 'worry' : homeMood(data);
 
   function showToast(next) {
@@ -131,7 +139,7 @@ export default function HomeScreen() {
           <Text style={[styles.lt, { color: c.label }]}>{t('app.title')}</Text>
           {overdueCount > 0 ? (
             <Text style={[styles.bandn, { color: c.l2 }]}>
-              <Text style={{ color: c.red, fontFamily: 'NaikaiSubset-Bold', fontSize: 18 }}>{overdueCount}</Text>
+              <Text style={{ color: c.red, fontFamily: 'BeenAgesRounded-Bold', fontSize: 18 }}>{overdueCount}</Text>
               {' '}{t('home.overdueSuffix')}
             </Text>
           ) : null}
@@ -140,6 +148,9 @@ export default function HomeScreen() {
           ) : null}
         </View>
       </View>
+      {data.length > 0 ? (
+        <CategoryChips categories={categories} counts={counts} total={data.length} value={activeFilter} onChange={setFilter} />
+      ) : null}
       <View style={styles.listWrap}>
         {!ready ? null : (
           <FlatList
@@ -174,7 +185,7 @@ export default function HomeScreen() {
                 preciseTime={preciseTime}
               />
             )}
-            ListEmptyComponent={
+            ListEmptyComponent={data.length === 0 ? (
               <View style={styles.empty}>
                 <Mascot size={150} mood="sleepy" />
                 <Text style={[styles.emptyT1, { color: c.label }]}>{t('home.empty')}</Text>
@@ -182,14 +193,14 @@ export default function HomeScreen() {
                   <Text style={[styles.ctaText, { color: c.onbrand }]}>{t('home.add')}</Text>
                 </TouchableOpacity>
               </View>
-            }
+            ) : null}
           />
         )}
       </View>
       {!!toast && (
         <View style={[styles.toast, { backgroundColor: c.cell, borderColor: c.sep, bottom: 24 + insets.bottom }]}>
           <Mascot size={38} mood="happy" />
-          <Text style={{ fontFamily: 'NaikaiSubset-SemiBold', color: c.label, fontSize: 15 }}>{toast.text}</Text>
+          <Text style={{ fontFamily: 'BeenAgesRounded-SemiBold', color: c.label, fontSize: 15 }}>{toast.text}</Text>
           {toast.undo ? (
             <TouchableOpacity
               onPress={async () => {
@@ -198,7 +209,7 @@ export default function HomeScreen() {
               }}
               hitSlop={8}
             >
-              <Text style={{ color: c.brand, fontFamily: 'NaikaiSubset-SemiBold', fontSize: 15 }}>{t('common.undo')}</Text>
+              <Text style={{ color: c.brand, fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 15 }}>{t('common.undo')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -297,7 +308,7 @@ function Numeral({ ms, just, color, dim, preciseTime }) {
 }
 
 const styles = StyleSheet.create({
-  todayH: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 15, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },
+  todayH: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 15, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 4 },
   todayGap: { height: 10 },
   root: { flex: 1 },
   band: { borderBottomLeftRadius: 30, borderBottomRightRadius: 30, paddingBottom: 14, marginBottom: 8 },
@@ -317,7 +328,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingBottom: 6,
     paddingTop: 2,
-    fontFamily: 'NaikaiSubset-Bold',
+    fontFamily: 'BeenAgesRounded-Bold',
     flex: 1,
   },
   bandn: { fontSize: 14, marginBottom: 14, marginRight: 6 },
@@ -337,19 +348,19 @@ const styles = StyleSheet.create({
   gl: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   odDot: { position: 'absolute', top: 0, right: 0, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },
   tx: { flex: 1, paddingVertical: 14 },
-  nm: { fontSize: 18, fontFamily: 'NaikaiSubset-SemiBold' },
-  st: { fontSize: 14, marginTop: 3, fontFamily: 'NaikaiSubset-Regular' },
+  nm: { fontSize: 18, fontFamily: 'BeenAgesRounded-SemiBold' },
+  st: { fontSize: 14, marginTop: 3, fontFamily: 'BeenAgesRounded-Regular' },
   trk: { height: 5, borderRadius: 3, marginTop: 8, overflow: 'hidden' },
   trkI: { height: '100%', borderRadius: 3 },
   numWrap: { width: 108, alignItems: 'flex-end' },
-  num: { fontSize: 30, fontFamily: 'NaikaiSubset-SemiBold', lineHeight: 34 },
-  numSmall: { fontSize: 13, fontFamily: 'NaikaiSubset-Regular' },
+  num: { fontSize: 30, fontFamily: 'BeenAgesRounded-SemiBold', lineHeight: 34 },
+  numSmall: { fontSize: 13, fontFamily: 'BeenAgesRounded-Regular' },
   ck: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   ckDot: { width: 32, height: 32, borderRadius: 16, borderWidth: 2.4, alignItems: 'center', justifyContent: 'center' },
   swipeDel: { width: 88, alignItems: 'center', justifyContent: 'center' },
-  swipeDelText: { color: '#fff', fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
+  swipeDelText: { color: '#fff', fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
   empty: { alignItems: 'center', paddingTop: 80 },
-  emptyT1: { fontSize: 20, marginTop: 18, fontFamily: 'NaikaiSubset-SemiBold' },
+  emptyT1: { fontSize: 20, marginTop: 18, fontFamily: 'BeenAgesRounded-SemiBold' },
   cta: {
     height: 56,
     paddingHorizontal: 30,
@@ -360,7 +371,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
   },
-  ctaText: { fontSize: 18, fontFamily: 'NaikaiSubset-SemiBold' },
+  ctaText: { fontSize: 18, fontFamily: 'BeenAgesRounded-SemiBold' },
   toast: {
     position: 'absolute',
     alignSelf: 'center',

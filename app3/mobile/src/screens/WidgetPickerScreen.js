@@ -128,9 +128,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 },
-  hint: { marginHorizontal: 20, marginTop: 8, marginBottom: 12, fontSize: 13, fontFamily: 'NaikaiSubset-Regular' },
-  sec: { marginHorizontal: 28, marginBottom: 8, marginTop: 8, fontSize: 13, fontFamily: 'NaikaiSubset-Regular' },
+  title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
+  hint: { marginHorizontal: 20, marginTop: 8, marginBottom: 12, fontSize: 13, fontFamily: 'BeenAgesRounded-Regular' },
+  sec: { marginHorizontal: 28, marginBottom: 8, marginTop: 8, fontSize: 13, fontFamily: 'BeenAgesRounded-Regular' },
   grp: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden', marginBottom: 20 },
   gl: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 });

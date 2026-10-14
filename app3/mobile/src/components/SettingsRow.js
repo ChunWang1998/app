@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   line: { borderBottomWidth: StyleSheet.hairlineWidth },
-  title: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', flex: 1 },
-  value: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular' },
+  title: { fontSize: 17, fontFamily: 'BeenAgesRounded-Regular', flex: 1 },
+  value: { fontSize: 17, fontFamily: 'BeenAgesRounded-Regular' },
   switchWrap: { justifyContent: 'center', flexShrink: 0 },
 });

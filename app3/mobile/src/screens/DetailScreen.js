@@ -76,7 +76,7 @@ export default function DetailScreen() {
             </TouchableOpacity>
             <Text style={[styles.title, { color: c.label }]} numberOfLines={1}>{item.title}</Text>
             <TouchableOpacity onPress={() => nav.navigate('Edit', { id: item.id })} style={styles.navBtnRight}>
-              <Text style={{ color: c.label, fontSize: 17, fontFamily: 'NaikaiSubset-Regular' }}>{t('detail.edit')}</Text>
+              <Text style={{ color: c.label, fontSize: 17, fontFamily: 'BeenAgesRounded-Regular' }}>{t('detail.edit')}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.hero}>
@@ -180,7 +180,7 @@ export default function DetailScreen() {
               <BellIcon color={tone.acf} size={16} />
             </View>
             <Text style={[styles.rowTitle, { color: c.label }]}>{remLabel}</Text>
-            <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular', marginRight: 6 }}>
+            <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', marginRight: 6 }}>
               {item.reminderTime || '09:00'}
             </Text>
             <ChevronRightIcon color={c.l3} />
@@ -196,7 +196,7 @@ export default function DetailScreen() {
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
           {hist.length === 0 ? (
             <View style={styles.row}>
-              <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular' }}>{t('detail.neverLogged')}</Text>
+              <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular' }}>{t('detail.neverLogged')}</Text>
             </View>
           ) : hist.map((e, i) => {
             const next = hist[i + 1];
@@ -220,7 +220,7 @@ export default function DetailScreen() {
             <Text style={[styles.sec, { color: c.label }]}>{t('detail.notes')}</Text>
             <View style={[styles.grp, { backgroundColor: c.cell }]}>
               <View style={[styles.row, { minHeight: 56 }]}>
-                <Text style={{ color: c.label, fontFamily: 'NaikaiSubset-Regular', fontSize: 16 }}>{item.notes}</Text>
+                <Text style={{ color: c.label, fontFamily: 'BeenAgesRounded-Regular', fontSize: 16 }}>{item.notes}</Text>
               </View>
             </View>
           </>
@@ -233,10 +233,10 @@ export default function DetailScreen() {
             <DateChips value={backfillAt} onChange={(v) => v && setBackfillAt(v)} allowUnknown={false} />
             <View style={styles.sheetBtns}>
               <TouchableOpacity onPress={() => setBackfillAt(null)} style={styles.sheetBtn}>
-                <Text style={{ color: c.l2, fontFamily: 'NaikaiSubset-Regular', fontSize: 17 }}>{t('common.cancel')}</Text>
+                <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', fontSize: 17 }}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={saveBackfill} style={styles.sheetBtn} testID="backfill-save">
-                <Text style={{ color: c.brand, fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17 }}>{t('edit.add')}</Text>
+                <Text style={{ color: c.brand, fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 }}>{t('edit.add')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -249,8 +249,8 @@ export default function DetailScreen() {
 function Stat({ label, value, c }) {
   return (
     <View style={[styles.stat, { backgroundColor: c.cell }]}>
-      <Text style={{ color: c.l2, fontSize: 13, fontFamily: 'NaikaiSubset-Regular' }}>{label}</Text>
-      <Text style={{ color: c.label, fontSize: 24, fontFamily: 'NaikaiSubset-SemiBold', marginTop: 4 }}>{value}</Text>
+      <Text style={{ color: c.l2, fontSize: 13, fontFamily: 'BeenAgesRounded-Regular' }}>{label}</Text>
+      <Text style={{ color: c.label, fontSize: 24, fontFamily: 'BeenAgesRounded-SemiBold', marginTop: 4 }}>{value}</Text>
     </View>
   );
 }
@@ -258,7 +258,7 @@ function Stat({ label, value, c }) {
 const styles = StyleSheet.create({
   sheetWrap: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.3)' },
   sheet: { borderRadius: 20, paddingTop: 18, paddingBottom: 6 },
-  sheetTitle: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17, paddingHorizontal: 16 },
+  sheetTitle: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17, paddingHorizontal: 16 },
   sheetBtns: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 8 },
   sheetBtn: { paddingHorizontal: 12, height: 44, justifyContent: 'center' },
   heroblk: { borderBottomLeftRadius: 32, borderBottomRightRadius: 32, paddingBottom: 24 },
@@ -271,14 +271,14 @@ const styles = StyleSheet.create({
   },
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   navBtnRight: { minWidth: 44, height: 44, alignItems: 'flex-end', justifyContent: 'center', paddingRight: 4 },
-  title: { fontFamily: 'NaikaiSubset-SemiBold', fontSize: 17, flex: 1, textAlign: 'center' },
+  title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17, flex: 1, textAlign: 'center' },
   hero: { paddingHorizontal: 20, paddingTop: 14 },
   heroTop: { flexDirection: 'row', alignItems: 'flex-end' },
-  num: { fontSize: 78, fontFamily: 'NaikaiSubset-SemiBold', lineHeight: 86, flex: 1 },
-  numUnit: { fontSize: 20, fontFamily: 'NaikaiSubset-Regular', marginLeft: 4 },
+  num: { fontSize: 78, fontFamily: 'BeenAgesRounded-SemiBold', lineHeight: 86, flex: 1 },
+  numUnit: { fontSize: 20, fontFamily: 'BeenAgesRounded-Regular', marginLeft: 4 },
   whenRow: { marginTop: 12, flexDirection: 'row', alignItems: 'center' },
-  when: { fontSize: 15, fontFamily: 'NaikaiSubset-Regular', fontVariant: ['tabular-nums'] },
-  od: { marginLeft: 'auto', fontFamily: 'NaikaiSubset-SemiBold', fontSize: 15 },
+  when: { fontSize: 15, fontFamily: 'BeenAgesRounded-Regular', fontVariant: ['tabular-nums'] },
+  od: { marginLeft: 'auto', fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 15 },
   trk: { height: 5, borderRadius: 3, marginTop: 22, overflow: 'hidden' },
   trkI: { height: '100%', borderRadius: 3 },
   cta: {
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  ctaText: { fontSize: 18, fontFamily: 'NaikaiSubset-SemiBold' },
+  ctaText: { fontSize: 18, fontFamily: 'BeenAgesRounded-SemiBold' },
   extraRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginTop: 12 },
   extraBtn: {
     flex: 1,
@@ -302,19 +302,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
   },
-  extraText: { fontSize: 15, fontFamily: 'NaikaiSubset-SemiBold' },
+  extraText: { fontSize: 15, fontFamily: 'BeenAgesRounded-SemiBold' },
   stats: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginTop: 22 },
   stat: { flex: 1, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 14 },
-  sec: { fontSize: 20, fontFamily: 'NaikaiSubset-Bold', paddingTop: 34, paddingHorizontal: 20, paddingBottom: 6 },
+  sec: { fontSize: 20, fontFamily: 'BeenAgesRounded-Bold', paddingTop: 34, paddingHorizontal: 20, paddingBottom: 6 },
   secRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 16, paddingTop: 28 },
   plus: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   grp: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16, gap: 12 },
-  rowTitle: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', flex: 1 },
+  rowTitle: { fontSize: 17, fontFamily: 'BeenAgesRounded-Regular', flex: 1 },
   sq: { width: 29, height: 29, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   hist: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingHorizontal: 16, gap: 10 },
   histLine: { borderBottomWidth: 1.5, borderBottomColor: 'rgba(46,41,37,0.09)', borderStyle: 'dashed' },
-  histD: { fontSize: 17, fontFamily: 'NaikaiSubset-Regular', width: 110 },
-  histT: { fontSize: 15, fontFamily: 'NaikaiSubset-Regular', width: 52 },
-  histG: { marginLeft: 'auto', fontSize: 14, fontFamily: 'NaikaiSubset-Regular' },
+  histD: { fontSize: 17, fontFamily: 'BeenAgesRounded-Regular', width: 110 },
+  histT: { fontSize: 15, fontFamily: 'BeenAgesRounded-Regular', width: 52 },
+  histG: { marginLeft: 'auto', fontSize: 14, fontFamily: 'BeenAgesRounded-Regular' },
 });

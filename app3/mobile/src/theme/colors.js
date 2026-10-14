@@ -53,10 +53,12 @@ export const itemPalette = {
   scissors: { light: { ac: '#F7E0E6', acf: '#AE516B' }, dark: { ac: '#33232A', acf: '#EBA0B4' } },
   brush: { light: { ac: '#DCF0EE', acf: '#2F8476' }, dark: { ac: '#1E2F2C', acf: '#6EC3B0' } },
   paw: { light: { ac: '#F6E6D8', acf: '#9A5B2E' }, dark: { ac: '#33281F', acf: '#E3AF85' } },
+  plug: { light: { ac: '#E3E8F3', acf: '#4D6491' }, dark: { ac: '#232A36', acf: '#A3B6DE' } },
+  dots: { light: { ac: 'rgba(46,41,37,0.07)', acf: 'rgba(46,41,37,0.5)' }, dark: { ac: 'rgba(243,237,229,0.10)', acf: 'rgba(243,237,229,0.6)' } },
   car: { light: { ac: '#E9E4DA', acf: '#7A6A55' }, dark: { ac: '#2C2925', acf: '#C9B9A0' } },
 };
 
-const PALETTE_LIST = Object.values(itemPalette);
+const PALETTE_LIST = Object.entries(itemPalette).filter(([k]) => k !== 'dots').map(([, v]) => v);
 
 export function paletteForItem(icon, title) {
   if (icon && icon !== 'mono' && itemPalette[icon]) return itemPalette[icon];
