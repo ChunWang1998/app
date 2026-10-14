@@ -18,6 +18,17 @@ function startOfDay(now) {
   return d.getTime();
 }
 
+/**
+ * 'overdue' only once at least a full day late; anything else due by tonight is 'today'.
+ * `due` is ms until due (negative = late), as from dueInMs.
+ */
+export function dueStatus(due, now = Date.now()) {
+  if (!Number.isFinite(due)) return 'none';
+  if (due <= -DAY) return 'overdue';
+  if (now + due <= endOfDay(now)) return 'today';
+  return 'upcoming';
+}
+
 /** Has a reminder and is due by the end of today (includes overdue). */
 export function isDueToday(item, now = Date.now()) {
   if (!item?.reminderDays) return false;

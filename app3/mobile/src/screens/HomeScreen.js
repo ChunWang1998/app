@@ -17,7 +17,7 @@ import { Mascot } from '../components/Mascot';
 import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort } from '../lib/time';
 import { monogramLetter } from '../lib/suggestIcon';
-import { splitToday, homeMood } from '../lib/today';
+import { splitToday, homeMood, dueStatus } from '../lib/today';
 import * as Haptics from 'expo-haptics';
 import { isProUnlocked } from '../lib/entitlements';
 import { getLocale, t } from '../i18n';
@@ -47,7 +47,7 @@ export default function HomeScreen() {
     }
     return mapped.sort((x, y) => (x._due === y._due ? 0 : x._due - y._due));
   }, [activities, sort]);
-  const overdueCount = data.filter((x) => x._due < 0).length;
+  const overdueCount = data.filter((x) => dueStatus(x._due) === 'overdue').length;
   const { today, rest } = useMemo(() => splitToday(data), [data]);
   const mood = overdueCount > 0 ? 'worry' : homeMood(data);
 
@@ -211,8 +211,9 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
   const c = useThemeColors();
   const tone = useItemTone(item.icon, item.title);
   const due = item._due;
-  const soon = due < 2 * 864e5 && due >= 0;
-  const od = due < 0;
+  const ds = dueStatus(due);
+  const od = ds === 'overdue';
+  const soon = !od && due < 2 * 864e5;
   const elapsed = elapsedMs(item);
   const just = elapsed != null && elapsed < JUST_MS;
   const ratio = progressRatio(item);
@@ -221,6 +222,7 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
   let status;
   if (!item.lastDoneAt) status = t('home.neverLogged');
   else if (!hasReminder) status = formatLastDoneShort(item.lastDoneAt, Date.now(), getLocale());
+  else if (ds === 'today') status = t('common.today');
   else if (od) status = `${t('home.overdue')}\u2009${formatSpan(-due)}`;
   else status = `${t('home.remaining')}\u2009${formatSpan(due)}`;
 
