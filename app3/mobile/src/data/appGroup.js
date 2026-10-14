@@ -47,7 +47,7 @@ export function emptyQueue() {
 }
 
 export function emptySelection() {
-  return { small: 'auto', medium: [], hideLockNames: false };
+  return { small: 'auto', medium: [], hideLockNames: false, hideHomeNames: false };
 }
 
 export function normalizeSelection(sel) {
@@ -55,7 +55,12 @@ export function normalizeSelection(sel) {
   const medium = Array.isArray(sel?.medium)
     ? sel.medium.filter((id) => typeof id === 'string' && id && id !== 'auto').slice(0, 3)
     : [];
-  return { small, medium, hideLockNames: !!sel?.hideLockNames };
+  return {
+    small,
+    medium,
+    hideLockNames: !!sel?.hideLockNames,
+    hideHomeNames: !!sel?.hideHomeNames,
+  };
 }
 
 /**

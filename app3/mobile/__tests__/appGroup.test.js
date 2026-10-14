@@ -58,7 +58,12 @@ describe('App Group contract', () => {
     });
     expect(snap.proUnlocked).toBe(true);
     expect(snap.activities).toHaveLength(2);
-    expect(snap.selectedIds).toEqual({ small: 'a2', medium: ['a1'], hideLockNames: false });
+    expect(snap.selectedIds).toEqual({
+      small: 'a2',
+      medium: ['a1'],
+      hideLockNames: false,
+      hideHomeNames: false,
+    });
     expect(snap.activities[0].deletedAt).toBeUndefined();
   });
 
