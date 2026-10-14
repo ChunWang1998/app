@@ -26,6 +26,8 @@ export const LOCK_WIDGET_NAME = 'BeenAgesLock';
 
 export const PAYWALL_URL = 'beenages://paywall';
 export const WIDGET_UNDO_MS = 5000;
+/** Widget-sent completion times may not be earlier than createdAt or later than now+5min. */
+export const WIDGET_FUTURE_SLACK_MS = 5 * 60 * 1000;
 
 export const SNAPSHOT_VERSION = 1;
 export const QUEUE_VERSION = 1;
@@ -36,7 +38,7 @@ export function emptySnapshot() {
     writtenAt: null,
     proUnlocked: false,
     activities: [],
-    selectedIds: { small: 'auto', medium: [] },
+    selectedIds: emptySelection(),
   };
 }
 
@@ -45,7 +47,7 @@ export function emptyQueue() {
 }
 
 export function emptySelection() {
-  return { small: 'auto', medium: [] };
+  return { small: 'auto', medium: [], hideLockNames: false };
 }
 
 export function normalizeSelection(sel) {
@@ -53,7 +55,20 @@ export function normalizeSelection(sel) {
   const medium = Array.isArray(sel?.medium)
     ? sel.medium.filter((id) => typeof id === 'string' && id && id !== 'auto').slice(0, 3)
     : [];
-  return { small, medium };
+  return { small, medium, hideLockNames: !!sel?.hideLockNames };
+}
+
+/**
+ * Clamp a widget-sent completion time to [createdAt, now + 5 minutes].
+ * Invalid / missing values fall back to `now`.
+ */
+export function clampWidgetCompletionTime(sent, createdAt, now = Date.now()) {
+  const parsed = typeof sent === 'number' ? sent : Date.parse(sent);
+  const raw = Number.isFinite(parsed) ? parsed : now;
+  const created = createdAt == null ? NaN : Date.parse(createdAt);
+  const min = Number.isFinite(created) ? created : 0;
+  const max = now + WIDGET_FUTURE_SLACK_MS;
+  return Math.min(max, Math.max(min, raw));
 }
 
 export function activityToSnapshotRow(a) {
@@ -140,7 +155,7 @@ export function appendQueueLog(queue, { itemId, timestamp, source = 'widget' }) 
  * - Unknown / deleted item: drop (cannot create items from an extension).
  * - Duplicate item+timestamp already reflected in lastDoneAt: skip.
  */
-export function planQueueMerge({ logs, activities, proUnlocked }) {
+export function planQueueMerge({ logs, activities, proUnlocked, now = Date.now() }) {
   const applied = [];
   const skipped = [];
   if (!proUnlocked) {
@@ -161,11 +176,12 @@ export function planQueueMerge({ logs, activities, proUnlocked }) {
       skipped.push({ ...entry, reason: 'UNKNOWN_ITEM' });
       continue;
     }
-    if (item.lastDoneAt && item.lastDoneAt === entry.timestamp) {
+    const timestamp = new Date(clampWidgetCompletionTime(entry.timestamp, item.createdAt, now)).toISOString();
+    if (item.lastDoneAt && item.lastDoneAt === timestamp) {
       skipped.push({ ...entry, reason: 'ALREADY_APPLIED' });
       continue;
     }
-    applied.push(entry);
+    applied.push({ ...entry, timestamp });
   }
   return { applied, skipped };
 }

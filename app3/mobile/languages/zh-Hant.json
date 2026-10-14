@@ -1,6 +1,7 @@
 {
   "ios": {
-    "CFBundleDisplayName": "好久沒了"
+    "CFBundleDisplayName": "好久沒了",
+    "NSCalendarsWriteOnlyAccessUsageDescription": "把項目的下次該做日子加到行事曆。"
   },
   "app": {
     "title": "好久沒了",

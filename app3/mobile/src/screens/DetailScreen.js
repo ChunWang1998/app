@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useActivities, logActivityNow, backfillHistory } from '../data/repository';
 import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
-import { ChevronLeftIcon, CheckIcon, BellIcon, PlusIcon, ChevronRightIcon } from '../components/Icons';
+import { ChevronLeftIcon, CheckIcon, BellIcon, PlusIcon, ChevronRightIcon, ShareIcon, CalendarIcon } from '../components/Icons';
+import { addNextDueToCalendar, openSystemSettings } from '../lib/calendar';
 import { formatDate, formatTime, formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts } from '../lib/time';
 import { historyStats } from '../lib/historyStats';
 import * as Haptics from 'expo-haptics';
@@ -123,6 +124,45 @@ export default function DetailScreen() {
           <CheckIcon color={c.onbrand} size={18} />
           <Text style={[styles.ctaText, { color: c.onbrand }]}>剛剛做了</Text>
         </TouchableOpacity>
+        <View style={styles.extraRow}>
+          <TouchableOpacity
+            onPress={() => nav.navigate('ShareCard', { id: item.id })}
+            style={[styles.extraBtn, { backgroundColor: c.cell }]}
+            accessibilityLabel="分享卡片"
+          >
+            <ShareIcon color={c.brand} size={18} />
+            <Text style={[styles.extraText, { color: c.label }]}>分享卡片</Text>
+          </TouchableOpacity>
+          {hasReminder ? (
+            <TouchableOpacity
+              onPress={async () => {
+                const r = await addNextDueToCalendar(item);
+                if (r.status === 'added') {
+                  Alert.alert('已加入', '已加到行事曆');
+                  return;
+                }
+                if (r.status === 'duplicate') {
+                  Alert.alert('已加過', '要不要再加一次？', [
+                    { text: '取消', style: 'cancel' },
+                    { text: '再加一次', onPress: () => addNextDueToCalendar(item, { force: true }) },
+                  ]);
+                  return;
+                }
+                if (r.status === 'denied') {
+                  Alert.alert('無法加入', '到設定開啟行事曆', [
+                    { text: '取消', style: 'cancel' },
+                    { text: '設定', onPress: () => openSystemSettings() },
+                  ]);
+                }
+              }}
+              style={[styles.extraBtn, { backgroundColor: c.cell }]}
+              accessibilityLabel="加到行事曆"
+            >
+              <CalendarIcon color={c.brand} size={18} />
+              <Text style={[styles.extraText, { color: c.label }]}>加到行事曆</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
 
         <View style={styles.stats}>
           <Stat label="總次數" value={`${stats.count}次`} c={c} />
@@ -232,6 +272,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ctaText: { fontSize: 18, fontFamily: 'NaikaiSubset-SemiBold' },
+  extraRow: { flexDirection: 'row', gap: 10, marginHorizontal: 20, marginTop: 12 },
+  extraBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  extraText: { fontSize: 15, fontFamily: 'NaikaiSubset-SemiBold' },
   stats: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginTop: 22 },
   stat: { flex: 1, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 14 },
   sec: { fontSize: 20, fontFamily: 'NaikaiSubset-Bold', paddingTop: 34, paddingHorizontal: 20, paddingBottom: 6 },

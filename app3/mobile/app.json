@@ -58,6 +58,15 @@
       "expo-sharing",
       "expo-notifications",
       [
+        "expo-calendar",
+        {
+          "writeOnlyAccess": true,
+          "calendarPermission": false,
+          "remindersPermission": false,
+          "writeOnlyCalendarPermission": "Adds an item's next due date to your calendar."
+        }
+      ],
+      [
         "expo-widgets",
         {
           "bundleIdentifier": "com.beenages.app.widget",
@@ -95,6 +104,11 @@
                       "title": "Item",
                       "type": "string",
                       "default": "auto"
+                    },
+                    "hideNames": {
+                      "title": "Hide names",
+                      "type": "boolean",
+                      "default": false
                     }
                   }
                 }

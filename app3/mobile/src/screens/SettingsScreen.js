@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, useTheme } from '../theme/useTheme';
 import { restoreProUnlock } from '../lib/iap';
 import { isProUnlocked } from '../lib/entitlements';
+import { getPrefs, subscribePrefs, updatePrefs } from '../data/prefs';
 import { exportToJson, exportToCsv, importFromJson, getRecentlyDeleted, subscribe, refreshReminders } from '../data/repository';
 import { exportFileName } from '../data/csv';
 import { finiteSize, importSizeError, utf8ByteLength } from '../data/importLimit';
@@ -34,8 +35,10 @@ export default function SettingsScreen() {
     showNameInNotifications, setShowNameInNotifications,
   } = useTheme();
   const [pro, setPro] = React.useState(false);
+  const [hideName, setHideName] = React.useState(() => !!getPrefs().hideName);
   const [trash, setTrash] = React.useState(() => getRecentlyDeleted().length);
   React.useEffect(() => { isProUnlocked().then(setPro); }, []);
+  React.useEffect(() => subscribePrefs((p) => setHideName(!!p.hideName)), []);
   React.useEffect(() => subscribe(() => setTrash(getRecentlyDeleted().length)), []);
 
   async function restore() {
@@ -243,6 +246,21 @@ export default function SettingsScreen() {
                 onValueChange={async (v) => {
                   await setShowNameInNotifications(v);
                   await refreshReminders();
+                }}
+                trackColor={{ false: c.fill, true: c.brand }}
+              />
+            )}
+            c={c}
+          />
+          <Row
+            icon={<Sq bg="#8E8E93"><LockIcon color="#fff" size={15} /></Sq>}
+            title="隱藏名稱"
+            right={(
+              <Switch
+                value={hideName}
+                onValueChange={(v) => {
+                  setHideName(v);
+                  updatePrefs({ hideName: v }).catch(() => {});
                 }}
                 trackColor={{ false: c.fill, true: c.brand }}
               />

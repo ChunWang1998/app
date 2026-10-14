@@ -7,10 +7,12 @@ import {
   applyWidgetUndo,
   buildSnapshot,
   capActivities,
+  clampWidgetCompletionTime,
   emptyQueue,
   pendingShouldCommit,
   planQueueMerge,
   queueFromPending,
+  WIDGET_FUTURE_SLACK_MS,
 } from '../src/data/appGroup';
 import { MemoryAppGroupStore, readSnapshot, writeSnapshot, writeQueue, readQueue, clearQueue } from '../src/data/appGroupStore';
 
@@ -56,7 +58,7 @@ describe('App Group contract', () => {
     });
     expect(snap.proUnlocked).toBe(true);
     expect(snap.activities).toHaveLength(2);
-    expect(snap.selectedIds).toEqual({ small: 'a2', medium: ['a1'] });
+    expect(snap.selectedIds).toEqual({ small: 'a2', medium: ['a1'], hideLockNames: false });
     expect(snap.activities[0].deletedAt).toBeUndefined();
   });
 
@@ -78,6 +80,35 @@ describe('App Group contract', () => {
     });
     expect(applied).toEqual([]);
     expect(skipped[0].reason).toBe('UNKNOWN_ITEM');
+  });
+
+  it('drops logs for soft-deleted items', () => {
+    const { applied, skipped } = planQueueMerge({
+      logs: [{ itemId: 'gone', timestamp: ts, source: 'widget' }],
+      activities: [act('gone', { deletedAt: ts })],
+      proUnlocked: true,
+    });
+    expect(applied).toEqual([]);
+    expect(skipped[0].reason).toBe('UNKNOWN_ITEM');
+  });
+
+  it('clamps widget completion time to createdAt .. now+5min', () => {
+    const created = Date.parse('2026-10-01T00:00:00.000Z');
+    const now = Date.parse('2026-10-13T12:00:00.000Z');
+    expect(clampWidgetCompletionTime('2010-01-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z', now)).toBe(created);
+    expect(clampWidgetCompletionTime(now + 60 * 60 * 1000, '2026-10-01T00:00:00.000Z', now)).toBe(now + WIDGET_FUTURE_SLACK_MS);
+    expect(clampWidgetCompletionTime(now - 1000, '2026-10-01T00:00:00.000Z', now)).toBe(now - 1000);
+  });
+
+  it('clamps queued timestamps before applying', () => {
+    const now = Date.parse('2026-10-13T12:00:00.000Z');
+    const { applied } = planQueueMerge({
+      logs: [{ itemId: 'a1', timestamp: '2010-01-01T00:00:00.000Z', source: 'widget' }],
+      activities: [act('a1')],
+      proUnlocked: true,
+      now,
+    });
+    expect(applied[0].timestamp).toBe(ts);
   });
 
   it('applies logs only for existing visible items', () => {

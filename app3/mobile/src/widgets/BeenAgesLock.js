@@ -6,9 +6,11 @@ const BeenAgesLock = (props, environment) => {
   'widget';
   const LABEL = '#2E2925';
   const family = environment.widgetFamily;
-  const configId = environment.configuration && environment.configuration.itemId
-    ? environment.configuration.itemId
-    : 'auto';
+  const config = environment.configuration || {};
+  const configId = config.itemId ? config.itemId : 'auto';
+  const hideNames = config.hideNames === true
+    || config.hideNames === 'true'
+    || !!(props && props.hideLockNames);
 
   if (!props || !props.isPro) {
     if (family === 'accessoryCircular') {
@@ -66,9 +68,11 @@ const BeenAgesLock = (props, environment) => {
       ) : (
         <Image systemName={item.sfSymbol || 'paintbrush.pointed'} size={14} color={LABEL} />
       )}
-      <Text modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(LABEL)]}>
-        {item.title}
-      </Text>
+      {hideNames ? null : (
+        <Text modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(LABEL)]}>
+          {item.title}
+        </Text>
+      )}
       <Text modifiers={[font({ size: 16, weight: 'bold' }), foregroundStyle(LABEL)]}>
         {item.daysText || num}
       </Text>

@@ -8,11 +8,13 @@ describe('v1.1 ships finished entry points only', () => {
   const app = fs.readFileSync(path.join(__dirname, '../src/App.js'), 'utf8');
   const appJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../app.json'), 'utf8'));
 
-  it('ships Reminder, RecentlyDeleted, and WidgetPicker', () => {
+  it('ships Reminder, ShareCard, RecentlyDeleted, and WidgetPicker', () => {
     expect(nav).toMatch(/ReminderScreen/);
+    expect(nav).toMatch(/ShareCardScreen/);
     expect(nav).toMatch(/RecentlyDeleted/);
     expect(nav).toMatch(/WidgetPickerScreen/);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/ReminderScreen.js'))).toBe(true);
+    expect(fs.existsSync(path.join(__dirname, '../src/screens/ShareCardScreen.js'))).toBe(true);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(true);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/WidgetPickerScreen.js'))).toBe(true);
   });

@@ -136,6 +136,23 @@ export function CloudIcon({ color = '#3E9180', size = 20 }) {
   );
 }
 
+export function ShareIcon({ color = '#3E9180', size = 20 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20">
+      <Path d="M10 12V3M6.5 6 10 2.5 13.5 6M4 10.5v6h12v-6" stroke={color} strokeWidth={1.8} {...stroke} />
+    </Svg>
+  );
+}
+
+export function CalendarIcon({ color = '#3E9180', size = 20 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20">
+      <Rect x="3" y="4.5" width="14" height="12.5" rx="2" stroke={color} strokeWidth={1.8} {...stroke} />
+      <Path d="M3 8.5h14M7 3v3M13 3v3" stroke={color} strokeWidth={1.8} {...stroke} />
+    </Svg>
+  );
+}
+
 export function MailIcon({ color = '#fff', size = 18 }) {
   return (
     <Svg width={size} height={size * 0.78} viewBox="0 0 20 15">
