@@ -203,7 +203,7 @@
   "date": {
     "weekAgo": "1週間前",
     "monthAgo": "1か月前",
-    "unknown": "わからない"
+    "unknown": "覚えてない"
   },
   "category": {
     "title": "カテゴリ",
@@ -215,13 +215,13 @@
     "deleteMoved": "{n}件はその他へ",
     "auto": "自動",
     "defaults": {
-      "clean": "そうじ",
+      "clean": "掃除",
       "care": "ケア",
       "pet": "ペット",
       "plant": "植物",
-      "car": "クルマ",
-      "health": "ヘルス",
-      "appl": "機器"
+      "car": "車",
+      "health": "健康",
+      "appl": "家電"
     }
   }
 }

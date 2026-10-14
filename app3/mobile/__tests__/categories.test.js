@@ -169,4 +169,21 @@ describe('strings', () => {
       for (const k of ['clean', 'care', 'pet', 'plant', 'car', 'health', 'appl']) expect(l.category.defaults[k]).toBeTruthy();
     }
   });
+  it('zh-Hant uses natural category wording', () => {
+    expect(zh.category.title).toBe('類型');
+    expect(zh.category.all).toBe('全部');
+    expect(zh.category.other).toBe('其他');
+    expect(zh.category.newCategory).toBe('新類型');
+    expect(zh.category.keywords).toBe('關鍵字');
+    expect(zh.category.deleteMoved).toBe('{n} 件到其他');
+    expect(zh.category.defaults).toEqual({
+      clean: '清潔',
+      care: '個人保養',
+      pet: '寵物',
+      plant: '植物',
+      car: '車',
+      health: '健康',
+      appl: '家電',
+    });
+  });
 });

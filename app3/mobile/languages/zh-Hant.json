@@ -203,22 +203,22 @@
     "unknown": "不記得"
   },
   "category": {
-    "title": "清單",
-    "all": "全",
-    "other": "未分",
-    "newCategory": "新清單",
+    "title": "類型",
+    "all": "全部",
+    "other": "其他",
+    "newCategory": "新類型",
     "name": "名稱",
-    "keywords": "名稱含",
-    "deleteMoved": "{n} 件到未分",
+    "keywords": "關鍵字",
+    "deleteMoved": "{n} 件到其他",
     "auto": "自動",
     "defaults": {
-      "clean": "清洗",
-      "care": "外表",
-      "pet": "動物",
+      "clean": "清潔",
+      "care": "個人保養",
+      "pet": "寵物",
       "plant": "植物",
-      "car": "交通",
-      "health": "補給",
-      "appl": "機器"
+      "car": "車",
+      "health": "健康",
+      "appl": "家電"
     }
   }
 }

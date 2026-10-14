@@ -118,6 +118,7 @@ describe('strings', () => {
       expect(l.home.dueToday).toBeTruthy();
     }
     expect(zh.date.unknown).toBe('不記得');
+    expect(ja.date.unknown).toBe('覚えてない');
   });
 });
 
