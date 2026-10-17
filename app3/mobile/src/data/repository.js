@@ -1,5 +1,6 @@
 import React from 'react';
 import { createActivity, nowIso, migrateActivity, normalizeHistory, lastDoneFromHistory } from './models';
+import { doneToday } from '../lib/today';
 import { KeyValueStorage, loadState, saveState } from './storage';
 import { isProUnlocked } from '../lib/entitlements';
 import {
@@ -162,8 +163,22 @@ export async function logActivityAt(id, atIso) {
   return { previousLastDoneAt, previousHistory, loggedAt: ts };
 }
 
-export async function logActivityNow(id) {
-  return logActivityAt(id, nowIso());
+/**
+ * Check-off "now". Same local calendar day as lastDoneAt → no new history row.
+ * Home / detail use this; backfill and widget timestamps still go through logActivityAt.
+ */
+export async function logActivityNow(id, atIso) {
+  const ts = atIso || nowIso();
+  const item = state.activities.find((a) => a.id === id);
+  if (item && doneToday(item, new Date(ts).getTime())) {
+    return {
+      skipped: true,
+      previousLastDoneAt: item.lastDoneAt ?? null,
+      previousHistory: Array.isArray(item.history) ? item.history : [],
+      loggedAt: item.lastDoneAt,
+    };
+  }
+  return { skipped: false, ...(await logActivityAt(id, ts)) };
 }
 
 export async function undoLogActivity(id, previousLastDoneAt, previousHistory) {

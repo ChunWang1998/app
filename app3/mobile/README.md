@@ -1,7 +1,7 @@
 # Been Ages (app3/mobile)
 
 v1.1:
-- List / add / edit / log / swipe-delete with a 5s undo, then Recently Deleted (30 days)
+- List / add / edit / log / swipe-delete with a 2s undo toast, then Recently Deleted (30 days)
 - History, notes, reminder editor (on/off, interval, time, snooze)
 - Dark mode via Settings → Display (auto / light / dark) and exact time
 - IAP unlock + Restore Purchases + Redeem Code (expo-iap), free tier = 10 items

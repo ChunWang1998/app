@@ -16,8 +16,10 @@ const DAY = 864e5;
 describe('quick last-done dates', () => {
   const now = new Date(2026, 9, 14, 15, 20);
   it('maps chips to dates; unknown means no record', () => {
-    expect(QUICK_DATES).toEqual(['today', 'week', 'month', 'unknown']);
+    expect(QUICK_DATES).toEqual(['today', 'yesterday', 'week', 'month', 'unknown']);
     expect(new Date(quickDateIso('today', now)).getDate()).toBe(14);
+    expect(new Date(quickDateIso('yesterday', now)).getDate()).toBe(13);
+    expect(new Date(quickDateIso('yesterday', now)).getHours()).toBe(15);
     expect(new Date(quickDateIso('week', now)).getDate()).toBe(7);
     const m = new Date(quickDateIso('month', now));
     expect([m.getMonth(), m.getDate()]).toEqual([8, 14]);
@@ -25,6 +27,7 @@ describe('quick last-done dates', () => {
   });
   it('recognises chip values and custom dates', () => {
     expect(quickDateFor(null, now)).toBe('unknown');
+    expect(quickDateFor(quickDateIso('yesterday', now), now)).toBe('yesterday');
     expect(quickDateFor(quickDateIso('week', now), now)).toBe('week');
     expect(quickDateFor(new Date(2026, 7, 30).toISOString(), now)).toBeNull();
   });
@@ -46,8 +49,9 @@ describe('reminder suggestion from name', () => {
     expect(suggestReminderDays('')).toBeNull();
   });
   it('shows a custom chip only for non-preset intervals', () => {
-    expect(reminderOptions(14).map((o) => o.d)).toEqual([null, 7, 14, 30, 90, 'more']);
-    expect(reminderOptions(42).map((o) => o.d)).toEqual([null, 7, 14, 30, 90, 42, 'more']);
+    expect(reminderOptions(14).map((o) => o.d)).toEqual([null, 1, 7, 14, 30, 90, 'more']);
+    expect(reminderOptions(1).map((o) => o.d)).toEqual([null, 1, 7, 14, 30, 90, 'more']);
+    expect(reminderOptions(42).map((o) => o.d)).toEqual([null, 1, 7, 14, 30, 90, 42, 'more']);
   });
   it('add screen saves the interval directly', () => {
     const src = read('../src/screens/EditScreen.js');

@@ -1,5 +1,13 @@
 import { getLocale, resolveLocale, t, tLocale } from '../i18n';
-import { hasReminder, firstDueInstant, reminderConfigFromActivity, lastAnchor } from './reminderSchedule';
+import {
+  hasReminder,
+  firstDueInstant,
+  reminderConfigFromActivity,
+  lastAnchor,
+  MODE_WEEK,
+  MODE_MONTH,
+  UNIT_DAY,
+} from './reminderSchedule';
 
 function unitLabel(key, locale) {
   return locale ? tLocale(locale, key) : t(key);
@@ -83,16 +91,24 @@ export function formatLastDoneDate(ts, locale) {
   return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}`;
 }
 
+/**
+ * Local calendar days from `from` to `to` (local midnights).
+ * Same DST-safe rule as 「N 天前」 / "N days ago": round absorbs 23h/25h days.
+ */
+export function localCalendarDays(from, to) {
+  const a = new Date(from);
+  const b = new Date(to);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return 0;
+  const startA = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+  const startB = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  return Math.round((startB - startA) / DAY);
+}
+
 export function formatLastDoneRelative(ts, now = Date.now(), locale) {
   if (!ts) return '';
   const t0 = new Date(ts).getTime();
   if (Number.isNaN(t0)) return '';
-  const a = new Date(t0);
-  const b = new Date(now);
-  const startA = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
-  const startB = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
-  // Calendar days between local midnights; round absorbs DST 23h/25h days.
-  const days = Math.max(0, Math.round((startB - startA) / DAY));
+  const days = Math.max(0, localCalendarDays(t0, now));
   const loc = locale || getLocale();
   if (days <= 0) return tLocale(loc, 'common.today');
   if (days === 1) return tLocale(loc, 'common.yesterday');
@@ -145,4 +161,64 @@ export function elapsedMs(item, now = Date.now()) {
   const t = new Date(item.lastDoneAt).getTime();
   if (Number.isNaN(t)) return null;
   return Math.max(0, now - t);
+}
+
+/**
+ * Detail-screen unit precision from the item's reminder.
+ *
+ * fine — hours and minutes are allowed:
+ *   interval mode + day unit + n === 1 (daily), or any interval shorter than one day.
+ * coarse — calendar days, then weeks / months / years (no hours/minutes):
+ *   no reminder; weekly / monthly modes; interval ≥ 1 week
+ *   (2–6 day intervals stay coarse: still a calendar-day cadence).
+ *
+ * Coarse counts local midnights via localCalendarDays, same as "N days ago".
+ */
+export function detailSpanPrecision(item) {
+  const cfg = reminderConfigFromActivity(item);
+  if (!cfg.enabled) return 'coarse';
+  if (cfg.mode === MODE_WEEK || cfg.mode === MODE_MONTH) return 'coarse';
+  if (cfg.unit !== UNIT_DAY) return 'coarse';
+  if (cfg.n <= 1) return 'fine';
+  return 'coarse';
+}
+
+function formatCoarseDayParts(days, n = 2, locale) {
+  const u = (key) => unitLabel(key, locale);
+  const d = Math.max(0, Math.floor(Number(days) || 0));
+  if (d < 1) return [{ n: 0, unit: u('time.day') }];
+  let parts;
+  if (d >= 365) {
+    const y = Math.floor(d / 365);
+    const rem = d % 365;
+    parts = [{ n: y, unit: u('time.year') }, ...(rem ? [{ n: rem, unit: u('time.day') }] : [])];
+  } else if (d >= 30) {
+    const mo = Math.floor(d / 30);
+    const dd = d % 30;
+    parts = [{ n: mo, unit: u('time.month') }, ...(dd ? [{ n: dd, unit: u('time.day') }] : [])];
+  } else if (d >= 7) {
+    const w = Math.floor(d / 7);
+    const dd = d % 7;
+    parts = [{ n: w, unit: u('time.week') }, ...(dd ? [{ n: dd, unit: u('time.day') }] : [])];
+  } else {
+    parts = [{ n: d, unit: u('time.day') }];
+  }
+  return parts.slice(0, n);
+}
+
+function joinSpanParts(parts) {
+  return parts.map((p) => `${p.n}\u2009${p.unit}`).join('');
+}
+
+/** Format a span on the detail screen using the item's reminder precision. */
+export function formatDetailSpanParts(item, fromTs, toTs, n = 2, locale) {
+  if (detailSpanPrecision(item) === 'fine') {
+    const ms = Math.abs(new Date(toTs).getTime() - new Date(fromTs).getTime());
+    return formatSpanParts(ms, n, locale);
+  }
+  return formatCoarseDayParts(Math.abs(localCalendarDays(fromTs, toTs)), n, locale);
+}
+
+export function formatDetailSpan(item, fromTs, toTs, locale) {
+  return joinSpanParts(formatDetailSpanParts(item, fromTs, toTs, 2, locale));
 }

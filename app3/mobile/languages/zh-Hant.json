@@ -52,7 +52,7 @@
     "overdueSuffix": "件逾期",
     "empty": "還沒有要記的事",
     "add": "+ 新增",
-    "logged": "已記錄",
+    "logged": "已記下今天",
     "deleted": "已刪除",
     "neverLogged": "還沒記錄",
     "overdue": "逾期",
@@ -169,7 +169,9 @@
     "minute": "分鐘",
     "hour": "小時",
     "day": "天",
+    "week": "週",
     "month": "個月",
+    "year": "年",
     "lastDoneLine": "{relative} · 上次做是 {date}"
   },
   "reminder": {

@@ -6,6 +6,7 @@ import { INTERVAL_DAY_CHIPS } from '../lib/reminderSchedule';
 
 const BASE = [
   { d: null, key: 'detail.noReminder' },
+  { d: 1, key: 'reminder.daily' },
   { d: 7, key: 'reminder.weekly' },
   { d: 14, key: 'reminder.twoWeeks' },
   { d: 30, key: 'reminder.monthly' },
@@ -14,7 +15,7 @@ const BASE = [
 ];
 
 export function reminderOptions(value) {
-  const custom = (typeof value === 'number' && value > 0 && !INTERVAL_DAY_CHIPS.includes(value) && value !== 7 && value !== 14 && value !== 30 && value !== 90);
+  const custom = (typeof value === 'number' && value > 0 && !INTERVAL_DAY_CHIPS.includes(value));
   const more = BASE[BASE.length - 1];
   const head = BASE.slice(0, -1);
   if (custom) return [...head, { d: value, key: 'detail.everyDays', n: value }, more];

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +14,7 @@ import {
 import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { Mascot } from '../components/Mascot';
+import { UndoToast } from '../components/UndoToast';
 import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort } from '../lib/time';
 import { monogramLetter } from '../lib/suggestIcon';
@@ -37,7 +38,6 @@ export default function HomeScreen() {
   // Category filter. Adding an item never switches it (stays on All).
   const [filter, setFilter] = useState('all');
   const [toast, setToast] = useState(null);
-  const toastTimer = useRef(null);
 
   const data = useMemo(() => {
     const mapped = [...activities].map((a) => {
@@ -61,13 +61,16 @@ export default function HomeScreen() {
   const mood = overdueCount > 0 ? 'worry' : homeMood(data);
 
   function showToast(next) {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(next);
-    toastTimer.current = setTimeout(() => setToast(null), 5000);
+    setToast({ ...next, id: Date.now() });
   }
 
   async function handleCheck(a) {
     const result = await logActivityNow(a.id);
+    if (result.skipped) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      showToast({ text: t('home.logged') });
+      return;
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     showToast({
       text: t('home.logged'),
@@ -198,23 +201,15 @@ export default function HomeScreen() {
           />
         )}
       </View>
-      {!!toast && (
-        <View style={[styles.toast, { backgroundColor: c.cell, borderColor: c.sep, bottom: 24 + insets.bottom }]}>
-          <Mascot size={38} mood="happy" />
-          <Text style={{ fontFamily: 'BeenAgesRounded-SemiBold', color: c.label, fontSize: 15 }}>{toast.text}</Text>
-          {toast.undo ? (
-            <TouchableOpacity
-              onPress={async () => {
-                const ok = await toast.undo();
-                if (ok !== false) setToast(null);
-              }}
-              hitSlop={8}
-            >
-              <Text style={{ color: c.brand, fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 15 }}>{t('common.undo')}</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      )}
+      {toast ? (
+        <UndoToast
+          key={toast.id}
+          text={toast.text}
+          undo={toast.undo}
+          onDone={() => setToast(null)}
+          bottom={24 + insets.bottom}
+        />
+      ) : null}
     </View>
   );
 }
@@ -373,16 +368,4 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   ctaText: { fontSize: 18, fontFamily: 'BeenAgesRounded-SemiBold' },
-  toast: {
-    position: 'absolute',
-    alignSelf: 'center',
-    borderRadius: 24,
-    paddingLeft: 10,
-    paddingRight: 8,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1.5,
-  },
 });

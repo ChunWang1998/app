@@ -52,7 +52,7 @@
     "overdueSuffix": "overdue",
     "empty": "Nothing to track yet",
     "add": "+ Add",
-    "logged": "Logged",
+    "logged": "Logged today",
     "deleted": "Deleted",
     "neverLogged": "Not yet",
     "overdue": "Overdue",
@@ -169,7 +169,9 @@
     "minute": "min",
     "hour": "h",
     "day": "d",
+    "week": "w",
     "month": "mo",
+    "year": "y",
     "lastDoneLine": "{relative} · Last done {date}"
   },
   "reminder": {

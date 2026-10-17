@@ -75,7 +75,9 @@ jest.mock('expo-notifications', () => ({
 
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(async () => {}),
+  impactAsync: jest.fn(async () => {}),
   NotificationFeedbackType: { Success: 'success' },
+  ImpactFeedbackStyle: { Light: 'light' },
 }));
 
 jest.mock('expo-calendar', () => ({

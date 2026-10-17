@@ -55,7 +55,7 @@
     "overdueSuffix": "期限切れ",
     "empty": "まだ記録がありません",
     "add": "+ 追加",
-    "logged": "記録しました",
+    "logged": "今日記録済み",
     "deleted": "削除しました",
     "neverLogged": "未記録",
     "overdue": "期限切れ",
@@ -172,7 +172,9 @@
     "minute": "分",
     "hour": "時間",
     "day": "日",
+    "week": "週",
     "month": "か月",
+    "year": "年",
     "lastDoneLine": "{relative} · 前回 {date}"
   },
   "reminder": {

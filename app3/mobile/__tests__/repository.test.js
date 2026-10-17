@@ -88,6 +88,39 @@ describe('repository', () => {
     expect(row.notes).toBe('');
   });
 
+  it('skips a second check-off on the same local calendar day', async () => {
+    await resetRepositoryForTests();
+    const last = new Date(2026, 9, 14, 8, 0, 0).toISOString();
+    const a = await addActivity({ title: 'Once', lastDoneAt: last });
+    const noon = new Date(2026, 9, 14, 12, 0, 0).toISOString();
+    const first = await logActivityNow(a.id, noon);
+    expect(first.skipped).toBe(true);
+    expect(getVisibleActivities()[0].history).toHaveLength(1);
+    expect(getVisibleActivities()[0].lastDoneAt).toBe(last);
+
+    const nextDay = new Date(2026, 9, 15, 0, 10, 0).toISOString();
+    const second = await logActivityNow(a.id, nextDay);
+    expect(second.skipped).toBe(false);
+    expect(getVisibleActivities()[0].history).toHaveLength(2);
+    expect(getVisibleActivities()[0].lastDoneAt).toBe(nextDay);
+
+    const laterSameDay = new Date(2026, 9, 15, 18, 0, 0).toISOString();
+    const third = await logActivityNow(a.id, laterSameDay);
+    expect(third.skipped).toBe(true);
+    expect(getVisibleActivities()[0].history).toHaveLength(2);
+    expect(getVisibleActivities()[0].lastDoneAt).toBe(nextDay);
+  });
+
+  it('still appends two check-offs when they fall on different local days across midnight', async () => {
+    await resetRepositoryForTests();
+    const late = new Date(2026, 9, 13, 23, 30, 0).toISOString();
+    const a = await addActivity({ title: 'Midnight', lastDoneAt: late });
+    const early = new Date(2026, 9, 14, 0, 10, 0).toISOString();
+    const r = await logActivityNow(a.id, early);
+    expect(r.skipped).toBe(false);
+    expect(getVisibleActivities()[0].history).toHaveLength(2);
+  });
+
   it('persists icon including mono', async () => {
     await resetRepositoryForTests();
     const a = await addActivity({ title: '濾心', icon: 'drop' });

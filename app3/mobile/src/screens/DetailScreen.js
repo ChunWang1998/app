@@ -2,14 +2,15 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useActivities, logActivityNow, backfillHistory } from '../data/repository';
+import { useActivities, logActivityNow, undoLogActivity, backfillHistory } from '../data/repository';
 import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
 import { ChevronLeftIcon, CheckIcon, BellIcon, PlusIcon, ChevronRightIcon, ShareIcon, CalendarIcon } from '../components/Icons';
 import { addNextDueToCalendar, openSystemSettings } from '../lib/calendar';
-import { formatDate, formatTime, formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneLine } from '../lib/time';
+import { formatDate, formatTime, dueInMs, progressRatio, elapsedMs, formatLastDoneLine, formatDetailSpan, formatDetailSpanParts } from '../lib/time';
 import { historyStats } from '../lib/historyStats';
 import { DateChips } from '../components/DateChips';
+import { UndoToast } from '../components/UndoToast';
 import { dueStatus } from '../lib/today';
 import * as Haptics from 'expo-haptics';
 import { getLocale, t } from '../i18n';
@@ -24,6 +25,7 @@ export default function DetailScreen() {
   const { activities } = useActivities();
   const item = useMemo(() => activities.find((a) => a.id === params?.id), [activities, params]);
   const [backfillAt, setBackfillAt] = useState(null);
+  const [toast, setToast] = useState(null);
 
   if (!item) {
     return (
@@ -46,15 +48,30 @@ export default function DetailScreen() {
   const lastWhen = item.lastDoneAt
     ? `${formatLastDoneLine(item.lastDoneAt, Date.now(), getLocale())}${preciseTime ? ` ${formatTime(item.lastDoneAt)}` : ''}`
     : '';
-  const parts = elapsed == null ? null : formatSpanParts(elapsed, preciseTime ? 2 : 1);
+  const now = Date.now();
+  const parts = item.lastDoneAt
+    ? formatDetailSpanParts(item, item.lastDoneAt, now, preciseTime ? 2 : 1)
+    : null;
   const mood = just ? 'happy' : od ? 'worry' : 'idle';
   const hist = item.history || [];
   const stats = historyStats(hist);
   const remLabel = formatReminderLabel(item);
 
   async function logNow() {
-    await logActivityNow(item.id);
+    const result = await logActivityNow(item.id);
+    if (result.skipped) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      setToast({ id: Date.now(), text: t('home.logged') });
+      return;
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    setToast({
+      id: Date.now(),
+      text: t('home.logged'),
+      undo: async () => {
+        await undoLogActivity(item.id, result.previousLastDoneAt, result.previousHistory);
+      },
+    });
   }
 
   function addBackfill() {
@@ -100,7 +117,7 @@ export default function DetailScreen() {
               <View style={styles.whenRow}>
                 {lastWhen ? <Text style={[styles.when, { color: c.l2 }]}>{lastWhen}</Text> : null}
                 {od ? (
-                  <Text style={[styles.od, { color: c.red }]}>{t('home.overdue')} {formatSpan(-due)}</Text>
+                  <Text style={[styles.od, { color: c.red }]}>{t('home.overdue')} {formatDetailSpan(item, now + due, now)}</Text>
                 ) : null}
               </View>
             ) : null}
@@ -208,7 +225,7 @@ export default function DetailScreen() {
                 {preciseTime ? <Text style={[styles.histT, { color: c.l2 }]}>{formatTime(e.at)}</Text> : null}
                 {gap != null ? (
                   <Text style={[styles.histG, { color: c.l2 }]}>
-                    +{formatSpan(gap).replace(/\u2009/g, '')}
+                    +{formatDetailSpan(item, next.at, e.at).replace(/\u2009/g, '')}
                   </Text>
                 ) : null}
               </View>
@@ -227,6 +244,15 @@ export default function DetailScreen() {
           </>
         ) : null}
       </ScrollView>
+      {toast ? (
+        <UndoToast
+          key={toast.id}
+          text={toast.text}
+          undo={toast.undo}
+          onDone={() => setToast(null)}
+          bottom={24 + insets.bottom}
+        />
+      ) : null}
       <Modal visible={!!backfillAt} transparent animationType="fade" onRequestClose={() => setBackfillAt(null)}>
         <View style={styles.sheetWrap}>
           <View style={[styles.sheet, { backgroundColor: c.cell }]}>

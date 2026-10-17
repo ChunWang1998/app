@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.beenages.app",
-      "buildNumber": "7",
+      "buildNumber": "8",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.beenages.app"
