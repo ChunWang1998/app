@@ -2,7 +2,7 @@
   "expo": {
     "name": "Been Ages",
     "slug": "been-ages",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "beenages",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.beenages.app",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "entitlements": {
         "com.apple.security.application-groups": [
           "group.com.beenages.app"
