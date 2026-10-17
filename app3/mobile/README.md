@@ -9,7 +9,7 @@ v1.1:
 - Local reminders with expo-notifications (one per item, iOS 64 cap, snooze)
 - Share cards: line-art, 9:16 and 4:5; one free style, more Pro. System share sheet only
 - Add to Calendar: write-only next-due all-day event, 9:00 alert, no recurrence
-- Auto icon on create from a local keyword table; unmatched names get a monogram. Manual picker choice is never overwritten
+- Item icon comes from its category (default brush if none); custom categories still pick an icon in the category editor
 
 Security review notes
 - Pro entitlement storage is local-only (AsyncStorage) and unverified. On app launch, re-verify past purchases via expo-iap to re-grant entitlement if needed.

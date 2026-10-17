@@ -31,6 +31,15 @@ export const FREE_HISTORY_LIMIT = parseFreeLimit(
   DEFAULT_FREE_HISTORY_LIMIT,
 );
 
+/** One writer at a time so Pro/same-day/count checks see the latest item. */
+let writeTail = Promise.resolve();
+
+function enqueueWrite(fn) {
+  const run = writeTail.then(() => fn());
+  writeTail = run.then(() => undefined, () => undefined);
+  return run;
+}
+
 function notify() {
   for (const l of listeners) l(state);
 }
@@ -41,10 +50,15 @@ function freeLimitError(limit = FREE_ACTIVITY_LIMIT) {
   return err;
 }
 
-/** New unique history row is blocked for free users at FREE_HISTORY_LIMIT. Existing rows are never dropped. */
-async function assertCanWriteHistory(item, atIso) {
+function historyOf(item) {
+  return normalizeHistory(item?.history, item?.lastDoneAt);
+}
+
+/** After the Pro check, re-read state so a queued write cannot use a stale count. Existing rows are never dropped. */
+async function assertCanWriteHistory(id, atIso) {
   if (await isProUnlocked()) return;
-  const current = normalizeHistory(item?.history, item?.lastDoneAt);
+  const item = state.activities.find((a) => a.id === id);
+  const current = historyOf(item);
   const next = normalizeHistory([{ at: atIso }, ...current]);
   if (next.length <= current.length) return;
   if (current.length >= FREE_HISTORY_LIMIT) throw freeLimitError(FREE_HISTORY_LIMIT);
@@ -154,26 +168,45 @@ export async function addActivity(input) {
 }
 
 export async function updateActivity(id, changes) {
-  const ts = nowIso();
-  const next = state.activities.map((a) => {
-    if (a.id !== id) return a;
-    const { icon: _ignored, ...rest } = changes || {};
-    const merged = { ...a, ...rest, updatedAt: ts };
-    if (changes.history || changes.lastDoneAt !== undefined) {
-      const history = normalizeHistory(merged.history, merged.lastDoneAt);
-      merged.history = history;
-      merged.lastDoneAt = lastDoneFromHistory(history);
+  return enqueueWrite(async () => {
+    if (changes.history !== undefined || changes.lastDoneAt !== undefined) {
+      const latest = state.activities.find((a) => a.id === id);
+      const prev = historyOf(latest);
+      const nextHist = normalizeHistory(
+        changes.history !== undefined ? changes.history : latest?.history,
+        changes.lastDoneAt !== undefined ? changes.lastDoneAt : latest?.lastDoneAt,
+      );
+      if (nextHist.length > prev.length && !(await isProUnlocked())) {
+        const again = state.activities.find((a) => a.id === id);
+        const prev2 = historyOf(again);
+        const next2 = normalizeHistory(
+          changes.history !== undefined ? changes.history : again?.history,
+          changes.lastDoneAt !== undefined ? changes.lastDoneAt : again?.lastDoneAt,
+        );
+        if (next2.length > prev2.length && next2.length > FREE_HISTORY_LIMIT) {
+          throw freeLimitError(FREE_HISTORY_LIMIT);
+        }
+      }
     }
-    merged.icon = iconForItem(merged, state.categories);
-    return merged;
+    const ts = nowIso();
+    const next = state.activities.map((a) => {
+      if (a.id !== id) return a;
+      const { icon: _ignored, ...rest } = changes || {};
+      const merged = { ...a, ...rest, updatedAt: ts };
+      if (changes.history || changes.lastDoneAt !== undefined) {
+        const history = normalizeHistory(merged.history, merged.lastDoneAt);
+        merged.history = history;
+        merged.lastDoneAt = lastDoneFromHistory(history);
+      }
+      merged.icon = iconForItem(merged, state.categories);
+      return merged;
+    });
+    await persist({ ...state, activities: next });
   });
-  await persist({ ...state, activities: next });
 }
 
-export async function logActivityAt(id, atIso) {
-  const ts = atIso || nowIso();
-  const item = state.activities.find((a) => a.id === id);
-  if (item) await assertCanWriteHistory(item, ts);
+async function logActivityAtUnlocked(id, ts) {
+  await assertCanWriteHistory(id, ts);
   let previousLastDoneAt = null;
   let previousHistory = [];
   const next = state.activities.map((a) => {
@@ -187,71 +220,86 @@ export async function logActivityAt(id, atIso) {
   return { previousLastDoneAt, previousHistory, loggedAt: ts };
 }
 
+export async function logActivityAt(id, atIso) {
+  return enqueueWrite(() => logActivityAtUnlocked(id, atIso || nowIso()));
+}
+
 /**
  * Check-off "now". Same local calendar day as lastDoneAt → no new history row.
  * Home / detail use this; backfill still goes through logActivityAt.
  */
 export async function logActivityNow(id, atIso) {
-  const ts = atIso || nowIso();
-  const item = state.activities.find((a) => a.id === id);
-  if (item && doneToday(item, new Date(ts).getTime())) {
-    return {
-      skipped: true,
-      previousLastDoneAt: item.lastDoneAt ?? null,
-      previousHistory: Array.isArray(item.history) ? item.history : [],
-      loggedAt: item.lastDoneAt,
-    };
-  }
-  return { skipped: false, ...(await logActivityAt(id, ts)) };
+  return enqueueWrite(async () => {
+    const ts = atIso || nowIso();
+    const item = state.activities.find((a) => a.id === id);
+    if (item && doneToday(item, new Date(ts).getTime())) {
+      return {
+        skipped: true,
+        previousLastDoneAt: item.lastDoneAt ?? null,
+        previousHistory: Array.isArray(item.history) ? item.history : [],
+        loggedAt: item.lastDoneAt,
+      };
+    }
+    return { skipped: false, ...(await logActivityAtUnlocked(id, ts)) };
+  });
 }
 
 export async function undoLogActivity(id, previousLastDoneAt, previousHistory) {
-  const ts = nowIso();
-  const next = state.activities.map((a) => {
-    if (a.id !== id) return a;
-    const history = Array.isArray(previousHistory)
-      ? normalizeHistory(previousHistory)
-      : normalizeHistory(a.history?.slice(1), previousLastDoneAt);
-    return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: ts };
+  return enqueueWrite(async () => {
+    const ts = nowIso();
+    const next = state.activities.map((a) => {
+      if (a.id !== id) return a;
+      const history = Array.isArray(previousHistory)
+        ? normalizeHistory(previousHistory)
+        : normalizeHistory(a.history?.slice(1), previousLastDoneAt);
+      return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: ts };
+    });
+    await persist({ ...state, activities: next });
   });
-  await persist({ ...state, activities: next });
 }
 
 export async function backfillHistory(id, atIso) {
-  const at = new Date(atIso).toISOString();
-  const item = state.activities.find((a) => a.id === id);
-  if (item) await assertCanWriteHistory(item, at);
-  const ts = nowIso();
-  const next = state.activities.map((a) => {
-    if (a.id !== id) return a;
-    const history = normalizeHistory([{ at }, ...(a.history || [])]);
-    return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: ts };
+  return enqueueWrite(async () => {
+    const at = new Date(atIso).toISOString();
+    await assertCanWriteHistory(id, at);
+    const ts = nowIso();
+    const next = state.activities.map((a) => {
+      if (a.id !== id) return a;
+      const history = normalizeHistory([{ at }, ...(a.history || [])]);
+      return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: ts };
+    });
+    await persist({ ...state, activities: next });
   });
-  await persist({ ...state, activities: next });
 }
 
-/** Hide from the list for the 5s undo window. Call hardDeleteActivity when the window ends. */
+/** Hide from the list for the 2s undo toast. Call hardDeleteActivity when the window ends. */
 export async function softDeleteActivity(id) {
-  const ts = nowIso();
-  const next = state.activities.map(a => (a.id === id ? { ...a, deletedAt: ts, updatedAt: ts } : a));
-  await persist({ ...state, activities: next });
+  return enqueueWrite(async () => {
+    const ts = nowIso();
+    const next = state.activities.map((a) => (a.id === id ? { ...a, deletedAt: ts, updatedAt: ts } : a));
+    await persist({ ...state, activities: next });
+  });
 }
 
 export async function hardDeleteActivity(id) {
-  const next = state.activities.filter((a) => a.id !== id);
-  await persist({ ...state, activities: next });
+  return enqueueWrite(async () => {
+    const next = state.activities.filter((a) => a.id !== id);
+    await persist({ ...state, activities: next });
+  });
 }
 
 export async function undoDelete(id) {
-  const target = state.activities.find((a) => a.id === id);
-  if (!target || !target.deletedAt) return;
-  const pro = await isProUnlocked();
-  if (!pro && visibleCount() >= FREE_ACTIVITY_LIMIT) {
-    throw freeLimitError();
-  }
-  const ts = nowIso();
-  const next = state.activities.map(a => (a.id === id ? { ...a, deletedAt: null, updatedAt: ts } : a));
-  await persist({ ...state, activities: next });
+  return enqueueWrite(async () => {
+    const target = state.activities.find((a) => a.id === id);
+    if (!target || !target.deletedAt) return;
+    const pro = await isProUnlocked();
+    if (!pro && visibleCount() >= FREE_ACTIVITY_LIMIT) {
+      throw freeLimitError();
+    }
+    const ts = nowIso();
+    const next = state.activities.map((a) => (a.id === id ? { ...a, deletedAt: null, updatedAt: ts } : a));
+    await persist({ ...state, activities: next });
+  });
 }
 
 

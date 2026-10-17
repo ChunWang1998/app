@@ -159,10 +159,11 @@ describe('free history limit per item', () => {
 
   it('never truncates an item that already has more than 10 records', async () => {
     await resetRepositoryForTests();
-    jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(false);
+    const pro = jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(true);
     const a = await addActivity({ title: 'Legacy' });
     const history = Array.from({ length: 15 }, (_, i) => ({ at: histDay(i + 1) }));
     await updateActivity(a.id, { history });
+    pro.mockResolvedValue(false);
     expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(15);
     await expect(logActivityAt(a.id, histDay(20))).rejects.toHaveProperty('code', 'FREE_LIMIT');
     expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(15);
@@ -205,5 +206,50 @@ describe('free history limit per item', () => {
     const skipped = await logActivityNow(a.id, noon);
     expect(skipped.skipped).toBe(true);
     expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(10);
+  });
+
+  it('serializes a double tap so only one record is written', async () => {
+    await resetRepositoryForTests();
+    jest.spyOn(ent, 'isProUnlocked').mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve(false), 15)),
+    );
+    const a = await addActivity({ title: 'Double' });
+    const t1 = new Date(2026, 9, 14, 12, 0, 0).toISOString();
+    const t2 = new Date(2026, 9, 14, 12, 0, 1).toISOString();
+    const [first, second] = await Promise.all([
+      logActivityNow(a.id, t1),
+      logActivityNow(a.id, t2),
+    ]);
+    expect([first.skipped, second.skipped].filter(Boolean)).toHaveLength(1);
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(1);
+  });
+
+  it('caps concurrent writes that start at 9 records at 10 for free users', async () => {
+    await resetRepositoryForTests();
+    const pro = jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(false);
+    const a = await itemWithHistory(9, 'Race');
+    pro.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve(false), 15)),
+    );
+    const results = await Promise.allSettled([
+      backfillHistory(a.id, histDay(20)),
+      backfillHistory(a.id, histDay(21)),
+      logActivityAt(a.id, histDay(22)),
+    ]);
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(10);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((r) => r.status === 'rejected').every((r) => r.reason?.code === 'FREE_LIMIT')).toBe(true);
+  });
+
+  it('blocks updateActivity from growing unique history past the free cap without dropping rows', async () => {
+    await resetRepositoryForTests();
+    jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(false);
+    const a = await itemWithHistory(10, 'Patch');
+    const kept = getVisibleActivities().find((x) => x.id === a.id).history;
+    await expect(updateActivity(a.id, { history: [...kept, { at: histDay(30) }] })).rejects.toHaveProperty('code', 'FREE_LIMIT');
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(10);
+    const shrunk = kept.slice(1);
+    await updateActivity(a.id, { history: shrunk });
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(9);
   });
 });

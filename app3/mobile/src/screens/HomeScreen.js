@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useNavigation } from '@react-navigation/native';
@@ -38,6 +38,7 @@ export default function HomeScreen() {
   // Category filter. Adding an item never switches it (stays on All).
   const [filter, setFilter] = useState('all');
   const [toast, setToast] = useState(null);
+  const loggingIds = useRef(new Set());
 
   const data = useMemo(() => {
     const mapped = [...activities].map((a) => {
@@ -65,6 +66,8 @@ export default function HomeScreen() {
   }
 
   async function handleCheck(a) {
+    if (loggingIds.current.has(a.id)) return;
+    loggingIds.current.add(a.id);
     let result;
     try {
       result = await logActivityNow(a.id);
@@ -74,6 +77,8 @@ export default function HomeScreen() {
         return;
       }
       throw e;
+    } finally {
+      loggingIds.current.delete(a.id);
     }
     if (result.skipped) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});

@@ -102,6 +102,7 @@ describe('free limit and paywall', () => {
     expect(en.paywall.history).toBe('Unlimited logs per item');
     expect(zh.paywall.history).toBe('每項紀錄無上限');
     expect(ja.paywall.history).toBe('項目ごとの記録は無制限');
+    expect(ja.paywall.historySub).toBe('無料は1項目{n}件まで');
     for (const l of [en, zh, ja]) expect(l.paywall.historySub).toMatch(/\{n\}/);
     expect(read('../src/screens/PaywallScreen.js')).toMatch(/paywall\.history/);
     expect(read('../src/screens/PaywallScreen.js')).toMatch(/FREE_HISTORY_LIMIT/);

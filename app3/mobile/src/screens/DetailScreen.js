@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +26,7 @@ export default function DetailScreen() {
   const item = useMemo(() => activities.find((a) => a.id === params?.id), [activities, params]);
   const [backfillAt, setBackfillAt] = useState(null);
   const [toast, setToast] = useState(null);
+  const loggingRef = useRef(false);
 
   if (!item) {
     return (
@@ -58,6 +59,8 @@ export default function DetailScreen() {
   const remLabel = formatReminderLabel(item);
 
   async function logNow() {
+    if (loggingRef.current) return;
+    loggingRef.current = true;
     let result;
     try {
       result = await logActivityNow(item.id);
@@ -67,6 +70,8 @@ export default function DetailScreen() {
         return;
       }
       throw e;
+    } finally {
+      loggingRef.current = false;
     }
     if (result.skipped) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
