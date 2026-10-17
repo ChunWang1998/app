@@ -57,9 +57,11 @@ export function AiVoiceView({ onCancel, onDone }) {
     <View style={[styles.root, { backgroundColor: c.bg, paddingTop: insets.top }]} testID="ai-voice">
       <View style={styles.stage}>
         <View style={styles.orb}>
-          <View style={[styles.ring, { backgroundColor: c.tint }]} />
-          <View style={[styles.ring, styles.r2, { backgroundColor: c.band }]} />
-          <Mascot size={112} mood="listen" />
+          <View pointerEvents="none" style={[styles.ring, { backgroundColor: c.tint }]} />
+          <View pointerEvents="none" style={[styles.ring, styles.r2, { backgroundColor: c.band }]} />
+          <View style={styles.mascot}>
+            <Mascot size={112} mood="listen" />
+          </View>
         </View>
         <View style={styles.wave}>
           {amps.map((v, i) => (
@@ -91,6 +93,7 @@ const styles = StyleSheet.create({
   orb: { width: 220, height: 220, alignItems: 'center', justifyContent: 'center' },
   ring: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 110 },
   r2: { top: 22, left: 22, right: 22, bottom: 22, borderRadius: 88 },
+  mascot: { zIndex: 1, elevation: 1 },
   wave: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 44 },
   bar: { width: 5, borderRadius: 3 },
   vtx: { fontSize: 22, fontFamily: 'BeenAgesRounded-SemiBold', minHeight: 34, textAlign: 'center', paddingHorizontal: 30, lineHeight: 32 },

@@ -3,7 +3,7 @@ import { parseRules } from '../src/lib/ai/ruleParser';
 import { parseIntent } from '../src/lib/ai/parseIntent';
 import { __setNativeForTests } from '../src/lib/ai/foundationModels';
 import { fuzzyMatchItem } from '../src/lib/ai/matchItem';
-import { draftFromCreate, itemsDueThisWeek } from '../src/lib/ai/apply';
+import { draftFromCreate, itemsDueThisWeek, sinceCopy, formatNextShort } from '../src/lib/ai/apply';
 import { seedCategories } from '../src/lib/categories';
 import {
   resetRepositoryForTests,
@@ -220,6 +220,22 @@ describe('foundation models fallback', () => {
     const r = await parseIntent('just washed the car', { locale: 'en', now: NOW });
     expect(r.source).toBe('rules');
     expect(r.type).toBe('log');
+  });
+});
+
+describe('since copy stays short', () => {
+  it('uses today when the next due is overdue', () => {
+    setLocale('zh-Hant');
+    const item = {
+      title: '洗床單',
+      lastDoneAt: new Date(2026, 9, 8, 15, 0, 0).toISOString(),
+      reminderDays: 7,
+    };
+    const text = sinceCopy(item, NOW.getTime(), 'zh-Hant');
+    expect(text).toMatch(/天/);
+    expect(text).toMatch(/今天/);
+    expect(text).not.toMatch(/逾期/);
+    expect(formatNextShort(item, NOW.getTime(), 'zh-Hant').text).toBe('今天');
   });
 });
 

@@ -37,14 +37,28 @@ export function formatNextShort(item, now = Date.now(), locale) {
   if (!due) return { text: '—', red: false, rel: Infinity };
   const ms = due.getTime() - now;
   const ds = dueStatus(ms, now);
-  if (ds === 'overdue') {
-    return { text: `${t('home.overdue')}\u2009${formatSpan(-ms, locale)}`, red: true, rel: ms };
+  // Cards match the prototype: overdue and due-today both read as “today”.
+  if (ds === 'overdue' || ds === 'today') {
+    return { text: t('common.today'), red: true, rel: ms };
   }
-  if (ds === 'today') return { text: t('common.today'), red: true, rel: ms };
-  const loc = locale || getLocale();
   const wd = t(`reminder.wdName${due.getDay()}`);
   const date = `${due.getMonth() + 1}/${due.getDate()}`;
   return { text: t('ai.nextDate', { date, wd }), red: false, rel: ms };
+}
+
+/** Week list keeps overdue remaining, like Home. */
+export function formatWeekDue(item, now = Date.now(), locale) {
+  const due = firstDueInstant(item, reminderConfigFromActivity(item), now);
+  if (!due) return { text: '—', red: false };
+  const ms = due.getTime() - now;
+  const ds = dueStatus(ms, now);
+  if (ds === 'overdue') {
+    return { text: `${t('home.overdue')}\u2009${formatSpan(-ms, locale)}`, red: true };
+  }
+  if (ds === 'today') return { text: t('common.today'), red: true };
+  const wd = t(`reminder.wdName${due.getDay()}`);
+  const date = `${due.getMonth() + 1}/${due.getDate()}`;
+  return { text: t('ai.nextDate', { date, wd }), red: false };
 }
 
 export function formatLastDoneChip(iso, now = Date.now()) {
@@ -90,7 +104,13 @@ export function sinceCopy(item, now = Date.now(), locale) {
   const elapsed = elapsedMs(item, now);
   if (elapsed == null) return t('home.neverLogged');
   const span = formatSpan(elapsed, locale);
-  const next = formatNextShort(item, now, locale);
-  if (!hasReminder(item) || next.rel === Infinity) return t('ai.sinceOnly', { span });
-  return t('ai.sinceNext', { span, next: next.text });
+  if (!hasReminder(item)) return t('ai.sinceOnly', { span });
+  const due = firstDueInstant(item, reminderConfigFromActivity(item), now);
+  if (!due) return t('ai.sinceOnly', { span });
+  const ms = due.getTime() - now;
+  const ds = dueStatus(ms, now);
+  const next = (ds === 'overdue' || ds === 'today')
+    ? t('common.today')
+    : `${due.getMonth() + 1}/${due.getDate()}`;
+  return t('ai.sinceNext', { span, next });
 }

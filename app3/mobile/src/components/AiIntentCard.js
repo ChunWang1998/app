@@ -6,7 +6,7 @@ import { CategoryGlyph } from './CategoryGlyph';
 import { CheckIcon } from './Icons';
 import { OTHER_ID, OTHER_ICON, categoryName } from '../lib/categories';
 import { monogramLetter } from '../lib/suggestIcon';
-import { formatLastDoneChip, formatNextShort, reminderLabelForDraft } from '../lib/ai/apply';
+import { formatLastDoneChip, formatNextShort, formatWeekDue, reminderLabelForDraft } from '../lib/ai/apply';
 import { t } from '../i18n';
 
 export function AiIntentCard({
@@ -103,7 +103,7 @@ export function AiIntentCard({
 function MiniRow({ item, now, first }) {
   const c = useThemeColors();
   const tone = useItemTone(item.icon, item.title);
-  const next = formatNextShort(item, now);
+  const next = formatWeekDue(item, now);
   return (
     <View style={styles.mrow}>
       {!first ? <View style={[styles.mdiv, { borderTopColor: c.sep }]} /> : null}
