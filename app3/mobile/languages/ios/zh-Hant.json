@@ -7,5 +7,5 @@
   "NSRemindersUsageDescription": "「好久沒了」不使用「提醒事項」App，提醒是本機通知。",
   "NSRemindersFullAccessUsageDescription": "「好久沒了」不使用「提醒事項」App，提醒是本機通知。",
   "NSMicrophoneUsageDescription": "用麥克風在這支 iPhone 上語音輸入。辨識在裝置上完成。",
-  "NSSpeechRecognitionUsageDescription": "把你說的話在這支 iPhone 上轉成文字，用來新增或查項目。語音不會送到「好久沒了」的伺服器。"
+  "NSSpeechRecognitionUsageDescription": "把你說的話在這支 iPhone 上轉成文字，用來新增或查項目。語音留在裝置上，不會送到網路上。"
 }

@@ -5,7 +5,7 @@ import { useThemeColors } from '../theme/useTheme';
 import { Mascot } from './Mascot';
 import { CloseXIcon, CheckIcon } from './Icons';
 import { getLocale, t } from '../i18n';
-import { startSpeech, requestSpeechPermission, isSpeechAvailable } from '../lib/ai/speech';
+import { startSpeech, requestSpeechPermission, isSpeechAvailable, supportsOnDeviceSpeech } from '../lib/ai/speech';
 
 const BARS = 21;
 
@@ -20,7 +20,7 @@ export function AiVoiceView({ onCancel, onDone }) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      if (!isSpeechAvailable()) {
+      if (!supportsOnDeviceSpeech() || !isSpeechAvailable()) {
         setErr(t('ai.speechUnavailable'));
         return;
       }

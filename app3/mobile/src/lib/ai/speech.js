@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { resolveLocale } from '../../i18n';
+import { getLocale, resolveLocale } from '../../i18n';
 
 const LANG = { en: 'en-US', 'zh-Hant': 'zh-TW', ja: 'ja-JP' };
 
@@ -11,11 +11,45 @@ function loadModule() {
   }
 }
 
+function loadFoundation() {
+  try {
+    return require('apple-foundation-models');
+  } catch {
+    return null;
+  }
+}
+
+let onDeviceOverride;
+
+/** Test hook: boolean, `(locale) => boolean`, or `undefined` to use native. */
+export function __setOnDeviceSpeechForTests(value) {
+  onDeviceOverride = value;
+}
+
 export function speechLocale(locale) {
   return LANG[resolveLocale(locale)] || 'en-US';
 }
 
-export function isSpeechAvailable() {
+/**
+ * On-device only. Uses the same app/system language mapping as recognition
+ * (`zh-Hant`→`zh-TW`, `ja`→`ja-JP`, `en`→`en-US`). Never falls back to servers.
+ */
+export function supportsOnDeviceSpeech(locale) {
+  const tag = locale || getLocale();
+  if (onDeviceOverride !== undefined) {
+    return typeof onDeviceOverride === 'function' ? !!onDeviceOverride(tag) : !!onDeviceOverride;
+  }
+  const native = loadFoundation();
+  if (typeof native?.supportsOnDeviceSpeech !== 'function') return false;
+  try {
+    return !!native.supportsOnDeviceSpeech(tag);
+  } catch {
+    return false;
+  }
+}
+
+export function isSpeechAvailable(locale) {
+  if (!supportsOnDeviceSpeech(locale)) return false;
   const mod = loadModule();
   if (!mod) return false;
   try {
@@ -26,15 +60,8 @@ export function isSpeechAvailable() {
   }
 }
 
-/** Prefer on-device recognition; never send audio to Been Ages servers. */
-export function prefersOnDevice() {
-  const mod = loadModule();
-  if (!mod) return false;
-  try {
-    return typeof mod.supportsOnDeviceRecognition === 'function' && !!mod.supportsOnDeviceRecognition();
-  } catch {
-    return false;
-  }
+export function prefersOnDevice(locale) {
+  return supportsOnDeviceSpeech(locale);
 }
 
 export async function requestSpeechPermission() {
@@ -52,8 +79,8 @@ export async function requestSpeechPermission() {
 }
 
 /**
- * Start recognition. `onResult(text, isFinal)`, `onError(err)`.
- * Returns a stop function.
+ * Start on-device recognition only. `onResult(text, isFinal)`, `onError(err)`.
+ * Returns a stop function. Never starts if the locale lacks on-device support.
  */
 export function startSpeech({ locale, onResult, onError, onEnd }) {
   const mod = loadModule();
@@ -61,6 +88,11 @@ export function startSpeech({ locale, onResult, onError, onEnd }) {
     onError?.({ reason: 'unavailable' });
     return () => {};
   }
+  if (!supportsOnDeviceSpeech(locale)) {
+    onError?.({ reason: 'on-device-unavailable' });
+    return () => {};
+  }
+
   const listeners = [];
   const add = (name, fn) => {
     try {
@@ -78,12 +110,11 @@ export function startSpeech({ locale, onResult, onError, onEnd }) {
   add('error', (ev) => onError?.(ev));
   add('end', () => onEnd?.());
 
-  const onDevice = prefersOnDevice();
   mod.start({
     lang: speechLocale(locale),
     interimResults: true,
     continuous: Platform.OS === 'ios',
-    requiresOnDeviceRecognition: onDevice,
+    requiresOnDeviceRecognition: true,
     addsPunctuation: false,
   });
 

@@ -290,6 +290,7 @@
     "a11ySend": "Send",
     "a11yNew": "New chat",
     "speechDenied": "Microphone is off",
-    "speechUnavailable": "On-device speech isn't available"
+    "speechUnavailable": "On-device speech isn't available",
+    "micOffHint": "On-device only"
   }
 }

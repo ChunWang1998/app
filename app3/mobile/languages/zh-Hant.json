@@ -290,6 +290,7 @@
     "a11ySend": "送出",
     "a11yNew": "新對話",
     "speechDenied": "麥克風未開",
-    "speechUnavailable": "這台不能離線辨識"
+    "speechUnavailable": "這台不能離線辨識",
+    "micOffHint": "不能離線"
   }
 }

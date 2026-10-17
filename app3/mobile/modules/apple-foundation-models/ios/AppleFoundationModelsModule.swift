@@ -1,4 +1,5 @@
 import ExpoModulesCore
+import Speech
 
 #if canImport(FoundationModels)
 import FoundationModels
@@ -29,6 +30,14 @@ public class AppleFoundationModelsModule: Module {
       }
       #endif
       return ["ok": false, "reason": "unavailable"]
+    }
+
+    Function("supportsOnDeviceSpeech") { (locale: String) -> Bool in
+      let tag = Self.mappedLocale(locale)
+      guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: tag)) else {
+        return false
+      }
+      return recognizer.isAvailable && recognizer.supportsOnDeviceRecognition
     }
   }
 

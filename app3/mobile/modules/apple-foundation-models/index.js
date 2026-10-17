@@ -22,4 +22,14 @@ export async function parseIntent(text, locale) {
   return native.parseIntent(text, locale);
 }
 
+/** True only when SFSpeechRecognizer exists, isAvailable, and supports on-device for this locale. */
+export function supportsOnDeviceSpeech(locale) {
+  if (!native?.supportsOnDeviceSpeech) return false;
+  try {
+    return !!native.supportsOnDeviceSpeech(String(locale || 'en'));
+  } catch {
+    return false;
+  }
+}
+
 export default native;

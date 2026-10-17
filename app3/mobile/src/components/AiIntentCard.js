@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useThemeColors, useItemTone } from '../theme/useTheme';
 import { ItemGlyph } from './ItemGlyph';
@@ -24,6 +24,8 @@ export function AiIntentCard({
     : (categories || []).find((x) => x.id === item.categoryId);
   const next = formatNextShort(item, now);
   const last = formatLastDoneChip(item.lastDoneAt, now);
+  const addLock = useRef(false);
+  if (state !== 'new') addLock.current = false;
 
   let foot = null;
   if (state === 'new') {
@@ -32,7 +34,16 @@ export function AiIntentCard({
         <TouchableOpacity testID="ai-edit" onPress={onEdit} style={[styles.btn, { backgroundColor: c.fill }]}>
           <Text style={[styles.btnT, { color: c.label }]}>{t('ai.edit')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity testID="ai-add" onPress={onAdd} style={[styles.btn, { backgroundColor: c.brand }]}>
+        <TouchableOpacity
+          testID="ai-add"
+          disabled={addLock.current}
+          onPress={() => {
+            if (addLock.current) return;
+            addLock.current = true;
+            onAdd?.();
+          }}
+          style={[styles.btn, { backgroundColor: c.brand }]}
+        >
           <Text style={[styles.btnT, { color: c.onbrand }]}>{t('ai.add')}</Text>
         </TouchableOpacity>
       </View>
@@ -49,9 +60,11 @@ export function AiIntentCard({
       <View style={styles.added}>
         <CheckIcon color={c.brand} size={15} />
         <Text style={{ color: c.brand, fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 15 }}>{t('ai.logged')}</Text>
-        <TouchableOpacity testID="ai-undo" onPress={onUndo} style={{ marginLeft: 'auto', paddingHorizontal: 8 }}>
-          <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', fontSize: 15 }}>{t('common.undo')}</Text>
-        </TouchableOpacity>
+        {onUndo ? (
+          <TouchableOpacity testID="ai-undo" onPress={onUndo} style={{ marginLeft: 'auto', paddingHorizontal: 8 }}>
+            <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', fontSize: 15 }}>{t('common.undo')}</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     );
   } else if (state === 'undone') {

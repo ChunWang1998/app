@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useActivities, addActivity, logActivityNow, undoLogActivity, FREE_ACTIVITY_LIMIT } from '../data/repository';
+import { useActivities, addActivity, logActivityNow, undoLogAt, FREE_ACTIVITY_LIMIT } from '../data/repository';
 import { useThemeColors, useTheme } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
 import { ChevronLeftIcon, PencilIcon } from '../components/Icons';
@@ -16,6 +16,8 @@ import { parseIntent } from '../lib/ai/parseIntent';
 import {
   draftFromCreate, itemsDueThisWeek, resolveItem, sinceCopy,
 } from '../lib/ai/apply';
+import { supportsOnDeviceSpeech } from '../lib/ai/speech';
+import { TOAST_MS } from '../components/UndoToast';
 import { OTHER_ID } from '../lib/categories';
 import { isProUnlocked } from '../lib/entitlements';
 import { getLocale, t } from '../i18n';
@@ -40,16 +42,20 @@ export default function AiChatScreen() {
   const { activities, categories } = useActivities();
   const [text, setText] = useState('');
   const [msgs, setMsgs] = useState([]);
-  const [voice, setVoice] = useState(!!params?.voice);
+  const [voice, setVoice] = useState(!!params?.voice && supportsOnDeviceSpeech());
   const [sheet, setSheet] = useState(null);
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef(null);
-  const fromHomeVoice = useRef(!!params?.voice);
+  const fromHomeVoice = useRef(!!params?.voice && supportsOnDeviceSpeech());
+  const addingIds = useRef(new Set());
+  const undoTimers = useRef([]);
 
   useEffect(() => {
     const tmr = setTimeout(() => scrollRef.current?.scrollToEnd?.({ animated: true }), 50);
     return () => clearTimeout(tmr);
   }, [msgs]);
+
+  useEffect(() => () => undoTimers.current.forEach(clearTimeout), []);
 
   function patchMsg(id, patch) {
     setMsgs((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
@@ -99,6 +105,8 @@ export default function AiChatScreen() {
         undo: result,
         mood: 'happy',
       });
+      const tmr = setTimeout(() => patchMsg(replyId, { undo: null }), TOAST_MS);
+      undoTimers.current.push(tmr);
       return;
     }
     if (intent.type === 'query_since') {
@@ -153,13 +161,17 @@ export default function AiChatScreen() {
 
   async function onAdd(msg) {
     const draft = msg.item;
-    if (!draft) return;
-    const pro = await isProUnlocked();
-    if (!pro && activities.length >= FREE_ACTIVITY_LIMIT) {
-      nav.navigate('Paywall', { reason: 'items' });
-      return;
-    }
+    if (!draft || msg.state === 'added' || addingIds.current.has(msg.id)) return;
+    addingIds.current.add(msg.id);
+    patchMsg(msg.id, { state: 'added' });
     try {
+      const pro = await isProUnlocked();
+      if (!pro && activities.length >= FREE_ACTIVITY_LIMIT) {
+        addingIds.current.delete(msg.id);
+        patchMsg(msg.id, { state: 'new' });
+        nav.navigate('Paywall', { reason: 'items' });
+        return;
+      }
       await addActivity({
         title: draft.title,
         lastDoneAt: draft.lastDoneAt,
@@ -176,16 +188,21 @@ export default function AiChatScreen() {
         } catch { /* web / denied */ }
       }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      patchMsg(msg.id, { state: 'added' });
     } catch (e) {
+      addingIds.current.delete(msg.id);
+      patchMsg(msg.id, { state: 'new' });
       if (e?.code === 'FREE_LIMIT') nav.navigate('Paywall', { reason: e.kind || 'items' });
     }
   }
 
   async function onUndo(msg) {
-    if (!msg.undo || !msg.item?.id) return;
-    await undoLogActivity(msg.item.id, msg.undo.previousLastDoneAt, msg.undo.previousHistory);
-    patchMsg(msg.id, { state: 'undone', item: { ...msg.item, lastDoneAt: msg.undo.previousLastDoneAt } });
+    if (!msg.undo?.loggedAt || !msg.item?.id) return;
+    await undoLogAt(msg.item.id, msg.undo.loggedAt);
+    patchMsg(msg.id, {
+      state: 'undone',
+      undo: null,
+      item: { ...msg.item, lastDoneAt: msg.undo.previousLastDoneAt },
+    });
   }
 
   function onVoiceDone(spoken) {
@@ -251,7 +268,7 @@ export default function AiChatScreen() {
                             state={m.state}
                             onAdd={() => onAdd(m)}
                             onEdit={() => setSheet(m.id)}
-                            onUndo={() => onUndo(m)}
+                            onUndo={m.undo ? () => onUndo(m) : undefined}
                           />
                         ) : null}
                       </>
@@ -289,7 +306,7 @@ export default function AiChatScreen() {
             value={text}
             onChangeText={setText}
             onSend={() => send()}
-            onMic={() => setVoice(true)}
+            onMic={() => { if (supportsOnDeviceSpeech()) setVoice(true); }}
             autoFocus={!params?.voice}
           />
         </View>

@@ -327,9 +327,15 @@ describe('ai source contracts', () => {
     expect(swift).not.toMatch(/PrivateCloudComputeLanguageModel/);
   });
 
-  it('speech prefers on-device recognition', () => {
+  it('speech requires on-device recognition and never starts without it', () => {
     const src = read('../src/lib/ai/speech.js');
-    expect(src).toMatch(/requiresOnDeviceRecognition/);
-    expect(src).toMatch(/supportsOnDeviceRecognition/);
+    expect(src).toMatch(/requiresOnDeviceRecognition:\s*true/);
+    expect(src).toMatch(/supportsOnDeviceSpeech/);
+    expect(src).not.toMatch(/requiresOnDeviceRecognition:\s*onDevice/);
+    const swift = read('../modules/apple-foundation-models/ios/AppleFoundationModelsModule.swift');
+    expect(swift).toMatch(/import Speech/);
+    expect(swift).toMatch(/supportsOnDeviceSpeech/);
+    expect(swift).toMatch(/supportsOnDeviceRecognition/);
+    expect(swift).toMatch(/isAvailable/);
   });
 });

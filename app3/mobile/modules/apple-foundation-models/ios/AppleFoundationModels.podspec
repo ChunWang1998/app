@@ -14,6 +14,7 @@ Pod::Spec.new do |s|
   s.source         = { :git => '' }
   s.static_framework = true
   s.dependency 'ExpoModulesCore'
+  s.frameworks = 'Speech'
   s.weak_frameworks = 'FoundationModels'
   s.source_files = '*.{h,m,mm,swift}'
   s.pod_target_xcconfig = {

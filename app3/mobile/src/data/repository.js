@@ -262,6 +262,21 @@ export async function undoLogActivity(id, previousLastDoneAt, previousHistory) {
   });
 }
 
+/** Remove only the history row this check-off added, leaving later backfills. */
+export async function undoLogAt(id, loggedAt) {
+  return enqueueWrite(async () => {
+    const at = loggedAt ? String(loggedAt) : '';
+    if (!at) return;
+    const ts = nowIso();
+    const next = state.activities.map((a) => {
+      if (a.id !== id) return a;
+      const history = normalizeHistory((a.history || []).filter((e) => e.at !== at));
+      return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: ts };
+    });
+    await persist({ ...state, activities: next });
+  });
+}
+
 export async function backfillHistory(id, atIso) {
   return enqueueWrite(async () => {
     const at = new Date(atIso).toISOString();

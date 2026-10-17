@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'r
 import { useThemeColors } from '../theme/useTheme';
 import { MicIcon, SendUpIcon } from './Icons';
 import { t } from '../i18n';
+import { supportsOnDeviceSpeech } from '../lib/ai/speech';
 
 export function AiComposer({
   value,
@@ -16,6 +17,7 @@ export function AiComposer({
 }) {
   const c = useThemeColors();
   const has = String(value || '').length > 0;
+  const onDevice = supportsOnDeviceSpeech();
   return (
     <View style={[styles.cmp, { backgroundColor: c.cell, borderColor: c.sep }]} testID="ai-composer">
       {editable ? (
@@ -47,7 +49,7 @@ export function AiComposer({
         >
           <SendUpIcon color={c.onbrand} />
         </TouchableOpacity>
-      ) : (
+      ) : onDevice ? (
         <TouchableOpacity
           testID="ai-mic"
           onPress={onMic}
@@ -56,6 +58,14 @@ export function AiComposer({
         >
           <MicIcon color={c.l2} />
         </TouchableOpacity>
+      ) : (
+        <Text
+          testID="ai-mic-off"
+          style={[styles.hint, { color: c.l3 }]}
+          accessibilityLabel={t('ai.micOffHint')}
+        >
+          {t('ai.micOffHint')}
+        </Text>
       )}
     </View>
   );
@@ -94,5 +104,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  hint: {
+    fontSize: 11,
+    lineHeight: 13,
+    fontFamily: 'BeenAgesRounded-Regular',
+    width: 52,
+    textAlign: 'center',
+    paddingVertical: 6,
+    paddingRight: 4,
   },
 });
