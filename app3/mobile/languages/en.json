@@ -52,7 +52,7 @@
     "overdueSuffix": "overdue",
     "empty": "Nothing to track yet",
     "add": "+ Add",
-    "logged": "Logged",
+    "logged": "Logged today",
     "deleted": "Deleted",
     "neverLogged": "Not yet",
     "overdue": "Overdue",
@@ -106,7 +106,6 @@
     "pro": "Pro",
     "restore": "Restore purchases",
     "redeem": "Redeem Code",
-    "widgets": "Widgets",
     "data": "Data",
     "recentlyDeleted": "Recently deleted",
     "display": "Display",
@@ -124,24 +123,13 @@
     "headline": "More than {n} items",
     "unlimited": "Unlimited items",
     "unlimitedSub": "Free plan: {n}",
-    "widgets": "Home screen widgets",
-    "widgetsSub": "Lock Screen too",
+    "history": "Unlimited logs per item",
+    "historySub": "Free plan: {n}",
     "share": "Extra share styles",
     "shareSub": "Cream is free",
     "priceFail": "Could not load price",
     "once": "One-time purchase. No subscription.",
     "buy": "Buy"
-  },
-  "widget": {
-    "upgrade": "Upgrade to use",
-    "undo": "Undo",
-    "empty": "No items",
-    "logged": "Logged",
-    "title": "Widgets",
-    "hint": "Blank widgets show the most due item.",
-    "small": "Small",
-    "medium": "Medium (up to 3)",
-    "mostDue": "Most due"
   },
   "share": {
     "title": "Share card",
@@ -169,7 +157,9 @@
     "minute": "min",
     "hour": "h",
     "day": "d",
+    "week": "w",
     "month": "mo",
+    "year": "y",
     "lastDoneLine": "{relative} · Last done {date}"
   },
   "reminder": {

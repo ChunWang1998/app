@@ -6,7 +6,7 @@ import { useThemeColors, useTheme } from '../theme/useTheme';
 import { restoreProUnlock, canPresentRedeemCode, presentRedeemCodeSheet } from '../lib/iap';
 import { isProUnlocked, subscribePro } from '../lib/entitlements';
 import { getRecentlyDeleted, getCategories, subscribe, refreshReminders } from '../data/repository';
-import { ChevronLeftIcon, CheckIcon, RestoreIcon, LockIcon, GridIcon, PaintIcon, ClockIcon, BellIcon } from '../components/Icons';
+import { ChevronLeftIcon, CheckIcon, RestoreIcon, LockIcon, PaintIcon, ClockIcon, BellIcon } from '../components/Icons';
 import { SettingsRow, SettingsSwitch } from '../components/SettingsRow';
 import { t } from '../i18n';
 
@@ -79,7 +79,7 @@ export default function SettingsScreen() {
             onPress={() => nav.navigate('Paywall')}
             chev
           />
-          <View style={[styles.restoreRow, styles.line, { borderBottomColor: c.sep }]}>
+          <View style={styles.restoreRow}>
             <TouchableOpacity onPress={restore} style={styles.restoreMain} activeOpacity={0.6} accessibilityLabel={t('settings.restore')}>
               <Sq bg="#8E8E93"><RestoreIcon color="#fff" size={15} /></Sq>
               <Text style={[styles.restoreTitle, { color: c.label }]}>{t('settings.restore')}</Text>
@@ -94,13 +94,6 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             ) : null}
           </View>
-          <SettingsRow
-            icon={<Sq bg="#5DBB7A"><GridIcon color="#fff" size={15} /></Sq>}
-            title={t('settings.widgets')}
-            onPress={() => nav.navigate('WidgetPicker')}
-            chev
-            last
-          />
         </View>
 
         <Text style={[styles.sec, { color: c.label }]}>{t('settings.data')}</Text>
@@ -207,6 +200,5 @@ const styles = StyleSheet.create({
   },
   restoreMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46 },
   restoreTitle: { fontSize: 17, fontFamily: 'BeenAgesRounded-Regular', flex: 1 },
-  line: { borderBottomWidth: StyleSheet.hairlineWidth },
   sq: { width: 29, height: 29, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
 });

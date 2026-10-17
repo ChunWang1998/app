@@ -1,4 +1,17 @@
-import { formatSpan, formatSpanParts, dueInMs, elapsedMs, progressRatio, formatLastDoneDate, formatLastDoneRelative, formatLastDoneLine } from '../src/lib/time';
+import {
+  formatSpan,
+  formatSpanParts,
+  dueInMs,
+  elapsedMs,
+  progressRatio,
+  formatLastDoneDate,
+  formatLastDoneRelative,
+  formatLastDoneLine,
+  localCalendarDays,
+  detailSpanPrecision,
+  formatDetailSpan,
+  formatDetailSpanParts,
+} from '../src/lib/time';
 import { setLocale } from '../src/i18n';
 
 describe('time helpers', () => {
@@ -73,5 +86,63 @@ describe('last-done copy', () => {
     expect(formatLastDoneRelative(sameDay, new Date(2026, 9, 14, 23, 59).getTime(), 'en')).toBe(tLocale('en', 'common.today'));
     const late = new Date(2026, 9, 11, 23, 30, 0).toISOString();
     expect(formatLastDoneRelative(late, new Date(2026, 9, 14, 0, 10).getTime(), 'zh-Hant')).toBe('3 天前');
+  });
+});
+
+describe('detail screen units follow the reminder', () => {
+  const at = (y, mo, d, h = 12, mi = 0) => new Date(y, mo, d, h, mi);
+
+  it('daily (or sub-day) allows hours and minutes; others stay on calendar days', () => {
+    expect(detailSpanPrecision({ reminderDays: 1 })).toBe('fine');
+    expect(detailSpanPrecision({ reminderMode: 'interval', reminderUnit: 'd', reminderN: 1 })).toBe('fine');
+    expect(detailSpanPrecision({ reminderDays: 3 })).toBe('coarse');
+    expect(detailSpanPrecision({ reminderDays: 7 })).toBe('coarse');
+    expect(detailSpanPrecision({ reminderDays: null })).toBe('coarse');
+    expect(detailSpanPrecision({ reminderMode: 'week', reminderWeekdays: [1] })).toBe('coarse');
+    expect(detailSpanPrecision({ reminderMode: 'month', reminderMonthDay: 15 })).toBe('coarse');
+    expect(detailSpanPrecision({ reminderMode: 'interval', reminderUnit: 'w', reminderN: 1 })).toBe('coarse');
+    expect(detailSpanPrecision({ reminderMode: 'interval', reminderUnit: 'm', reminderN: 1 })).toBe('coarse');
+    expect(detailSpanPrecision({ reminderMode: 'interval', reminderUnit: 'y', reminderN: 1 })).toBe('coarse');
+  });
+
+  it('coarse uses local midnights, matching N days ago — not wall-clock hours', () => {
+    const from = at(2026, 9, 13, 23, 0);
+    const to = at(2026, 9, 14, 9, 0);
+    expect(localCalendarDays(from, to)).toBe(1);
+    const weekly = { reminderDays: 7, lastDoneAt: from.toISOString() };
+    expect(formatDetailSpan(weekly, from, to, 'zh-Hant')).toBe('1\u2009天');
+    expect(formatDetailSpanParts(weekly, from, to, 2, 'en')[0]).toEqual({ n: 1, unit: 'd' });
+    const none = { reminderDays: null, lastDoneAt: from.toISOString() };
+    expect(formatDetailSpan(none, from, to, 'en')).toBe('1\u2009d');
+    const sameDay = { reminderDays: null, lastDoneAt: at(2026, 9, 14, 0, 30).toISOString() };
+    expect(formatDetailSpan(sameDay, at(2026, 9, 14, 0, 30), at(2026, 9, 14, 23, 0), 'en')).toBe('0\u2009d');
+  });
+
+  it('daily still shows hours across the same calendar day', () => {
+    const from = at(2026, 9, 14, 8, 0);
+    const to = at(2026, 9, 14, 18, 30);
+    const daily = { reminderDays: 1, lastDoneAt: from.toISOString() };
+    const parts = formatDetailSpanParts(daily, from, to, 2, 'en');
+    expect(parts[0]).toEqual({ n: 10, unit: 'h' });
+    expect(parts[1]).toEqual({ n: 30, unit: 'm' });
+  });
+
+  it('coarse groups leftover calendar days into weeks / months / years', () => {
+    const from = at(2026, 9, 1, 9);
+    const weekly = { reminderDays: 7 };
+    expect(formatDetailSpanParts(weekly, from, at(2026, 9, 11, 9), 2, 'en')).toEqual([
+      { n: 1, unit: 'w' },
+      { n: 3, unit: 'd' },
+    ]);
+    const monthly = { reminderDays: 30 };
+    expect(formatDetailSpanParts(monthly, from, at(2026, 10, 15, 9), 2, 'en')).toEqual([
+      { n: 1, unit: 'mo' },
+      { n: 15, unit: 'd' },
+    ]);
+    const yearly = { reminderMode: 'interval', reminderUnit: 'y', reminderN: 1 };
+    expect(formatDetailSpanParts(yearly, from, at(2027, 9, 11, 9), 2, 'en')).toEqual([
+      { n: 1, unit: 'y' },
+      { n: 10, unit: 'd' },
+    ]);
   });
 });

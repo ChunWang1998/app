@@ -3,9 +3,9 @@ const path = require('path');
 const { withEntitlementsPlist, withBaseMod, withFinalizedMod } = require('expo/config-plugins');
 
 /**
- * expo-notifications and expo-widgets add aps-environment (remote push).
+ * expo-notifications adds aps-environment (remote push).
  * Been Ages only schedules local notifications, so strip that entitlement
- * from the main app and every widget / extension target.
+ * from the main app and any leftover extension targets.
  *
  * withEntitlementsPlist actions run before later plugins in the same chain,
  * so also wrap the entitlements mod and delete again after nextMod, then

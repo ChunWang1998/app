@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { migrateActivity } from './models';
 
-// Pluggable storage adapter, App Group-ready in the future.
+// Pluggable storage adapter.
 export class KeyValueStorage {
   /**
    * @param {{ namespace?: string }} options

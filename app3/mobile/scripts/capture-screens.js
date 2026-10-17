@@ -37,7 +37,6 @@ async function shot(page, name, url) {
   await shot(page, 'v11-edit-zh', '/?demo=1&screen=Edit&lang=zh-Hant&mode=light');
   await shot(page, 'v11-detail-zh', '/?demo=1&screen=Detail&lang=zh-Hant&mode=light');
   await shot(page, 'v11-settings-zh', '/?demo=1&screen=Settings&lang=zh-Hant&mode=light');
-  await shot(page, 'v11-widgets-zh', '/?demo=1&screen=WidgetPicker&lang=zh-Hant&mode=light');
   await shot(page, 'v11-paywall-zh', '/?demo=1&screen=Paywall&lang=zh-Hant&mode=light');
 
   await shot(page, 'v11-add-auto-icon-zh', '/?demo=1&screen=EditNew&lang=zh-Hant&mode=light');

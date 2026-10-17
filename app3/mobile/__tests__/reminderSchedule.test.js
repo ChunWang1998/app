@@ -21,7 +21,6 @@ import { dueInMs } from '../src/lib/time';
 import { dueStatus, isDueToday } from '../src/lib/today';
 import { nextDueDate } from '../src/lib/calendar';
 import { nextTriggerDate } from '../src/notifications/reminders';
-import { dueClassOf } from '../src/widgets/pick';
 import { setLocale } from '../src/i18n';
 
 function at(y, mo, d, h = 12, min = 0) {
@@ -212,7 +211,7 @@ describe('interval months and years keep the same calendar day', () => {
 });
 
 describe('interval-day next time uses reminderTime everywhere', () => {
-  it('preview, notification, widget and calendar agree on 90 days at 09:00', () => {
+  it('preview, notification and calendar agree on 90 days at 09:00', () => {
     const last = at(2026, 9, 14, 23, 28);
     const now = at(2026, 9, 14, 23, 40).getTime();
     const a = item({
@@ -239,7 +238,6 @@ describe('interval-day next time uses reminderTime everywhere', () => {
     expect(nextFireDate(a, now).getHours()).toBe(9);
 
     expect(dueInMs(a, now)).toBe(due.getTime() - now);
-    expect(dueClassOf(a, now)).not.toBe('od');
 
     const cal = nextDueDate(a, new Date(now));
     expect(cal.getFullYear()).toBe(2027);
@@ -284,7 +282,7 @@ describe('snooze cap', () => {
   });
 });
 
-describe('due-status parity across app, widget and calendar', () => {
+describe('due-status parity across app and calendar', () => {
   const now = at(2026, 9, 14, 12).getTime();
 
   it('interval days fire at reminderTime, not last + N×864e5', () => {
@@ -304,13 +302,12 @@ describe('due-status parity across app, widget and calendar', () => {
     expect(due.getTime()).not.toBe(last.getTime() + 3 * 864e5);
     expect(dueStatus(dueInMs(a, now), now)).toBe('overdue');
     expect(nextTriggerDate(a, now).getHours()).toBe(9);
-    expect(dueClassOf(a, now)).toBe('od');
     const cal = nextDueDate(a, new Date(now));
     expect(cal.getDate()).toBe(12);
     expect(cal.getHours()).toBe(0);
   });
 
-  it('weekly due today / overdue / upcoming agree with the widget class', () => {
+  it('weekly due today / overdue / upcoming agree with the app status', () => {
     const dueFri = item({
       reminderMode: MODE_WEEK,
       reminderWeekdays: [5],
@@ -319,7 +316,6 @@ describe('due-status parity across app, widget and calendar', () => {
     const due = firstDueInstant(dueFri, reminderConfigFromActivity(dueFri), now);
     expect(due.getDate()).toBe(16);
     expect(dueStatus(dueInMs(dueFri, now), now)).toBe('upcoming');
-    expect(dueClassOf(dueFri, now)).not.toBe('od');
 
     const missedMon = item({
       reminderMode: MODE_WEEK,
@@ -327,7 +323,6 @@ describe('due-status parity across app, widget and calendar', () => {
       lastDoneAt: at(2026, 9, 5, 10).toISOString(),
     });
     expect(dueStatus(dueInMs(missedMon, now), now)).toBe('overdue');
-    expect(dueClassOf(missedMon, now)).toBe('od');
     expect(isDueToday(missedMon, now)).toBe(true);
     const cal = nextDueDate(missedMon, new Date(now));
     expect(cal.getDay()).toBe(1);

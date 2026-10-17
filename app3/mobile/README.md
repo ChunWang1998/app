@@ -1,7 +1,7 @@
 # Been Ages (app3/mobile)
 
 v1.1:
-- List / add / edit / log / swipe-delete with a 5s undo, then Recently Deleted (30 days)
+- List / add / edit / log / swipe-delete with a 2s undo toast, then Recently Deleted (30 days)
 - History, notes, reminder editor (on/off, interval, time, snooze)
 - Dark mode via Settings → Display (auto / light / dark) and exact time
 - IAP unlock + Restore Purchases + Redeem Code (expo-iap), free tier = 10 items
@@ -9,8 +9,7 @@ v1.1:
 - Local reminders with expo-notifications (one per item, iOS 64 cap, snooze)
 - Share cards: line-art, 9:16 and 4:5; one free style, more Pro. System share sheet only
 - Add to Calendar: write-only next-due all-day event, 9:00 alert, no recurrence
-- Widgets: App Group `group.com.beenages.app`, home small/medium and lock circular/rectangular, Pro-gated
-- Auto icon on create from a local keyword table; unmatched names get a monogram. Manual picker choice is never overwritten
+- Item icon comes from its category (default brush if none); custom categories still pick an icon in the category editor
 
 Security review notes
 - Pro entitlement storage is local-only (AsyncStorage) and unverified. On app launch, re-verify past purchases via expo-iap to re-grant entitlement if needed.
