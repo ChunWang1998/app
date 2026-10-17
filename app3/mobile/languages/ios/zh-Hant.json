@@ -5,5 +5,7 @@
   "NSCalendarsFullAccessUsageDescription": "只有在你點「加到行事曆」時，才把項目下次該做的日子加到行事曆，不會讀取你的行程。",
   "NSCalendarsWriteOnlyAccessUsageDescription": "把項目的下次該做日子加到行事曆。",
   "NSRemindersUsageDescription": "「好久沒了」不使用「提醒事項」App，提醒是本機通知。",
-  "NSRemindersFullAccessUsageDescription": "「好久沒了」不使用「提醒事項」App，提醒是本機通知。"
+  "NSRemindersFullAccessUsageDescription": "「好久沒了」不使用「提醒事項」App，提醒是本機通知。",
+  "NSMicrophoneUsageDescription": "用麥克風在這支 iPhone 上語音輸入。辨識在裝置上完成。",
+  "NSSpeechRecognitionUsageDescription": "把你說的話在這支 iPhone 上轉成文字，用來新增或查項目。語音不會送到「好久沒了」的伺服器。"
 }

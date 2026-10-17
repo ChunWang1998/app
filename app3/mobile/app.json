@@ -30,7 +30,9 @@
         "NSCalendarsFullAccessUsageDescription": "Been Ages only adds an item's next due date to your calendar when you tap Add to Calendar. It never reads your events.",
         "NSCalendarsWriteOnlyAccessUsageDescription": "Adds an item's next due date to your calendar.",
         "NSRemindersUsageDescription": "Been Ages does not use the Reminders app. Its reminders are local notifications.",
-        "NSRemindersFullAccessUsageDescription": "Been Ages does not use the Reminders app. Its reminders are local notifications."
+        "NSRemindersFullAccessUsageDescription": "Been Ages does not use the Reminders app. Its reminders are local notifications.",
+        "NSMicrophoneUsageDescription": "Been Ages uses the microphone for on-device voice input.",
+        "NSSpeechRecognitionUsageDescription": "Been Ages transcribes your voice on this iPhone to add or look up items. Speech stays on the device and is not sent to Been Ages."
       },
       "runtimeVersion": {
         "policy": "sdkVersion"
@@ -41,6 +43,13 @@
       "permissions": []
     },
     "plugins": [
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Been Ages uses the microphone for on-device voice input.",
+          "speechRecognitionPermission": "Been Ages transcribes your voice on this iPhone to add or look up items. Speech stays on the device and is not sent to Been Ages."
+        }
+      ],
       [
         "expo-localization",
         {

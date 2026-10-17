@@ -237,7 +237,8 @@
     "vitamin": "Take vitamin D",
     "sheets": "Wash sheets",
     "plant": "Water the plants",
-    "hair": "Get a haircut"
+    "hair": "Get a haircut",
+    "car": "Wash the car"
   },
   "date": {
     "weekAgo": "1 week ago",
@@ -265,5 +266,38 @@
       "health": "Health",
       "appl": "Appliances"
     }
+  },
+  "ai": {
+    "placeholder": "Log it, or ask",
+    "title": "Little Clock",
+    "add": "Add",
+    "edit": "Edit",
+    "added": "Added",
+    "logged": "Logged",
+    "undone": "Undone",
+    "createIntro": "Got it:",
+    "logIntro": "Logged {name}.",
+    "sinceOnly": "{span}.",
+    "sinceNext": "{span}. Next {next}.",
+    "weekIntro": "{n} this week:",
+    "weekEmpty": "Nothing this week",
+    "notFound": "Not on the list",
+    "unknown": "Try another wording",
+    "last": "Last",
+    "next": "Next",
+    "nextDate": "{date} ({wd})",
+    "suggestCreateTitle": "Change filter every 2 weeks",
+    "suggestCreateHint": "Last time yesterday",
+    "suggestSinceTitle": "How long since I washed the sheets?",
+    "suggestSinceHint": "Look up",
+    "suggestWeekTitle": "What's due this week?",
+    "suggestWeekHint": "Plan",
+    "suggestLogTitle": "Just washed the car",
+    "suggestLogHint": "Log it",
+    "a11yMic": "Voice",
+    "a11ySend": "Send",
+    "a11yNew": "New chat",
+    "speechDenied": "Microphone is off",
+    "speechUnavailable": "On-device speech isn't available"
   }
 }

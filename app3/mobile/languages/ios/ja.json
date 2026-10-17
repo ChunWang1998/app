@@ -5,5 +5,7 @@
   "NSCalendarsFullAccessUsageDescription": "「カレンダーに追加」をタップしたときだけ、次の予定日を追加します。予定は読みません。",
   "NSCalendarsWriteOnlyAccessUsageDescription": "項目の次の予定日をカレンダーに追加します。",
   "NSRemindersUsageDescription": "「久しぶり」は「リマインダー」アプリを使いません。通知は端末内のみです。",
-  "NSRemindersFullAccessUsageDescription": "「久しぶり」は「リマインダー」アプリを使いません。通知は端末内のみです。"
+  "NSRemindersFullAccessUsageDescription": "「久しぶり」は「リマインダー」アプリを使いません。通知は端末内のみです。",
+  "NSMicrophoneUsageDescription": "端末内の音声入力のためにマイクを使います。",
+  "NSSpeechRecognitionUsageDescription": "話した内容をこのiPhone上で文字にして、項目の追加や検索に使います。音声はBeen Agesのサーバーには送りません。"
 }

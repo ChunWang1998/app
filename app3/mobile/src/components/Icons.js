@@ -153,6 +153,39 @@ export function CalendarIcon({ color = '#3E9180', size = 20 }) {
   );
 }
 
+export function MicIcon({ color = '#2E2925', size = 22 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Rect x="8.5" y="3" width="7" height="12" rx="3.5" stroke={color} strokeWidth={1.9} fill="none" />
+      <Path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" stroke={color} strokeWidth={1.9} {...stroke} />
+    </Svg>
+  );
+}
+
+export function SendUpIcon({ color = '#fff', size = 18 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 18 18">
+      <Path d="M9 15V3M4 8l5-5 5 5" stroke={color} strokeWidth={2.4} {...stroke} />
+    </Svg>
+  );
+}
+
+export function CloseXIcon({ color = '#2E2925', size = 22 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20">
+      <Path d="M5 5l10 10M15 5 5 15" stroke={color} strokeWidth={2.4} {...stroke} />
+    </Svg>
+  );
+}
+
+export function PencilIcon({ color = '#2E2925', size = 22 }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path d="M4 20h4l10-10-4-4L4 16Z M13.5 6.5l4 4" stroke={color} strokeWidth={1.9} {...stroke} />
+    </Svg>
+  );
+}
+
 export function MailIcon({ color = '#fff', size = 18 }) {
   return (
     <Svg width={size} height={size * 0.78} viewBox="0 0 20 15">

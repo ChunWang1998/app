@@ -12,6 +12,7 @@ import RecentlyDeletedScreen from '../screens/RecentlyDeletedScreen';
 import WidgetPickerScreen from '../screens/WidgetPickerScreen';
 import CategoriesScreen from '../screens/CategoriesScreen';
 import CategoryEditScreen from '../screens/CategoryEditScreen';
+import AiChatScreen from '../screens/AiChatScreen';
 import { useTheme } from '../theme/useTheme';
 import { subscribePaywallLink } from '../lib/deepLink';
 
@@ -49,6 +50,7 @@ export default function AppNavigator({ initial }) {
     <NavigationContainer ref={navRef} theme={theme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="AiChat" component={AiChatScreen} />
         <Stack.Screen name="Detail" component={DetailScreen} />
         <Stack.Screen
           name="Edit"

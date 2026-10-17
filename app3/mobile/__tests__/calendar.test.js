@@ -126,6 +126,8 @@ describe('add to calendar', () => {
       'NSRemindersUsageDescription',
       'NSRemindersFullAccessUsageDescription',
       'NSPhotoLibraryAddUsageDescription',
+      'NSMicrophoneUsageDescription',
+      'NSSpeechRecognitionUsageDescription',
     ];
     expect(Object.keys(en).sort()).toEqual(plistKeys.slice().sort());
     expect(Object.keys(zh).sort()).toEqual(plistKeys.slice().sort());

@@ -28,4 +28,10 @@ describe('v1.1 privacy copy', () => {
     expect(html).toMatch(/使用本機通知，沒有遠端推播/);
     expect(html).not.toMatch(/不使用推播通知/);
   });
+
+  it('documents on-device microphone and speech', () => {
+    expect(html).toMatch(/麥克風與語音辨識都在你的裝置上進行/);
+    expect(html).toMatch(/Microphone and speech recognition run on your iPhone/);
+    expect(html).toMatch(/音声入力/);
+  });
 });
