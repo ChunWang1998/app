@@ -106,7 +106,6 @@
     "pro": "Pro",
     "restore": "Restore purchases",
     "redeem": "Redeem Code",
-    "widgets": "Widgets",
     "data": "Data",
     "recentlyDeleted": "Recently deleted",
     "display": "Display",
@@ -124,24 +123,11 @@
     "headline": "More than {n} items",
     "unlimited": "Unlimited items",
     "unlimitedSub": "Free plan: {n}",
-    "widgets": "Home screen widgets",
-    "widgetsSub": "Lock Screen too",
     "share": "Extra share styles",
     "shareSub": "Cream is free",
     "priceFail": "Could not load price",
     "once": "One-time purchase. No subscription.",
     "buy": "Buy"
-  },
-  "widget": {
-    "upgrade": "Upgrade to use",
-    "undo": "Undo",
-    "empty": "No items",
-    "logged": "Logged",
-    "title": "Widgets",
-    "hint": "Blank widgets show the most due item.",
-    "small": "Small",
-    "medium": "Medium (up to 3)",
-    "mostDue": "Most due"
   },
   "share": {
     "title": "Share card",

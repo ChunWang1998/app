@@ -6,7 +6,6 @@ import {
 } from '../src/lib/categories';
 import * as repo from '../src/data/repository';
 import { STATE_KEY } from '../src/data/storage';
-import { sfSymbolForIcon } from '../src/data/appGroup';
 import { ICON_KINDS } from '../src/data/models';
 import { activitySchema, categorySchema } from '../src/data/schema';
 import { chipList } from '../src/components/CategoryChips';
@@ -288,17 +287,12 @@ describe('home', () => {
   });
 });
 
-describe('icons and widgets', () => {
-  it('plug and dots are glyphs with SF Symbol fallbacks', () => {
+describe('icons', () => {
+  it('plug and dots are glyphs', () => {
     expect(ICON_KINDS).toEqual(expect.arrayContaining(['plug', 'dots']));
     const glyph = read('../src/components/ItemGlyph.js');
     expect(glyph).toMatch(/kind === 'plug'/);
     expect(glyph).toMatch(/kind === 'dots'/);
-    expect(sfSymbolForIcon('plug')).toBe('powerplug');
-    expect(sfSymbolForIcon('dots')).toBe('ellipsis');
-  });
-  it('widgets do not filter by category', () => {
-    expect(read('../src/widgets/pick.js')).not.toMatch(/categoryId/);
   });
 });
 

@@ -30,12 +30,6 @@ describe('v1.1 device fixes round 2', () => {
     expect(en.home.remaining).toBe('In');
   });
 
-  it('widgets page is Pro-gated', () => {
-    const src = read('../src/screens/WidgetPickerScreen.js');
-    expect(src).toMatch(/isProUnlocked/);
-    expect(src).toMatch(/nav\.replace\('Paywall'\)/);
-  });
-
   it('litter box and watering plants get different icons; no duplicate keys', () => {
     expect(suggestIcon('litter box')).toBe('paw');
     expect(suggestIcon('貓砂')).toBe('paw');

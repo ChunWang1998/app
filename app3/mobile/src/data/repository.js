@@ -110,14 +110,6 @@ async function persist(nextState) {
   state = { ...nextState, activities: nextState.activities || [] };
   await saveState(state, storage);
   notify();
-  if (typeof process === 'undefined' || !process.env.JEST_WORKER_ID) {
-    try {
-      const { scheduleWidgetSync } = require('../widgets/sync');
-      scheduleWidgetSync();
-    } catch {
-      // widgets optional in tests / web
-    }
-  }
   await refreshReminders();
 }
 
@@ -165,7 +157,7 @@ export async function logActivityAt(id, atIso) {
 
 /**
  * Check-off "now". Same local calendar day as lastDoneAt → no new history row.
- * Home / detail use this; backfill and widget timestamps still go through logActivityAt.
+ * Home / detail use this; backfill still goes through logActivityAt.
  */
 export async function logActivityNow(id, atIso) {
   const ts = atIso || nowIso();

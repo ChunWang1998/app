@@ -15,7 +15,6 @@ describe('settings rows', () => {
     for (const rel of [
       '../src/screens/SettingsScreen.js',
       '../src/screens/ReminderScreen.js',
-      '../src/screens/WidgetPickerScreen.js',
     ]) {
       const src = fs.readFileSync(path.join(__dirname, rel), 'utf8');
       expect(src).toMatch(/SettingsRow/);

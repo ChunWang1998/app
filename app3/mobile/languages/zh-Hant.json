@@ -106,7 +106,6 @@
     "pro": "完整版",
     "restore": "恢復購買",
     "redeem": "兌換代碼",
-    "widgets": "小工具",
     "data": "資料",
     "recentlyDeleted": "最近刪除",
     "display": "顯示",
@@ -124,24 +123,11 @@
     "headline": "不只記 {n} 件事",
     "unlimited": "無限項目",
     "unlimitedSub": "免費版 {n} 個",
-    "widgets": "桌面小工具",
-    "widgetsSub": "鎖定畫面也能記",
     "share": "更多分享樣式",
     "shareSub": "奶油免費",
     "priceFail": "無法取得價格",
     "once": "一次買斷・沒有訂閱",
     "buy": "購買"
-  },
-  "widget": {
-    "upgrade": "升級就能用",
-    "undo": "復原",
-    "empty": "還沒有項目",
-    "logged": "已記錄",
-    "title": "小工具",
-    "hint": "沒選就顯示最該做的。",
-    "small": "小尺寸",
-    "medium": "中尺寸（最多 3 個）",
-    "mostDue": "最該做的"
   },
   "share": {
     "title": "分享卡片",

@@ -11,11 +11,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.beenages.app",
       "buildNumber": "8",
-      "entitlements": {
-        "com.apple.security.application-groups": [
-          "group.com.beenages.app"
-        ]
-      },
       "infoPlist": {
         "CFBundleDevelopmentRegion": "en",
         "CFBundleLocalizations": [
@@ -79,58 +74,6 @@
           "calendarPermission": "Been Ages only adds an item's next due date to your calendar when you tap Add to Calendar. It never reads your events.",
           "remindersPermission": "Been Ages does not use the Reminders app. Its reminders are local notifications.",
           "writeOnlyCalendarPermission": "Adds an item's next due date to your calendar."
-        }
-      ],
-      [
-        "expo-widgets",
-        {
-          "bundleIdentifier": "com.beenages.app.widget",
-          "groupIdentifier": "group.com.beenages.app",
-          "widgets": [
-            {
-              "name": "BeenAgesHome",
-              "displayName": "Been Ages",
-              "description": "How long since last time. Tap ✓ to log.",
-              "ios": {
-                "supportedFamilies": [
-                  "systemSmall",
-                  "systemMedium"
-                ],
-                "configuration": {
-                  "title": "Been Ages",
-                  "description": "Leave blank for the most-due item.",
-                  "parameters": {
-                    "itemId": {
-                      "title": "Item",
-                      "type": "string",
-                      "default": "auto"
-                    }
-                  }
-                }
-              }
-            },
-            {
-              "name": "BeenAgesLock",
-              "displayName": "Been Ages",
-              "description": "Days on the Lock Screen.",
-              "ios": {
-                "supportedFamilies": [
-                  "accessoryCircular",
-                  "accessoryRectangular"
-                ],
-                "configuration": {
-                  "title": "Been Ages",
-                  "parameters": {
-                    "itemId": {
-                      "title": "Item",
-                      "type": "string",
-                      "default": "auto"
-                    }
-                  }
-                }
-              }
-            }
-          ]
         }
       ],
       "./plugins/with-strip-aps-environment"

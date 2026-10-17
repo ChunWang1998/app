@@ -1,23 +1,18 @@
 import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { getLocale, initializeI18n, setLocale, t } from './i18n';
+import { initializeI18n, setLocale, t } from './i18n';
 import { initRepository, resetRepositoryForTests, addActivity, updateActivity, logActivityNow } from './data/repository';
 import { initPrefs, updatePrefs } from './data/prefs';
 import AppNavigator from './navigation/AppNavigator';
 import * as Font from 'expo-font';
-import { Platform, StatusBar } from 'react-native';
+import { StatusBar } from 'react-native';
 import { startPurchaseUpdates, verifyProOnLaunch } from './lib/iap';
 import { ThemeProvider, useForcedScheme } from './theme/useTheme';
 import { setProUnlocked } from './lib/entitlements';
 import { installWebAlert } from './lib/webAlert';
 
 installWebAlert();
-import { initWidgets } from './widgets/sync';
-if (Platform.OS !== 'web') {
-  require('./widgets/BeenAgesHome');
-  require('./widgets/BeenAgesLock');
-}
 
 function AppStatusBar() {
   const scheme = useForcedScheme();
@@ -50,7 +45,6 @@ export default function App() {
         await initRepository();
         try { await startPurchaseUpdates(); } catch {}
         await verifyProOnLaunch();
-        try { await initWidgets({ locale: getLocale() }); } catch {}
         try {
           if (typeof __DEV__ !== 'undefined' && __DEV__ && typeof window !== 'undefined') {
             const url = new URL(window.location.href);

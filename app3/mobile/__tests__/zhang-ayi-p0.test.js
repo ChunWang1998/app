@@ -139,8 +139,6 @@ describe('strings', () => {
 
 describe('due status (PR #20 preview fixes)', () => {
   const { dueStatus } = require('../src/lib/today');
-  const { dueClassOf } = require('../src/widgets/pick');
-  const H = 36e5;
   const at = (y, mo, d, h, mi = 0) => new Date(y, mo, d, h, mi).getTime();
   const status = (dueAt, now) => dueStatus(dueAt - now, now);
   it('due any time today is today, even if hours late', () => {
@@ -161,19 +159,6 @@ describe('due status (PR #20 preview fixes)', () => {
     expect(status(at(2026, 9, 31, 23, 30), at(2026, 10, 1, 0, 30))).toBe('overdue');
     expect(status(at(2026, 2, 8, 0, 30), at(2026, 2, 8, 23, 30))).toBe('today'); // Mar 8 2026: 23h day
     expect(status(at(2026, 2, 9, 0, 0), at(2026, 2, 8, 23, 59))).toBe('upcoming');
-  });
-  it('app and widget classify the same due value the same way', () => {
-    const now = at(2026, 9, 14, 22);
-    const DAY = 864e5;
-    const mk = (dueAt, days) => ({ id: 'x', reminderDays: days, lastDoneAt: new Date(dueAt - days * DAY).toISOString() });
-    const map = { overdue: 'od', today: 'soon' };
-    for (const dueAt of [at(2026, 9, 13, 23), at(2026, 9, 14, 0, 0), at(2026, 9, 14, 23), at(2026, 9, 20, 12)]) {
-      const item = mk(dueAt, 7);
-      const app = dueStatus(dueAt - now, now);
-      const w = dueClassOf(item, now);
-      if (map[app]) expect(w).toBe(map[app]);
-      else expect(w).not.toBe('od');
-    }
   });
   it('home row shows Today, not overdue 0 min', () => {
     const src = fs.readFileSync(path.join(__dirname, '../src/screens/HomeScreen.js'), 'utf8');
