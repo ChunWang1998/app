@@ -22,7 +22,7 @@ import { getLocale, t } from '../i18n';
 import * as Haptics from 'expo-haptics';
 
 const SUGGEST = [
-  { title: 'ai.suggestCreateTitle', hint: 'ai.suggestCreateHint' },
+  { title: 'ai.suggestCreateTitle', hint: 'ai.suggestCreateHint', query: 'ai.suggestCreateQuery' },
   { title: 'ai.suggestSinceTitle', hint: 'ai.suggestSinceHint' },
   { title: 'ai.suggestWeekTitle', hint: 'ai.suggestWeekHint' },
   { title: 'ai.suggestLogTitle', hint: 'ai.suggestLogHint' },
@@ -253,7 +253,7 @@ export default function AiChatScreen() {
                 <TouchableOpacity
                   key={s.title}
                   testID={`ai-sug-${s.title}`}
-                  onPress={() => send(t(s.title))}
+                  onPress={() => send(t(s.query || s.title))}
                   style={[styles.sg, { backgroundColor: c.cell, borderColor: c.sep }]}
                 >
                   <Text style={{ fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 15, color: c.label }}>{t(s.title)}</Text>

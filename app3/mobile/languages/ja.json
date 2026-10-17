@@ -291,6 +291,7 @@
     "nextDate": "{date}（{wd}）",
     "suggestCreateTitle": "2週間ごとにフィルター交換",
     "suggestCreateHint": "前回は昨日",
+    "suggestCreateQuery": "2週間ごとにフィルター交換、前回は昨日",
     "suggestSinceTitle": "シーツを洗ってからどのくらい？",
     "suggestSinceHint": "調べる",
     "suggestWeekTitle": "今週やることは？",

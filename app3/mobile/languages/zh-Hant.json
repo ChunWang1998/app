@@ -288,6 +288,7 @@
     "nextDate": "{date}（{wd}）",
     "suggestCreateTitle": "每兩週換濾心",
     "suggestCreateHint": "上次是昨天",
+    "suggestCreateQuery": "每兩週換濾心，上次是昨天",
     "suggestSinceTitle": "我多久沒換床單了？",
     "suggestSinceHint": "查一下",
     "suggestWeekTitle": "這週要做什麼？",
