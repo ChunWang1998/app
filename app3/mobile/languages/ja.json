@@ -124,6 +124,7 @@
   },
   "paywall": {
     "headline": "{n}件以上",
+    "historyHeadline": "{n}回以上記録",
     "unlimited": "項目数無制限",
     "unlimitedSub": "無料は{n}件",
     "history": "項目ごとの記録は無制限",
@@ -230,7 +231,8 @@
     "vitamin": "ビタミンDを飲む",
     "sheets": "シーツを洗う",
     "plant": "水やり",
-    "hair": "散髪"
+    "hair": "散髪",
+    "car": "洗車"
   },
   "date": {
     "weekAgo": "1週間前",
@@ -258,5 +260,40 @@
       "health": "健康",
       "appl": "家電"
     }
+  },
+  "ai": {
+    "placeholder": "記録するか、聞いて",
+    "title": "小さな時計",
+    "add": "追加",
+    "edit": "変更",
+    "added": "追加した",
+    "logged": "記録した",
+    "undone": "元に戻した",
+    "createIntro": "メモします：",
+    "logIntro": "{name}を記録した。",
+    "sinceOnly": "{span}。",
+    "sinceNext": "{span}。次は {next}。",
+    "weekIntro": "今週は {n} 件：",
+    "weekEmpty": "今週はなし",
+    "notFound": "見つからない",
+    "unknown": "別の言い方で",
+    "last": "前回",
+    "next": "次回",
+    "nextDate": "{date}（{wd}）",
+    "suggestCreateTitle": "2週間ごとにフィルター交換",
+    "suggestCreateHint": "前回は昨日",
+    "suggestCreateQuery": "2週間ごとにフィルター交換、前回は昨日",
+    "suggestSinceTitle": "シーツを洗ってからどのくらい？",
+    "suggestSinceHint": "調べる",
+    "suggestWeekTitle": "今週やることは？",
+    "suggestWeekHint": "予定",
+    "suggestLogTitle": "さっき車を洗った",
+    "suggestLogHint": "記録",
+    "a11yMic": "音声",
+    "a11ySend": "送信",
+    "a11yNew": "新しい会話",
+    "speechDenied": "マイクがオフ",
+    "speechUnavailable": "端末内の音声認識は使えない",
+    "micOffHint": "端末内のみ"
   }
 }

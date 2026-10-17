@@ -69,7 +69,7 @@ describe('1.1.1 device-test follow-ups', () => {
     expect(detail).toMatch(/logNow/);
     expect(detail).toMatch(/loggingRef/);
     expect(detail).toMatch(/saveBackfill/);
-    expect(detail).toMatch(/nav\.navigate\('Paywall'\)/);
+    expect(detail).toMatch(/nav\.navigate\('Paywall'/);
     expect(read('../src/lib/calendar.js')).not.toMatch(/icon/);
   });
 });

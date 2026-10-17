@@ -106,6 +106,11 @@ describe('free limit and paywall', () => {
     for (const l of [en, zh, ja]) expect(l.paywall.historySub).toMatch(/\{n\}/);
     expect(read('../src/screens/PaywallScreen.js')).toMatch(/paywall\.history/);
     expect(read('../src/screens/PaywallScreen.js')).toMatch(/FREE_HISTORY_LIMIT/);
+    expect(en.paywall.historyHeadline).toBe('Log more than {n} times');
+    expect(zh.paywall.historyHeadline).toBe('不只記 {n} 次');
+    expect(ja.paywall.historyHeadline).toBe('{n}回以上記録');
+    expect(read('../src/screens/PaywallScreen.js')).toMatch(/paywall\.historyHeadline/);
+    expect(read('../src/screens/PaywallScreen.js')).toMatch(/reason === 'history'/);
   });
 });
 

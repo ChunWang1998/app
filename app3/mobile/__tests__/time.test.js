@@ -11,7 +11,9 @@ import {
   detailSpanPrecision,
   formatDetailSpan,
   formatDetailSpanParts,
+  isDetailHeroToday,
 } from '../src/lib/time';
+import { tLocale } from '../src/i18n';
 import { setLocale } from '../src/i18n';
 
 describe('time helpers', () => {
@@ -144,5 +146,20 @@ describe('detail screen units follow the reminder', () => {
       { n: 1, unit: 'y' },
       { n: 10, unit: 'd' },
     ]);
+  });
+
+  it('detail hero uses today for a no-reminder item done today', () => {
+    const now = at(2026, 9, 17, 18, 0);
+    const todayIso = at(2026, 9, 17, 9, 0).toISOString();
+    const yesterdayIso = at(2026, 9, 16, 22, 0).toISOString();
+    expect(isDetailHeroToday({ reminderDays: null, lastDoneAt: todayIso }, now)).toBe(true);
+    expect(isDetailHeroToday({ reminderDays: 7, lastDoneAt: todayIso }, now)).toBe(false);
+    expect(isDetailHeroToday({ reminderDays: null, lastDoneAt: yesterdayIso }, now)).toBe(false);
+    expect(tLocale('zh-Hant', 'common.today')).toBe('今天');
+    expect(tLocale('en', 'common.today')).toBe('Today');
+    expect(tLocale('ja', 'common.today')).toBe('今日');
+    const detail = require('fs').readFileSync(require('path').join(__dirname, '../src/screens/DetailScreen.js'), 'utf8');
+    expect(detail).toMatch(/isDetailHeroToday/);
+    expect(detail).toMatch(/common\.today/);
   });
 });

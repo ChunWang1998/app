@@ -9,6 +9,7 @@ import { getRecentlyDeleted, getCategories, subscribe, refreshReminders } from '
 import { ChevronLeftIcon, CheckIcon, RestoreIcon, LockIcon, PaintIcon, ClockIcon, BellIcon } from '../components/Icons';
 import { SettingsRow, SettingsSwitch } from '../components/SettingsRow';
 import { t } from '../i18n';
+import Constants from 'expo-constants';
 
 const PRIVACY_URL = 'https://chunwang1998.github.io/app/app3/store/privacy.html';
 const APPEARANCE_ORDER = ['auto', 'light', 'dark'];
@@ -168,7 +169,7 @@ export default function SettingsScreen() {
           />
         </View>
         <Text style={{ textAlign: 'center', marginTop: 28, color: c.l3, fontSize: 13, fontFamily: 'BeenAgesRounded-Regular' }}>
-          Been Ages 1.1
+          Been Ages {Constants.expoConfig?.version || Constants.nativeAppVersion || ''}
         </Text>
       </ScrollView>
     </View>

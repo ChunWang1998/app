@@ -1,4 +1,4 @@
-import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, logActivityAt, undoLogActivity, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
+import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, logActivityAt, undoLogActivity, undoLogAt, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
 
 describe('repository', () => {
@@ -86,6 +86,26 @@ describe('repository', () => {
     row = getVisibleActivities()[0];
     expect(row.history.some((e) => e.at === '2026-08-01T00:00:00.000Z')).toBe(true);
     expect(row.notes).toBe('');
+  });
+
+  it('undoLogAt removes only that timestamp and keeps later backfills', async () => {
+    await resetRepositoryForTests();
+    const a = await addActivity({ title: 'Hist', lastDoneAt: '2026-09-01T00:00:00.000Z' });
+    const logged = await logActivityNow(a.id, '2026-10-17T12:00:00.000Z');
+    await backfillHistory(a.id, '2026-08-01T00:00:00.000Z');
+    let row = getVisibleActivities()[0];
+    expect(row.history.map((e) => e.at)).toEqual([
+      '2026-10-17T12:00:00.000Z',
+      '2026-09-01T00:00:00.000Z',
+      '2026-08-01T00:00:00.000Z',
+    ]);
+    await undoLogAt(a.id, logged.loggedAt);
+    row = getVisibleActivities()[0];
+    expect(row.history.map((e) => e.at)).toEqual([
+      '2026-09-01T00:00:00.000Z',
+      '2026-08-01T00:00:00.000Z',
+    ]);
+    expect(row.lastDoneAt).toBe('2026-09-01T00:00:00.000Z');
   });
 
   it('skips a second check-off on the same local calendar day', async () => {

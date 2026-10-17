@@ -37,5 +37,21 @@ describe('item icon from category', () => {
     const cat = fs.readFileSync(path.join(__dirname, '../src/screens/CategoryEditScreen.js'), 'utf8');
     expect(cat).toMatch(/CATEGORY_ICONS/);
     expect(cat).toMatch(/setIconManual\(true\)/);
+    const card = fs.readFileSync(path.join(__dirname, '../src/components/AiIntentCard.js'), 'utf8');
+    const sheet = fs.readFileSync(path.join(__dirname, '../src/components/AiEditSheet.js'), 'utf8');
+    expect(sheet).not.toMatch(/ItemGlyph/);
+    expect(card).toMatch(/CategoryGlyph/);
+    expect(card).not.toMatch(/styles\.gl, \{ backgroundColor: tone\.ac \}/);
+  });
+});
+
+describe('settings version line', () => {
+  it('reads the Expo app version instead of a hardcoded 1.1', () => {
+    const settings = fs.readFileSync(path.join(__dirname, '../src/screens/SettingsScreen.js'), 'utf8');
+    expect(settings).toMatch(/expo-constants/);
+    expect(settings).toMatch(/expoConfig\?\.version/);
+    expect(settings).not.toMatch(/Been Ages 1\.1[^\d.]/);
+    const app = JSON.parse(fs.readFileSync(path.join(__dirname, '../app.json'), 'utf8'));
+    expect(app.expo.version).toBe('1.1.1');
   });
 });

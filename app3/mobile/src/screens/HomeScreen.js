@@ -16,6 +16,7 @@ import { ItemGlyph } from '../components/ItemGlyph';
 import { Mascot } from '../components/Mascot';
 import { UndoToast } from '../components/UndoToast';
 import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
+import { AiComposer } from '../components/AiComposer';
 import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort } from '../lib/time';
 import { monogramLetter } from '../lib/suggestIcon';
 import { splitToday, homeMood, dueStatus } from '../lib/today';
@@ -73,7 +74,7 @@ export default function HomeScreen() {
       result = await logActivityNow(a.id);
     } catch (e) {
       if (e?.code === 'FREE_LIMIT') {
-        nav.navigate('Paywall');
+        nav.navigate('Paywall', { reason: e.kind || 'history' });
         return;
       }
       throw e;
@@ -193,7 +194,10 @@ export default function HomeScreen() {
               </View>
             ) : null}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={data.length === 0 ? styles.emptyContainer : undefined}
+            contentContainerStyle={[
+              data.length === 0 ? styles.emptyContainer : undefined,
+              { paddingBottom: 110 + insets.bottom },
+            ]}
             renderItem={({ item }) => (
               <Row
                 item={item}
@@ -215,13 +219,20 @@ export default function HomeScreen() {
           />
         )}
       </View>
+      <View style={[styles.dock, { paddingBottom: 10 + insets.bottom, backgroundColor: c.bg }]} pointerEvents="box-none">
+        <AiComposer
+          editable={false}
+          onOpen={() => nav.navigate('AiChat')}
+          onMic={() => nav.navigate('AiChat', { voice: true })}
+        />
+      </View>
       {toast ? (
         <UndoToast
           key={toast.id}
           text={toast.text}
           undo={toast.undo}
           onDone={() => setToast(null)}
-          bottom={24 + insets.bottom}
+          bottom={88 + insets.bottom}
         />
       ) : null}
     </View>
@@ -382,4 +393,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   ctaText: { fontSize: 18, fontFamily: 'BeenAgesRounded-SemiBold' },
+  dock: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+  },
 });

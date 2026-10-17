@@ -111,6 +111,19 @@ jest.mock('expo-asset', () => ({
   Asset: { fromModule: () => ({ downloadAsync: async () => ({ localUri: null, uri: null }) }) },
 }), { virtual: true });
 
+jest.mock('expo-speech-recognition', () => ({
+  ExpoSpeechRecognitionModule: {
+    isRecognitionAvailable: jest.fn(() => false),
+    supportsOnDeviceRecognition: jest.fn(() => false),
+    requestMicrophonePermissionsAsync: jest.fn(async () => ({ granted: false })),
+    start: jest.fn(),
+    stop: jest.fn(),
+    abort: jest.fn(),
+    addListener: jest.fn(() => ({ remove: jest.fn() })),
+  },
+  useSpeechRecognitionEvent: jest.fn(),
+}));
+
 process.env.EXPO_PUBLIC_IAP_SIMULATE = '1';
 
 try {

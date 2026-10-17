@@ -222,3 +222,9 @@ export function formatDetailSpanParts(item, fromTs, toTs, n = 2, locale) {
 export function formatDetailSpan(item, fromTs, toTs, locale) {
   return joinSpanParts(formatDetailSpanParts(item, fromTs, toTs, 2, locale));
 }
+
+/** Detail hero: no-reminder item done today shows 「今天」 instead of 「0 天」. */
+export function isDetailHeroToday(item, now = Date.now()) {
+  if (!item?.lastDoneAt || hasReminder(item)) return false;
+  return localCalendarDays(item.lastDoneAt, now) === 0;
+}

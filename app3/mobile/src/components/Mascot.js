@@ -34,6 +34,13 @@ export function Mascot({ mood = 'idle', size = 60 }) {
           <Path d="M80 14h8l-8 9h8M90 3h5l-5 6h5" fill="none" stroke={c.l2} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
         </>
       )}
+      {mood === 'listen' && (
+        <>
+          <Circle cx={40} cy={54} r={4} fill={stroke} />
+          <Circle cx={60} cy={54} r={4} fill={stroke} />
+          <Ellipse cx={50} cy={66} rx={4} ry={4.6} fill={stroke} />
+        </>
+      )}
       {mood === 'worry' && (
         <>
           <Circle cx={40} cy={55} r={3.4} fill={stroke} />

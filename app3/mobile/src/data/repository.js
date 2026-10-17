@@ -44,9 +44,10 @@ function notify() {
   for (const l of listeners) l(state);
 }
 
-function freeLimitError(limit = FREE_ACTIVITY_LIMIT) {
+function freeLimitError(limit = FREE_ACTIVITY_LIMIT, kind = 'items') {
   const err = new Error(`Free tier limit ${limit}`);
   err.code = 'FREE_LIMIT';
+  err.kind = kind;
   return err;
 }
 
@@ -61,7 +62,7 @@ async function assertCanWriteHistory(id, atIso) {
   const current = historyOf(item);
   const next = normalizeHistory([{ at: atIso }, ...current]);
   if (next.length <= current.length) return;
-  if (current.length >= FREE_HISTORY_LIMIT) throw freeLimitError(FREE_HISTORY_LIMIT);
+  if (current.length >= FREE_HISTORY_LIMIT) throw freeLimitError(FREE_HISTORY_LIMIT, 'history');
 }
 
 function visibleCount(list = state.activities) {
@@ -99,6 +100,7 @@ export function getRecentlyDeleted() {
 }
 
 export async function resetRepositoryForTests() {
+  writeTail = Promise.resolve();
   initialized = false;
   state = { version: CATEGORIES_STATE_VERSION, activities: [], categories: seedCategories() };
   await saveState(state, storage);
@@ -155,16 +157,18 @@ async function persist(nextState) {
 }
 
 export async function addActivity(input) {
-  const pro = await isProUnlocked();
-  if (!pro && visibleCount() >= FREE_ACTIVITY_LIMIT) {
-    throw freeLimitError();
-  }
-  const categoryId = input.categoryId && categoryExists(input.categoryId, state.categories)
-    ? input.categoryId
-    : matchCategory(input.title, state.categories);
-  const a = createActivity({ ...input, categoryId, icon: iconForItem({ categoryId }, state.categories) });
-  await persist({ ...state, activities: [a, ...state.activities] });
-  return a;
+  return enqueueWrite(async () => {
+    const pro = await isProUnlocked();
+    if (!pro && visibleCount() >= FREE_ACTIVITY_LIMIT) {
+      throw freeLimitError(FREE_ACTIVITY_LIMIT, 'items');
+    }
+    const categoryId = input.categoryId && categoryExists(input.categoryId, state.categories)
+      ? input.categoryId
+      : matchCategory(input.title, state.categories);
+    const a = createActivity({ ...input, categoryId, icon: iconForItem({ categoryId }, state.categories) });
+    await persist({ ...state, activities: [a, ...state.activities] });
+    return a;
+  });
 }
 
 export async function updateActivity(id, changes) {
@@ -184,7 +188,7 @@ export async function updateActivity(id, changes) {
           changes.lastDoneAt !== undefined ? changes.lastDoneAt : again?.lastDoneAt,
         );
         if (next2.length > prev2.length && next2.length > FREE_HISTORY_LIMIT) {
-          throw freeLimitError(FREE_HISTORY_LIMIT);
+          throw freeLimitError(FREE_HISTORY_LIMIT, 'history');
         }
       }
     }
@@ -258,6 +262,21 @@ export async function undoLogActivity(id, previousLastDoneAt, previousHistory) {
   });
 }
 
+/** Remove only the history row this check-off added, leaving later backfills. */
+export async function undoLogAt(id, loggedAt) {
+  return enqueueWrite(async () => {
+    const at = loggedAt ? String(loggedAt) : '';
+    if (!at) return;
+    const ts = nowIso();
+    const next = state.activities.map((a) => {
+      if (a.id !== id) return a;
+      const history = normalizeHistory((a.history || []).filter((e) => e.at !== at));
+      return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: ts };
+    });
+    await persist({ ...state, activities: next });
+  });
+}
+
 export async function backfillHistory(id, atIso) {
   return enqueueWrite(async () => {
     const at = new Date(atIso).toISOString();
@@ -294,7 +313,7 @@ export async function undoDelete(id) {
     if (!target || !target.deletedAt) return;
     const pro = await isProUnlocked();
     if (!pro && visibleCount() >= FREE_ACTIVITY_LIMIT) {
-      throw freeLimitError();
+      throw freeLimitError(FREE_ACTIVITY_LIMIT, 'items');
     }
     const ts = nowIso();
     const next = state.activities.map((a) => (a.id === id ? { ...a, deletedAt: null, updatedAt: ts } : a));
@@ -316,50 +335,56 @@ function categoryError(code, message) {
 }
 
 export async function addCategory({ name, icon, keywords } = {}) {
-  if (getCategories().length >= MAX_CATEGORIES) {
-    throw categoryError('CATEGORY_LIMIT', 'category limit');
-  }
-  const trimmed = String(name || '').trim().slice(0, 40);
-  if (categoryNameTaken(trimmed, getCategories())) {
-    throw categoryError('CATEGORY_DUP', 'duplicate name');
-  }
-  const cat = normalizeCategory({ id: newCategoryId(), name: trimmed, icon, keywords });
-  if (!cat) throw new Error('invalid category');
-  await persist({ ...state, categories: [...getCategories(), cat] });
-  return cat;
+  return enqueueWrite(async () => {
+    if (getCategories().length >= MAX_CATEGORIES) {
+      throw categoryError('CATEGORY_LIMIT', 'category limit');
+    }
+    const trimmed = String(name || '').trim().slice(0, 40);
+    if (categoryNameTaken(trimmed, getCategories())) {
+      throw categoryError('CATEGORY_DUP', 'duplicate name');
+    }
+    const cat = normalizeCategory({ id: newCategoryId(), name: trimmed, icon, keywords });
+    if (!cat) throw new Error('invalid category');
+    await persist({ ...state, categories: [...getCategories(), cat] });
+    return cat;
+  });
 }
 
 /** Keyword edits only affect items added later; existing items keep their category. */
 export async function updateCategory(id, changes = {}) {
-  if (changes.name !== undefined) {
-    const trimmed = String(changes.name || '').trim().slice(0, 40);
-    if (trimmed && categoryNameTaken(trimmed, getCategories(), { exceptId: id })) {
-      throw categoryError('CATEGORY_DUP', 'duplicate name');
+  return enqueueWrite(async () => {
+    if (changes.name !== undefined) {
+      const trimmed = String(changes.name || '').trim().slice(0, 40);
+      if (trimmed && categoryNameTaken(trimmed, getCategories(), { exceptId: id })) {
+        throw categoryError('CATEGORY_DUP', 'duplicate name');
+      }
     }
-  }
-  const next = getCategories().map((c) => {
-    if (c.id !== id) return c;
-    const merged = { ...c };
-    if (changes.name !== undefined) merged.name = String(changes.name || '').trim().slice(0, 40) || null;
-    if (changes.icon !== undefined) merged.icon = normalizeCategoryIcon(changes.icon);
-    if (changes.keywords !== undefined) merged.keywords = normalizeKeywords(changes.keywords);
-    return normalizeCategory(merged) || c;
+    const next = getCategories().map((c) => {
+      if (c.id !== id) return c;
+      const merged = { ...c };
+      if (changes.name !== undefined) merged.name = String(changes.name || '').trim().slice(0, 40) || null;
+      if (changes.icon !== undefined) merged.icon = normalizeCategoryIcon(changes.icon);
+      if (changes.keywords !== undefined) merged.keywords = normalizeKeywords(changes.keywords);
+      return normalizeCategory(merged) || c;
+    });
+    const activities = state.activities.map((a) => ({ ...a, icon: iconForItem(a, next) }));
+    await persist({ ...state, categories: next, activities });
   });
-  const activities = state.activities.map((a) => ({ ...a, icon: iconForItem(a, next) }));
-  await persist({ ...state, categories: next, activities });
 }
 
 /** Delete a category and move its items (including Recently Deleted ones) to Other. Returns the moved visible count. */
 export async function deleteCategory(id) {
-  if (id === OTHER_ID) return 0;
-  let moved = 0;
-  const activities = state.activities.map((a) => {
-    if (a.categoryId !== id) return a;
-    if (!a.deletedAt) moved += 1;
-    return { ...a, categoryId: OTHER_ID, icon: OTHER_ICON };
+  return enqueueWrite(async () => {
+    if (id === OTHER_ID) return 0;
+    let moved = 0;
+    const activities = state.activities.map((a) => {
+      if (a.categoryId !== id) return a;
+      if (!a.deletedAt) moved += 1;
+      return { ...a, categoryId: OTHER_ID, icon: OTHER_ICON };
+    });
+    await persist({ ...state, activities, categories: getCategories().filter((c) => c.id !== id) });
+    return moved;
   });
-  await persist({ ...state, activities, categories: getCategories().filter((c) => c.id !== id) });
-  return moved;
 }
 
 export function countByCategory(list = getVisibleActivities()) {

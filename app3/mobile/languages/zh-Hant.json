@@ -121,6 +121,7 @@
   },
   "paywall": {
     "headline": "不只記 {n} 件事",
+    "historyHeadline": "不只記 {n} 次",
     "unlimited": "無限項目",
     "unlimitedSub": "免費版 {n} 個",
     "history": "每項紀錄無上限",
@@ -227,7 +228,8 @@
     "vitamin": "吃維他命 D",
     "sheets": "洗床單",
     "plant": "幫植物澆水",
-    "hair": "剪頭髮"
+    "hair": "剪頭髮",
+    "car": "洗車"
   },
   "date": {
     "weekAgo": "1 週前",
@@ -255,5 +257,40 @@
       "health": "健康",
       "appl": "家電"
     }
+  },
+  "ai": {
+    "placeholder": "記一下，或問我",
+    "title": "小鬧鐘",
+    "add": "新增",
+    "edit": "修改",
+    "added": "已新增",
+    "logged": "已記錄",
+    "undone": "已復原",
+    "createIntro": "好，幫你記這件：",
+    "logIntro": "記下了，{name}。",
+    "sinceOnly": "{span}了。",
+    "sinceNext": "{span}了，下次是 {next}。",
+    "weekIntro": "這週有 {n} 件，先從逾期的開始：",
+    "weekEmpty": "這週沒事",
+    "notFound": "找不到這件",
+    "unknown": "換個說法？",
+    "last": "上次",
+    "next": "下次",
+    "nextDate": "{date}（{wd}）",
+    "suggestCreateTitle": "每兩週換濾心",
+    "suggestCreateHint": "上次是昨天",
+    "suggestCreateQuery": "每兩週換濾心，上次是昨天",
+    "suggestSinceTitle": "我多久沒換床單了？",
+    "suggestSinceHint": "查一下",
+    "suggestWeekTitle": "這週要做什麼？",
+    "suggestWeekHint": "排一下",
+    "suggestLogTitle": "剛剛洗了車",
+    "suggestLogHint": "記一筆",
+    "a11yMic": "語音",
+    "a11ySend": "送出",
+    "a11yNew": "新對話",
+    "speechDenied": "麥克風未開",
+    "speechUnavailable": "這台不能離線辨識",
+    "micOffHint": "不能離線"
   }
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
@@ -13,7 +13,9 @@ import { t } from '../i18n';
 export default function PaywallScreen() {
   const c = useThemeColors();
   const nav = useNavigation();
+  const { params } = useRoute();
   const insets = useSafeAreaInsets();
+  const historyReason = params?.reason === 'history';
   const [pro, setPro] = React.useState(false);
   const [price, setPrice] = React.useState(null);
   const [priceReady, setPriceReady] = React.useState(false);
@@ -92,7 +94,11 @@ export default function PaywallScreen() {
         </View>
       </View>
       <View style={styles.pw}>
-        <Text style={[styles.h1, { color: c.label }]}>{t('paywall.headline', { n: FREE_ACTIVITY_LIMIT })}</Text>
+        <Text style={[styles.h1, { color: c.label }]}>
+          {historyReason
+            ? t('paywall.historyHeadline', { n: FREE_HISTORY_LIMIT })
+            : t('paywall.headline', { n: FREE_ACTIVITY_LIMIT })}
+        </Text>
         <View style={{ marginTop: 32 }}>
           <Feature
             icon={<InfinityIcon color={c.brand} size={22} />}

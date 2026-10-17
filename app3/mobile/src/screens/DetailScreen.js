@@ -7,7 +7,7 @@ import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
 import { ChevronLeftIcon, CheckIcon, BellIcon, PlusIcon, ChevronRightIcon, ShareIcon, CalendarIcon } from '../components/Icons';
 import { addNextDueToCalendar, openSystemSettings } from '../lib/calendar';
-import { formatDate, formatTime, dueInMs, progressRatio, elapsedMs, formatLastDoneLine, formatDetailSpan, formatDetailSpanParts } from '../lib/time';
+import { formatDate, formatTime, dueInMs, progressRatio, elapsedMs, formatLastDoneLine, formatDetailSpan, formatDetailSpanParts, isDetailHeroToday } from '../lib/time';
 import { historyStats } from '../lib/historyStats';
 import { DateChips } from '../components/DateChips';
 import { UndoToast } from '../components/UndoToast';
@@ -66,7 +66,7 @@ export default function DetailScreen() {
       result = await logActivityNow(item.id);
     } catch (e) {
       if (e?.code === 'FREE_LIMIT') {
-        nav.navigate('Paywall');
+        nav.navigate('Paywall', { reason: e.kind || 'history' });
         return;
       }
       throw e;
@@ -100,7 +100,7 @@ export default function DetailScreen() {
       await backfillHistory(item.id, at);
     } catch (e) {
       if (e?.code === 'FREE_LIMIT') {
-        nav.navigate('Paywall');
+        nav.navigate('Paywall', { reason: e.kind || 'history' });
         return;
       }
       throw e;
@@ -122,7 +122,9 @@ export default function DetailScreen() {
           </View>
           <View style={styles.hero}>
             <View style={styles.heroTop}>
-              {parts ? (
+              {isDetailHeroToday(item, now) ? (
+                <Text style={[styles.num, { color: c.label }]}>{t('common.today')}</Text>
+              ) : parts ? (
                 <Text style={[styles.num, { color: c.label }]}>
                   {parts.map((p, i) => (
                     <Text key={i}>

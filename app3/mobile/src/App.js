@@ -67,6 +67,7 @@ export default function App() {
               const a4 = await addActivity({ title: t('demo.sheets'), reminderDays: 7, lastDoneAt: past(9) });
               const a5 = await addActivity({ title: t('demo.plant'), reminderDays: 3, lastDoneAt: past(1) });
               const a6 = await addActivity({ title: t('demo.hair'), reminderDays: null, lastDoneAt: past(44) });
+              const a7 = await addActivity({ title: t('demo.car'), reminderDays: 30, lastDoneAt: past(36) });
               await updateActivity(a2.id, {
                 history: [
                   { at: past(19, 7) },
@@ -76,7 +77,7 @@ export default function App() {
               });
               if (demo === 'logged') await logActivityNow(a4.id);
               if (!id) id = a2.id;
-              void a1; void a3; void a5; void a6;
+              void a1; void a3; void a5; void a6; void a7;
             }
             if (screen === 'Empty') {
               setInitial({ name: 'Home', params: {} });

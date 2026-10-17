@@ -19,6 +19,8 @@ export const light = {
   tint: '#E2F0EB',
   odtint: '#FBE3DC',
   blush: '#F6BDAA',
+  bub: '#EFE8DC',
+  dim: 'rgba(30,25,20,0.25)',
 };
 
 export const dark = {
@@ -42,6 +44,8 @@ export const dark = {
   tint: 'rgba(110,195,176,0.15)',
   odtint: 'rgba(255,122,102,0.15)',
   blush: 'rgba(246,150,125,0.5)',
+  bub: '#302C28',
+  dim: 'rgba(0,0,0,0.5)',
 };
 
 export const itemPalette = {
