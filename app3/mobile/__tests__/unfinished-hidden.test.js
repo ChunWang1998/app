@@ -8,15 +8,15 @@ describe('v1.1 ships finished entry points only', () => {
   const app = fs.readFileSync(path.join(__dirname, '../src/App.js'), 'utf8');
   const appJson = JSON.parse(fs.readFileSync(path.join(__dirname, '../app.json'), 'utf8'));
 
-  it('ships Reminder, ShareCard, RecentlyDeleted, and WidgetPicker', () => {
+  it('ships Reminder, ShareCard, and RecentlyDeleted', () => {
     expect(nav).toMatch(/ReminderScreen/);
     expect(nav).toMatch(/ShareCardScreen/);
     expect(nav).toMatch(/RecentlyDeleted/);
-    expect(nav).toMatch(/WidgetPickerScreen/);
+    expect(nav).not.toMatch(/WidgetPicker/);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/ReminderScreen.js'))).toBe(true);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/ShareCardScreen.js'))).toBe(true);
     expect(fs.existsSync(path.join(__dirname, '../src/screens/RecentlyDeletedScreen.js'))).toBe(true);
-    expect(fs.existsSync(path.join(__dirname, '../src/screens/WidgetPickerScreen.js'))).toBe(true);
+    expect(fs.existsSync(path.join(__dirname, '../src/screens/WidgetPickerScreen.js'))).toBe(false);
   });
 
   it('schedules reminders with expo-notifications', () => {
@@ -33,9 +33,9 @@ describe('v1.1 ships finished entry points only', () => {
     expect(reminders).not.toMatch(/enforceReminderBudget[\s\S]*requestPermissionsAsync/);
   });
 
-  it('exposes recently deleted, widgets, and privacy in Settings', () => {
+  it('exposes recently deleted and privacy in Settings', () => {
     expect(settings).toMatch(/settings\.recentlyDeleted/);
-    expect(settings).toMatch(/settings\.widgets/);
+    expect(settings).not.toMatch(/settings\.widgets/);
     expect(settings).toMatch(/settings\.display/);
     expect(settings).toMatch(/settings\.restore/);
     expect(settings).toMatch(/settings\.notifyWithName/);
@@ -65,6 +65,18 @@ describe('v1.1 ships finished entry points only', () => {
     expect(app).toMatch(/__DEV__/);
     expect(app).toMatch(/searchParams\.get\('demo'\)/);
     expect(app).toMatch(/searchParams\.get\('screen'\)/);
+  });
+
+  it('does not ship iOS widgets or an App Group', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
+    expect(pkg.dependencies['expo-widgets']).toBeUndefined();
+    expect(pkg.dependencies['@expo/ui']).toBeUndefined();
+    const plugins = JSON.stringify(appJson.expo.plugins || []);
+    expect(plugins).not.toMatch(/expo-widgets/);
+    expect(appJson.expo.ios.entitlements).toBeUndefined();
+    expect(fs.existsSync(path.join(__dirname, '../src/widgets'))).toBe(false);
+    expect(fs.existsSync(path.join(__dirname, '../src/data/appGroup.js'))).toBe(false);
+    expect(fs.existsSync(path.join(__dirname, '../src/data/appGroupStore.js'))).toBe(false);
   });
 
   it('does not ship import/export modules or UI', () => {

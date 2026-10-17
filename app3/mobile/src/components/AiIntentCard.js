@@ -19,7 +19,6 @@ export function AiIntentCard({
   onUndo,
 }) {
   const c = useThemeColors();
-  const tone = useItemTone(item.icon, item.title);
   const cat = item.categoryId === OTHER_ID
     ? { id: OTHER_ID, icon: OTHER_ICON }
     : (categories || []).find((x) => x.id === item.categoryId);
@@ -66,9 +65,6 @@ export function AiIntentCard({
   return (
     <View style={[styles.card, { backgroundColor: c.cell }]} testID="ai-card">
       <View style={styles.ch}>
-        <View style={[styles.gl, { backgroundColor: tone.ac }]}>
-          <ItemGlyph kind={item.icon || 'brush'} color={tone.acf} letter={monogramLetter(item.title)} />
-        </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={[styles.nm, { color: c.label }]}>{item.title}</Text>
           {cat ? (

@@ -9,9 +9,11 @@ import {
   resetRepositoryForTests,
   addActivity,
   addCategory,
+  updateActivity,
   getVisibleActivities,
   logActivityNow,
   FREE_ACTIVITY_LIMIT,
+  FREE_HISTORY_LIMIT,
 } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
 import fs from 'fs';
@@ -184,7 +186,7 @@ describe('create draft uses category keywords', () => {
   it('guesses appliances for a filter', () => {
     const d = draftFromCreate({ name: '換濾心', reminderDays: 14, lastDoneAt: NOW.toISOString() }, { categories: seedCategories() });
     expect(d.categoryId).toBe('appl');
-    expect(d.icon).toBe('drop');
+    expect(d.icon).toBeUndefined();
   });
 });
 
@@ -271,6 +273,21 @@ describe('repository write queue and free limit', () => {
     await expect(addActivity({ title: 'overflow' })).rejects.toHaveProperty('code', 'FREE_LIMIT');
   });
 
+  it('log hits the per-item history cap', async () => {
+    await resetRepositoryForTests();
+    jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(false);
+    const a = await addActivity({ title: 'Car', lastDoneAt: '2026-01-01T00:00:00.000Z' });
+    const hist = [];
+    for (let i = 0; i < FREE_HISTORY_LIMIT; i++) {
+      hist.push({ at: new Date(2026, 0, 2 + i).toISOString() });
+    }
+    await updateActivity(a.id, { history: hist });
+    await expect(logActivityNow(a.id, '2026-10-17T00:00:00.000Z')).rejects.toMatchObject({
+      code: 'FREE_LIMIT',
+      kind: 'history',
+    });
+  });
+
   it('log goes through logActivityAt so undo works', async () => {
     await resetRepositoryForTests();
     const a = await addActivity({ title: 'Car', lastDoneAt: '2026-09-01T00:00:00.000Z' });
@@ -295,6 +312,8 @@ describe('ai source contracts', () => {
     expect(home).toMatch(/handleAdd/);
     expect(home).toMatch(/AiComposer/);
     expect(home).toMatch(/navigate\('AiChat'/);
+    expect(home).toMatch(/<UndoToast/);
+    expect(home).not.toMatch(/expo-widgets/);
   });
 
   it('does not touch IAP or reminderSchedule', () => {

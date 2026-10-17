@@ -55,7 +55,7 @@
     "overdueSuffix": "期限切れ",
     "empty": "まだ記録がありません",
     "add": "+ 追加",
-    "logged": "記録しました",
+    "logged": "今日記録済み",
     "deleted": "削除しました",
     "neverLogged": "未記録",
     "overdue": "期限切れ",
@@ -109,7 +109,6 @@
     "pro": "Pro",
     "restore": "購入を復元",
     "redeem": "コードを引き換え",
-    "widgets": "ウィジェット",
     "data": "データ",
     "recentlyDeleted": "最近削除した項目",
     "display": "表示",
@@ -125,26 +124,16 @@
   },
   "paywall": {
     "headline": "{n}件以上",
+    "historyHeadline": "{n}回以上記録",
     "unlimited": "項目数無制限",
     "unlimitedSub": "無料は{n}件",
-    "widgets": "ホーム画面ウィジェット",
-    "widgetsSub": "ロック画面でも記録",
+    "history": "項目ごとの記録は無制限",
+    "historySub": "無料は1項目{n}件まで",
     "share": "シェアデザイン追加",
     "shareSub": "クリームは無料",
     "priceFail": "価格を取得できません",
     "once": "買い切り。サブスクなし。",
     "buy": "購入"
-  },
-  "widget": {
-    "upgrade": "アップグレードで使う",
-    "undo": "取り消す",
-    "empty": "項目がありません",
-    "logged": "記録しました",
-    "title": "ウィジェット",
-    "hint": "未選択なら最も期限が近い項目。",
-    "small": "小",
-    "medium": "中（最大3件）",
-    "mostDue": "最も期限が近い"
   },
   "share": {
     "title": "シェアカード",
@@ -172,7 +161,9 @@
     "minute": "分",
     "hour": "時間",
     "day": "日",
+    "week": "週",
     "month": "か月",
+    "year": "年",
     "lastDoneLine": "{relative} · 前回 {date}"
   },
   "reminder": {

@@ -67,7 +67,27 @@ export default function AiChatScreen() {
         patchMsg(replyId, { typing: false, text: t('ai.notFound') });
         return;
       }
-      const result = await logActivityNow(item.id);
+      let result;
+      try {
+        result = await logActivityNow(item.id);
+      } catch (e) {
+        if (e?.code === 'FREE_LIMIT') {
+          nav.navigate('Paywall', { reason: e.kind || 'history' });
+          patchMsg(replyId, { typing: false, text: '' });
+          return;
+        }
+        throw e;
+      }
+      if (result.skipped) {
+        patchMsg(replyId, {
+          typing: false,
+          text: t('ai.logIntro', { name: item.title }),
+          item,
+          state: 'logged',
+          cardOn: true,
+        });
+        return;
+      }
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       const fresh = { ...item, lastDoneAt: result.loggedAt };
       patchMsg(replyId, {
@@ -136,17 +156,17 @@ export default function AiChatScreen() {
     if (!draft) return;
     const pro = await isProUnlocked();
     if (!pro && activities.length >= FREE_ACTIVITY_LIMIT) {
-      nav.navigate('Paywall');
+      nav.navigate('Paywall', { reason: 'items' });
       return;
     }
     try {
       await addActivity({
         title: draft.title,
-        icon: draft.icon,
         lastDoneAt: draft.lastDoneAt,
         reminderDays: draft.reminderDays,
         reminderTime: draft.reminderTime || reminderTime,
         ...draft,
+        icon: undefined,
         categoryId: draft.categoryId || OTHER_ID,
       });
       if (draft.reminderDays || draft.reminderMode) {
@@ -158,7 +178,7 @@ export default function AiChatScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       patchMsg(msg.id, { state: 'added' });
     } catch (e) {
-      if (e?.code === 'FREE_LIMIT') nav.navigate('Paywall');
+      if (e?.code === 'FREE_LIMIT') nav.navigate('Paywall', { reason: e.kind || 'items' });
     }
   }
 

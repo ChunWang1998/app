@@ -4,7 +4,7 @@ import { quickDateIso, quickDateFor, pickedDateIso, QUICK_DATES } from '../src/l
 import { suggestReminderDays } from '../src/lib/suggestReminder';
 import { isDueToday, splitToday, homeMood } from '../src/lib/today';
 import { reminderOptions } from '../src/components/ReminderChips';
-import { FREE_ACTIVITY_LIMIT, parseFreeLimit, resetRepositoryForTests, addActivity } from '../src/data/repository';
+import { FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT, parseFreeLimit, resetRepositoryForTests, addActivity } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
 import en from '../languages/en.json';
 import zh from '../languages/zh-Hant.json';
@@ -16,8 +16,10 @@ const DAY = 864e5;
 describe('quick last-done dates', () => {
   const now = new Date(2026, 9, 14, 15, 20);
   it('maps chips to dates; unknown means no record', () => {
-    expect(QUICK_DATES).toEqual(['today', 'week', 'month', 'unknown']);
+    expect(QUICK_DATES).toEqual(['today', 'yesterday', 'week', 'month', 'unknown']);
     expect(new Date(quickDateIso('today', now)).getDate()).toBe(14);
+    expect(new Date(quickDateIso('yesterday', now)).getDate()).toBe(13);
+    expect(new Date(quickDateIso('yesterday', now)).getHours()).toBe(15);
     expect(new Date(quickDateIso('week', now)).getDate()).toBe(7);
     const m = new Date(quickDateIso('month', now));
     expect([m.getMonth(), m.getDate()]).toEqual([8, 14]);
@@ -25,6 +27,7 @@ describe('quick last-done dates', () => {
   });
   it('recognises chip values and custom dates', () => {
     expect(quickDateFor(null, now)).toBe('unknown');
+    expect(quickDateFor(quickDateIso('yesterday', now), now)).toBe('yesterday');
     expect(quickDateFor(quickDateIso('week', now), now)).toBe('week');
     expect(quickDateFor(new Date(2026, 7, 30).toISOString(), now)).toBeNull();
   });
@@ -46,8 +49,9 @@ describe('reminder suggestion from name', () => {
     expect(suggestReminderDays('')).toBeNull();
   });
   it('shows a custom chip only for non-preset intervals', () => {
-    expect(reminderOptions(14).map((o) => o.d)).toEqual([null, 7, 14, 30, 90, 'more']);
-    expect(reminderOptions(42).map((o) => o.d)).toEqual([null, 7, 14, 30, 90, 42, 'more']);
+    expect(reminderOptions(14).map((o) => o.d)).toEqual([null, 1, 7, 14, 30, 90, 'more']);
+    expect(reminderOptions(1).map((o) => o.d)).toEqual([null, 1, 7, 14, 30, 90, 'more']);
+    expect(reminderOptions(42).map((o) => o.d)).toEqual([null, 1, 7, 14, 30, 90, 42, 'more']);
   });
   it('add screen saves the interval directly', () => {
     const src = read('../src/screens/EditScreen.js');
@@ -93,6 +97,21 @@ describe('free limit and paywall', () => {
     for (const l of [en, zh, ja]) expect(l.paywall.headline).toMatch(/\{n\}/);
     expect(read('../src/screens/PaywallScreen.js')).toMatch(/paywall\.headline', \{ n: FREE_ACTIVITY_LIMIT \}/);
   });
+  it('paywall lists unlimited logs per item in all languages', () => {
+    expect(FREE_HISTORY_LIMIT).toBe(10);
+    expect(en.paywall.history).toBe('Unlimited logs per item');
+    expect(zh.paywall.history).toBe('每項紀錄無上限');
+    expect(ja.paywall.history).toBe('項目ごとの記録は無制限');
+    expect(ja.paywall.historySub).toBe('無料は1項目{n}件まで');
+    for (const l of [en, zh, ja]) expect(l.paywall.historySub).toMatch(/\{n\}/);
+    expect(read('../src/screens/PaywallScreen.js')).toMatch(/paywall\.history/);
+    expect(read('../src/screens/PaywallScreen.js')).toMatch(/FREE_HISTORY_LIMIT/);
+    expect(en.paywall.historyHeadline).toBe('Log more than {n} times');
+    expect(zh.paywall.historyHeadline).toBe('不只記 {n} 次');
+    expect(ja.paywall.historyHeadline).toBe('{n}回以上記録');
+    expect(read('../src/screens/PaywallScreen.js')).toMatch(/paywall\.historyHeadline/);
+    expect(read('../src/screens/PaywallScreen.js')).toMatch(/reason === 'history'/);
+  });
 });
 
 describe('today section', () => {
@@ -135,8 +154,6 @@ describe('strings', () => {
 
 describe('due status (PR #20 preview fixes)', () => {
   const { dueStatus } = require('../src/lib/today');
-  const { dueClassOf } = require('../src/widgets/pick');
-  const H = 36e5;
   const at = (y, mo, d, h, mi = 0) => new Date(y, mo, d, h, mi).getTime();
   const status = (dueAt, now) => dueStatus(dueAt - now, now);
   it('due any time today is today, even if hours late', () => {
@@ -158,26 +175,13 @@ describe('due status (PR #20 preview fixes)', () => {
     expect(status(at(2026, 2, 8, 0, 30), at(2026, 2, 8, 23, 30))).toBe('today'); // Mar 8 2026: 23h day
     expect(status(at(2026, 2, 9, 0, 0), at(2026, 2, 8, 23, 59))).toBe('upcoming');
   });
-  it('app and widget classify the same due value the same way', () => {
-    const now = at(2026, 9, 14, 22);
-    const DAY = 864e5;
-    const mk = (dueAt, days) => ({ id: 'x', reminderDays: days, lastDoneAt: new Date(dueAt - days * DAY).toISOString() });
-    const map = { overdue: 'od', today: 'soon' };
-    for (const dueAt of [at(2026, 9, 13, 23), at(2026, 9, 14, 0, 0), at(2026, 9, 14, 23), at(2026, 9, 20, 12)]) {
-      const item = mk(dueAt, 7);
-      const app = dueStatus(dueAt - now, now);
-      const w = dueClassOf(item, now);
-      if (map[app]) expect(w).toBe(map[app]);
-      else expect(w).not.toBe('od');
-    }
-  });
   it('home row shows Today, not overdue 0 min', () => {
     const src = fs.readFileSync(path.join(__dirname, '../src/screens/HomeScreen.js'), 'utf8');
     expect(src).toMatch(/ds === 'today'\) status = t\('common\.today'\)/);
     expect(src).not.toMatch(/const od = due < 0/);
   });
-  it('icon picker wraps instead of clipping', () => {
-    const src = fs.readFileSync(path.join(__dirname, '../src/screens/EditScreen.js'), 'utf8');
+  it('category icon picker wraps instead of clipping', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../src/screens/CategoryEditScreen.js'), 'utf8');
     expect(src).toMatch(/flexWrap: 'wrap'/);
     expect(src).toMatch(/icCell: \{ width: '20%'/);
   });

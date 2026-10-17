@@ -1,45 +1,68 @@
 import React from 'react';
 import { createActivity, nowIso, migrateActivity, normalizeHistory, lastDoneFromHistory } from './models';
+import { doneToday } from '../lib/today';
 import { KeyValueStorage, loadState, saveState } from './storage';
 import { isProUnlocked } from '../lib/entitlements';
 import {
-  OTHER_ID, MAX_CATEGORIES, CATEGORIES_STATE_VERSION, migrateCategories, matchCategory, categoryExists,
+  OTHER_ID, OTHER_ICON, MAX_CATEGORIES, CATEGORIES_STATE_VERSION, migrateCategories, matchCategory, categoryExists,
   normalizeCategory, normalizeCategoryIcon, normalizeKeywords, newCategoryId, seedCategories, categoryNameTaken,
+  iconForItem,
 } from '../lib/categories';
 
 const storage = new KeyValueStorage();
 let state = { version: CATEGORIES_STATE_VERSION, activities: [], categories: seedCategories() };
 let initialized = false;
 const listeners = new Set();
-let writeTail = Promise.resolve();
-
-/** Serialize all repository writes so item/category creates cannot race. */
-function enqueueWrite(task) {
-  const run = writeTail.then(() => task(), () => task());
-  writeTail = run.then(() => undefined, () => undefined);
-  return run;
-}
 
 export const DEFAULT_FREE_ACTIVITY_LIMIT = 10;
+export const DEFAULT_FREE_HISTORY_LIMIT = 10;
 
-/** Positive integer from env, else 10. */
-export function parseFreeLimit(raw) {
+/** Positive integer from env, else the given fallback (10). */
+export function parseFreeLimit(raw, fallback = DEFAULT_FREE_ACTIVITY_LIMIT) {
   const s = String(raw ?? '').trim();
-  if (!/^\d+$/.test(s)) return DEFAULT_FREE_ACTIVITY_LIMIT;
+  if (!/^\d+$/.test(s)) return fallback;
   const n = Number(s);
-  return Number.isSafeInteger(n) && n > 0 ? n : DEFAULT_FREE_ACTIVITY_LIMIT;
+  return Number.isSafeInteger(n) && n > 0 ? n : fallback;
 }
 
 export const FREE_ACTIVITY_LIMIT = parseFreeLimit(process.env.EXPO_PUBLIC_FREE_ACTIVITY_LIMIT);
+export const FREE_HISTORY_LIMIT = parseFreeLimit(
+  process.env.EXPO_PUBLIC_FREE_HISTORY_LIMIT,
+  DEFAULT_FREE_HISTORY_LIMIT,
+);
+
+/** One writer at a time so Pro/same-day/count checks see the latest item. */
+let writeTail = Promise.resolve();
+
+function enqueueWrite(fn) {
+  const run = writeTail.then(() => fn());
+  writeTail = run.then(() => undefined, () => undefined);
+  return run;
+}
 
 function notify() {
   for (const l of listeners) l(state);
 }
 
-function freeLimitError() {
-  const err = new Error(`Free tier limit ${FREE_ACTIVITY_LIMIT}`);
+function freeLimitError(limit = FREE_ACTIVITY_LIMIT, kind = 'items') {
+  const err = new Error(`Free tier limit ${limit}`);
   err.code = 'FREE_LIMIT';
+  err.kind = kind;
   return err;
+}
+
+function historyOf(item) {
+  return normalizeHistory(item?.history, item?.lastDoneAt);
+}
+
+/** After the Pro check, re-read state so a queued write cannot use a stale count. Existing rows are never dropped. */
+async function assertCanWriteHistory(id, atIso) {
+  if (await isProUnlocked()) return;
+  const item = state.activities.find((a) => a.id === id);
+  const current = historyOf(item);
+  const next = normalizeHistory([{ at: atIso }, ...current]);
+  if (next.length <= current.length) return;
+  if (current.length >= FREE_HISTORY_LIMIT) throw freeLimitError(FREE_HISTORY_LIMIT, 'history');
 }
 
 function visibleCount(list = state.activities) {
@@ -49,26 +72,27 @@ function visibleCount(list = state.activities) {
 const TRASH_MS = 30 * 864e5;
 
 export async function initRepository() {
-  return enqueueWrite(async () => {
-    if (initialized) return;
-    const loaded = await loadState(storage);
-    const now = Date.now();
-    const kept = (loaded.activities || []).filter((a) => {
-      if (!a.deletedAt) return true;
-      const t = new Date(a.deletedAt).getTime();
-      return Number.isFinite(t) && now - t < TRASH_MS;
-    });
-    state = migrateCategories({ ...loaded, activities: kept });
-    initialized = true;
-    if (
-      loaded.version !== CATEGORIES_STATE_VERSION
-      || !Array.isArray(loaded.categories)
-      || kept.some((a, i) => a.categoryId !== state.activities[i].categoryId)
-    ) {
-      await saveState(state, storage);
-    }
-    notify();
+  if (initialized) return;
+  const loaded = await loadState(storage);
+  const now = Date.now();
+  const kept = (loaded.activities || []).filter((a) => {
+    if (!a.deletedAt) return true;
+    const t = new Date(a.deletedAt).getTime();
+    return Number.isFinite(t) && now - t < TRASH_MS;
   });
+  state = migrateCategories({ ...loaded, activities: kept });
+  initialized = true;
+  if (
+    loaded.version !== CATEGORIES_STATE_VERSION
+    || !Array.isArray(loaded.categories)
+    || kept.some((a, i) => (
+      a.categoryId !== state.activities[i].categoryId
+      || a.icon !== state.activities[i].icon
+    ))
+  ) {
+    await saveState(state, storage);
+  }
+  notify();
 }
 
 export function getRecentlyDeleted() {
@@ -100,11 +124,20 @@ export function subscribe(cb) {
 export function useActivities() {
   const [snap, setSnap] = React.useState(state);
   React.useEffect(() => subscribe(setSnap), []);
-  return { activities: snap.activities.filter(a => !a.deletedAt), categories: snap.categories || [], ready: initialized, raw: snap.activities };
+  const categories = snap.categories || [];
+  return {
+    activities: snap.activities.filter((a) => !a.deletedAt).map((a) => ({ ...a, icon: iconForItem(a, categories) })),
+    categories,
+    ready: initialized,
+    raw: snap.activities,
+  };
 }
 
 export function getVisibleActivities() {
-  return (state.activities || []).filter((a) => !a.deletedAt);
+  const categories = state.categories || [];
+  return (state.activities || [])
+    .filter((a) => !a.deletedAt)
+    .map((a) => ({ ...a, icon: iconForItem(a, categories) }));
 }
 
 export async function refreshReminders() {
@@ -120,14 +153,6 @@ async function persist(nextState) {
   state = { ...nextState, activities: nextState.activities || [] };
   await saveState(state, storage);
   notify();
-  if (typeof process === 'undefined' || !process.env.JEST_WORKER_ID) {
-    try {
-      const { scheduleWidgetSync } = require('../widgets/sync');
-      scheduleWidgetSync();
-    } catch {
-      // widgets optional in tests / web
-    }
-  }
   await refreshReminders();
 }
 
@@ -135,12 +160,12 @@ export async function addActivity(input) {
   return enqueueWrite(async () => {
     const pro = await isProUnlocked();
     if (!pro && visibleCount() >= FREE_ACTIVITY_LIMIT) {
-      throw freeLimitError();
+      throw freeLimitError(FREE_ACTIVITY_LIMIT, 'items');
     }
     const categoryId = input.categoryId && categoryExists(input.categoryId, state.categories)
       ? input.categoryId
       : matchCategory(input.title, state.categories);
-    const a = createActivity({ ...input, categoryId });
+    const a = createActivity({ ...input, categoryId, icon: iconForItem({ categoryId }, state.categories) });
     await persist({ ...state, activities: [a, ...state.activities] });
     return a;
   });
@@ -148,39 +173,79 @@ export async function addActivity(input) {
 
 export async function updateActivity(id, changes) {
   return enqueueWrite(async () => {
+    if (changes.history !== undefined || changes.lastDoneAt !== undefined) {
+      const latest = state.activities.find((a) => a.id === id);
+      const prev = historyOf(latest);
+      const nextHist = normalizeHistory(
+        changes.history !== undefined ? changes.history : latest?.history,
+        changes.lastDoneAt !== undefined ? changes.lastDoneAt : latest?.lastDoneAt,
+      );
+      if (nextHist.length > prev.length && !(await isProUnlocked())) {
+        const again = state.activities.find((a) => a.id === id);
+        const prev2 = historyOf(again);
+        const next2 = normalizeHistory(
+          changes.history !== undefined ? changes.history : again?.history,
+          changes.lastDoneAt !== undefined ? changes.lastDoneAt : again?.lastDoneAt,
+        );
+        if (next2.length > prev2.length && next2.length > FREE_HISTORY_LIMIT) {
+          throw freeLimitError(FREE_HISTORY_LIMIT, 'history');
+        }
+      }
+    }
     const ts = nowIso();
     const next = state.activities.map((a) => {
       if (a.id !== id) return a;
-      const merged = { ...a, ...changes, updatedAt: ts };
+      const { icon: _ignored, ...rest } = changes || {};
+      const merged = { ...a, ...rest, updatedAt: ts };
       if (changes.history || changes.lastDoneAt !== undefined) {
         const history = normalizeHistory(merged.history, merged.lastDoneAt);
-        return { ...merged, history, lastDoneAt: lastDoneFromHistory(history) };
+        merged.history = history;
+        merged.lastDoneAt = lastDoneFromHistory(history);
       }
+      merged.icon = iconForItem(merged, state.categories);
       return merged;
     });
     await persist({ ...state, activities: next });
   });
 }
 
-export async function logActivityAt(id, atIso) {
-  return enqueueWrite(async () => {
-    const ts = atIso || nowIso();
-    let previousLastDoneAt = null;
-    let previousHistory = [];
-    const next = state.activities.map((a) => {
-      if (a.id !== id) return a;
-      previousLastDoneAt = a.lastDoneAt ?? null;
-      previousHistory = Array.isArray(a.history) ? a.history : [];
-      const history = normalizeHistory([{ at: ts }, ...previousHistory]);
-      return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: nowIso() };
-    });
-    await persist({ ...state, activities: next });
-    return { previousLastDoneAt, previousHistory, loggedAt: ts };
+async function logActivityAtUnlocked(id, ts) {
+  await assertCanWriteHistory(id, ts);
+  let previousLastDoneAt = null;
+  let previousHistory = [];
+  const next = state.activities.map((a) => {
+    if (a.id !== id) return a;
+    previousLastDoneAt = a.lastDoneAt ?? null;
+    previousHistory = Array.isArray(a.history) ? a.history : [];
+    const history = normalizeHistory([{ at: ts }, ...previousHistory]);
+    return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: nowIso() };
   });
+  await persist({ ...state, activities: next });
+  return { previousLastDoneAt, previousHistory, loggedAt: ts };
 }
 
-export async function logActivityNow(id) {
-  return logActivityAt(id, nowIso());
+export async function logActivityAt(id, atIso) {
+  return enqueueWrite(() => logActivityAtUnlocked(id, atIso || nowIso()));
+}
+
+/**
+ * Check-off "now". Same local calendar day as lastDoneAt → no new history row.
+ * Home / detail use this; backfill still goes through logActivityAt.
+ */
+export async function logActivityNow(id, atIso) {
+  return enqueueWrite(async () => {
+    const ts = atIso || nowIso();
+    const item = state.activities.find((a) => a.id === id);
+    if (item && doneToday(item, new Date(ts).getTime())) {
+      return {
+        skipped: true,
+        previousLastDoneAt: item.lastDoneAt ?? null,
+        previousHistory: Array.isArray(item.history) ? item.history : [],
+        loggedAt: item.lastDoneAt,
+      };
+    }
+    return { skipped: false, ...(await logActivityAtUnlocked(id, ts)) };
+  });
 }
 
 export async function undoLogActivity(id, previousLastDoneAt, previousHistory) {
@@ -200,6 +265,7 @@ export async function undoLogActivity(id, previousLastDoneAt, previousHistory) {
 export async function backfillHistory(id, atIso) {
   return enqueueWrite(async () => {
     const at = new Date(atIso).toISOString();
+    await assertCanWriteHistory(id, at);
     const ts = nowIso();
     const next = state.activities.map((a) => {
       if (a.id !== id) return a;
@@ -210,11 +276,11 @@ export async function backfillHistory(id, atIso) {
   });
 }
 
-/** Hide from the list for the 5s undo window. Call hardDeleteActivity when the window ends. */
+/** Hide from the list for the 2s undo toast. Call hardDeleteActivity when the window ends. */
 export async function softDeleteActivity(id) {
   return enqueueWrite(async () => {
     const ts = nowIso();
-    const next = state.activities.map(a => (a.id === id ? { ...a, deletedAt: ts, updatedAt: ts } : a));
+    const next = state.activities.map((a) => (a.id === id ? { ...a, deletedAt: ts, updatedAt: ts } : a));
     await persist({ ...state, activities: next });
   });
 }
@@ -232,10 +298,10 @@ export async function undoDelete(id) {
     if (!target || !target.deletedAt) return;
     const pro = await isProUnlocked();
     if (!pro && visibleCount() >= FREE_ACTIVITY_LIMIT) {
-      throw freeLimitError();
+      throw freeLimitError(FREE_ACTIVITY_LIMIT, 'items');
     }
     const ts = nowIso();
-    const next = state.activities.map(a => (a.id === id ? { ...a, deletedAt: null, updatedAt: ts } : a));
+    const next = state.activities.map((a) => (a.id === id ? { ...a, deletedAt: null, updatedAt: ts } : a));
     await persist({ ...state, activities: next });
   });
 }
@@ -286,7 +352,8 @@ export async function updateCategory(id, changes = {}) {
       if (changes.keywords !== undefined) merged.keywords = normalizeKeywords(changes.keywords);
       return normalizeCategory(merged) || c;
     });
-    await persist({ ...state, categories: next });
+    const activities = state.activities.map((a) => ({ ...a, icon: iconForItem(a, next) }));
+    await persist({ ...state, categories: next, activities });
   });
 }
 
@@ -298,7 +365,7 @@ export async function deleteCategory(id) {
     const activities = state.activities.map((a) => {
       if (a.categoryId !== id) return a;
       if (!a.deletedAt) moved += 1;
-      return { ...a, categoryId: OTHER_ID };
+      return { ...a, categoryId: OTHER_ID, icon: OTHER_ICON };
     });
     await persist({ ...state, activities, categories: getCategories().filter((c) => c.id !== id) });
     return moved;

@@ -9,7 +9,6 @@ import PaywallScreen from '../screens/PaywallScreen';
 import ReminderScreen from '../screens/ReminderScreen';
 import ShareCardScreen from '../screens/ShareCardScreen';
 import RecentlyDeletedScreen from '../screens/RecentlyDeletedScreen';
-import WidgetPickerScreen from '../screens/WidgetPickerScreen';
 import CategoriesScreen from '../screens/CategoriesScreen';
 import CategoryEditScreen from '../screens/CategoryEditScreen';
 import AiChatScreen from '../screens/AiChatScreen';
@@ -66,7 +65,6 @@ export default function AppNavigator({ initial }) {
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen name="RecentlyDeleted" component={RecentlyDeletedScreen} />
-        <Stack.Screen name="WidgetPicker" component={WidgetPickerScreen} />
         <Stack.Screen name="Categories" component={CategoriesScreen} />
         <Stack.Screen
           name="CategoryEdit"

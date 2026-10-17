@@ -1,5 +1,4 @@
 import { matchCategory } from '../categories';
-import { suggestIcon } from '../suggestIcon';
 import {
   firstDueInstant,
   formatReminderLabel,
@@ -78,13 +77,11 @@ export function formatLastDoneChip(iso, now = Date.now()) {
 export function draftFromCreate(intent, { categories, reminderTime } = {}) {
   const title = String(intent?.name || '').trim();
   const categoryId = matchCategory(title, categories);
-  const icon = suggestIcon(title);
   const reminderDays = intent?.reminderDays ?? null;
   const cfg = configFromChipDays(reminderDays, { time: reminderTime });
   const fields = reminderFieldsFromConfig(cfg);
   return {
     title,
-    icon,
     categoryId,
     lastDoneAt: intent?.lastDoneAt ?? null,
     reminderDays: fields.reminderDays,

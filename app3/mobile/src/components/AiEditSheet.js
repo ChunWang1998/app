@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useThemeColors, useItemTone } from '../theme/useTheme';
-import { ItemGlyph } from './ItemGlyph';
-import { monogramLetter } from '../lib/suggestIcon';
+import { useThemeColors } from '../theme/useTheme';
 import { lastDoneIsoFromDaysAgo } from '../lib/ai/relative';
 import { configFromChipDays, reminderFieldsFromConfig, chipDaysFromConfig, reminderConfigFromActivity } from '../lib/reminderSchedule';
 import { t } from '../i18n';
@@ -33,7 +31,6 @@ function daysAgoOf(iso, now) {
 export function AiEditSheet({ visible, item, onClose, onSave, now = Date.now() }) {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
-  const tone = useItemTone(item?.icon, item?.title);
   const [lastDays, setLastDays] = useState(0);
   const [remDays, setRemDays] = useState(7);
 
@@ -69,9 +66,6 @@ export function AiEditSheet({ visible, item, onClose, onSave, now = Date.now() }
           </View>
           <View style={[styles.eg, { backgroundColor: c.cell }]}>
             <View style={styles.er}>
-              <View style={[styles.gl, { backgroundColor: tone.ac }]}>
-                <ItemGlyph kind={item.icon || 'brush'} color={tone.acf} letter={monogramLetter(item.title)} size={18} />
-              </View>
               <Text style={{ fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 20, color: c.label, flex: 1 }} numberOfLines={1}>
                 {item.title}
               </Text>
@@ -128,7 +122,6 @@ const styles = StyleSheet.create({
   side: { minWidth: 56 },
   eg: { marginHorizontal: 16, borderRadius: 18, overflow: 'hidden' },
   er: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 60, paddingHorizontal: 16 },
-  gl: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   lab: { fontSize: 15, fontFamily: 'BeenAgesRounded-Regular', paddingHorizontal: 20, paddingTop: 16 },
   qc: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingTop: 10 },
   q: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 17 },

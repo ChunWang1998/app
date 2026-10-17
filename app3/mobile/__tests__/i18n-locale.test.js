@@ -77,9 +77,9 @@ describe('device locale resolver', () => {
 
   it('tLocale uses the same resolver independently of current locale', () => {
     setLocale('en');
-    expect(tLocale('ja', 'widget.upgrade')).toBe('アップグレードで使う');
-    expect(tLocale('zh-SG', 'widget.upgrade')).toBe('升級就能用');
-    expect(tLocale('it-IT', 'widget.upgrade')).toBe('Upgrade to use');
+    expect(tLocale('ja', 'app.title')).toBe('久しぶり');
+    expect(tLocale('zh-SG', 'app.title')).toBe('好久沒了');
+    expect(tLocale('it-IT', 'app.title')).toBe('Been Ages');
   });
 
   it('deviceLocaleTags reads getLocales()', () => {

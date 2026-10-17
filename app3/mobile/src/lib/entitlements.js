@@ -38,9 +38,6 @@ export async function setProUnlocked(unlocked) {
     // ignore
   }
   notifyPro(unlocked);
-  try {
-    require('../widgets/sync').scheduleWidgetSync();
-  } catch {}
 }
 
 export async function clearProUnlocked() {
@@ -51,9 +48,6 @@ export async function clearProUnlocked() {
     // ignore
   }
   notifyPro(false);
-  try {
-    require('../widgets/sync').scheduleWidgetSync();
-  } catch {}
 }
 
 export async function getEmptyPurchaseStreak() {

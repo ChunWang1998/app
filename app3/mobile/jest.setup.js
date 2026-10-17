@@ -75,7 +75,9 @@ jest.mock('expo-notifications', () => ({
 
 jest.mock('expo-haptics', () => ({
   notificationAsync: jest.fn(async () => {}),
+  impactAsync: jest.fn(async () => {}),
   NotificationFeedbackType: { Success: 'success' },
+  ImpactFeedbackStyle: { Light: 'light' },
 }));
 
 jest.mock('expo-calendar', () => ({
@@ -103,38 +105,6 @@ jest.mock('expo-sharing', () => ({
 
 jest.mock('react-native-view-shot', () => ({
   captureRef: jest.fn(async () => 'file:///tmp/card.png'),
-}), { virtual: true });
-
-jest.mock('expo-widgets', () => {
-  const mk = (name) => ({
-    name,
-    updateSnapshot: jest.fn(),
-    updateTimeline: jest.fn(),
-    reload: jest.fn(),
-    getTimeline: jest.fn(async () => []),
-  });
-  return {
-    createWidget: jest.fn((name) => mk(name)),
-    addUserInteractionListener: jest.fn(() => ({ remove: jest.fn() })),
-    widgetsDirectory: null,
-  };
-}, { virtual: true });
-
-jest.mock('@expo/ui/swift-ui', () => ({
-  Button: 'Button',
-  HStack: 'HStack',
-  VStack: 'VStack',
-  Text: 'Text',
-  Image: 'Image',
-  Link: 'Link',
-  Spacer: 'Spacer',
-}), { virtual: true });
-
-jest.mock('@expo/ui/swift-ui/modifiers', () => ({
-  font: () => ({}),
-  foregroundStyle: () => ({}),
-  frame: () => ({}),
-  padding: () => ({}),
 }), { virtual: true });
 
 jest.mock('expo-asset', () => ({

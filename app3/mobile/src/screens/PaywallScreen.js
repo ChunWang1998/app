@@ -1,19 +1,21 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
-import { ChevronLeftIcon, InfinityIcon, GridIcon, ShareIcon } from '../components/Icons';
+import { ChevronLeftIcon, InfinityIcon, ShareIcon, CheckIcon } from '../components/Icons';
 import { purchaseProUnlock, restoreProUnlock, getProDisplayPrice, canPresentRedeemCode, presentRedeemCodeSheet } from '../lib/iap';
 import { isProUnlocked, subscribePro } from '../lib/entitlements';
-import { FREE_ACTIVITY_LIMIT } from '../data/repository';
+import { FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../data/repository';
 import { t } from '../i18n';
 
 export default function PaywallScreen() {
   const c = useThemeColors();
   const nav = useNavigation();
+  const { params } = useRoute();
   const insets = useSafeAreaInsets();
+  const historyReason = params?.reason === 'history';
   const [pro, setPro] = React.useState(false);
   const [price, setPrice] = React.useState(null);
   const [priceReady, setPriceReady] = React.useState(false);
@@ -92,7 +94,11 @@ export default function PaywallScreen() {
         </View>
       </View>
       <View style={styles.pw}>
-        <Text style={[styles.h1, { color: c.label }]}>{t('paywall.headline', { n: FREE_ACTIVITY_LIMIT })}</Text>
+        <Text style={[styles.h1, { color: c.label }]}>
+          {historyReason
+            ? t('paywall.historyHeadline', { n: FREE_HISTORY_LIMIT })
+            : t('paywall.headline', { n: FREE_ACTIVITY_LIMIT })}
+        </Text>
         <View style={{ marginTop: 32 }}>
           <Feature
             icon={<InfinityIcon color={c.brand} size={22} />}
@@ -100,9 +106,9 @@ export default function PaywallScreen() {
             sub={t('paywall.unlimitedSub', { n: FREE_ACTIVITY_LIMIT })}
           />
           <Feature
-            icon={<GridIcon color={c.brand} size={20} />}
-            title={t('paywall.widgets')}
-            sub={t('paywall.widgetsSub')}
+            icon={<CheckIcon color={c.brand} size={20} />}
+            title={t('paywall.history')}
+            sub={t('paywall.historySub', { n: FREE_HISTORY_LIMIT })}
           />
           <Feature
             icon={<ShareIcon color={c.brand} size={20} />}

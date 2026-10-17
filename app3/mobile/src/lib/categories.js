@@ -1,6 +1,6 @@
 import DEFAULT_KEYWORDS from './categoryKeywords.json';
 import { hasKey } from './suggestIcon';
-import { ICON_KINDS } from '../data/models';
+import { ICON_DEFAULT, ICON_KINDS } from '../data/models';
 import { categorySchema } from '../data/schema';
 import { resolveLocale } from '../i18n';
 import en from '../../languages/en.json';
@@ -11,8 +11,8 @@ import ja from '../../languages/ja.json';
 export const OTHER_ID = 'other';
 export const OTHER_ICON = 'dots';
 export const MAX_CATEGORIES = 30;
-/** Persist marker after the categories migration. */
-export const CATEGORIES_STATE_VERSION = 2;
+/** Persist marker. v2 = categories; v3 = item icons follow the category. */
+export const CATEGORIES_STATE_VERSION = 3;
 
 const LOCALES = [en, zhHant, ja];
 
@@ -65,9 +65,9 @@ const KEYWORD_LOCALES = ['en', 'zh-Hant', 'ja'];
  * appliances used to put trash titles in appliances because they share that
  * glyph with filters. Matching still uses every language (flattened lists).
  *
- * Existing installs already migrated to CATEGORIES_STATE_VERSION (2). Launch
- * migration never reseeds stored categories or reclassifies valid categoryIds,
- * so this table applies to new installs (and new items on those installs) only.
+ * Existing installs already migrated past v2. Launch migration never reseeds
+ * stored categories or reclassifies valid categoryIds, so this table applies
+ * to new installs (and new items on those installs) only.
  */
 export function seedKeywords() {
   const out = {};
@@ -154,10 +154,24 @@ export function categoryExists(id, categories) {
 }
 
 /**
+ * Display / persist icon for an item. Comes from the category, never a per-item pick.
+ * No category, or a category with no (valid) icon → default brush.
+ */
+export function iconForItem(item, categories) {
+  const id = item?.categoryId;
+  if (!id) return ICON_DEFAULT;
+  if (id === OTHER_ID) return OTHER_ICON;
+  const cat = (categories || []).find((c) => c.id === id);
+  if (!cat || !cat.icon) return ICON_DEFAULT;
+  return ICON_KINDS.includes(cat.icon) ? cat.icon : ICON_DEFAULT;
+}
+
+/**
  * Load-time migration: seed categories once; classify items with no (or a stale) category.
  * Items that already have a valid category are never reclassified.
- * If `state.categories` is already an array (v2 installs), keywords are only
+ * If `state.categories` is already an array (v2+ installs), keywords are only
  * normalized — default keyword fixes do not rewrite stored lists.
+ * v3: each item's icon becomes its category's icon. History and other fields stay.
  */
 export function migrateCategories(state) {
   const hadCategories = Array.isArray(state?.categories);
@@ -166,8 +180,11 @@ export function migrateCategories(state) {
     : seedCategories();
   const activities = (state?.activities || []).map((a) => {
     if (!a || typeof a !== 'object') return a;
-    if (a.categoryId && categoryExists(a.categoryId, categories)) return a;
-    return { ...a, categoryId: matchCategory(a.title, categories) };
+    const categoryId = a.categoryId && categoryExists(a.categoryId, categories)
+      ? a.categoryId
+      : matchCategory(a.title, categories);
+    const next = categoryId === a.categoryId ? a : { ...a, categoryId };
+    return { ...next, icon: iconForItem(next, categories) };
   });
   return { ...state, version: CATEGORIES_STATE_VERSION, categories, activities };
 }

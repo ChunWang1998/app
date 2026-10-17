@@ -14,6 +14,7 @@ import {
 import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { ItemGlyph } from '../components/ItemGlyph';
 import { Mascot } from '../components/Mascot';
+import { UndoToast } from '../components/UndoToast';
 import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { AiComposer } from '../components/AiComposer';
 import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort } from '../lib/time';
@@ -38,7 +39,7 @@ export default function HomeScreen() {
   // Category filter. Adding an item never switches it (stays on All).
   const [filter, setFilter] = useState('all');
   const [toast, setToast] = useState(null);
-  const toastTimer = useRef(null);
+  const loggingIds = useRef(new Set());
 
   const data = useMemo(() => {
     const mapped = [...activities].map((a) => {
@@ -62,13 +63,29 @@ export default function HomeScreen() {
   const mood = overdueCount > 0 ? 'worry' : homeMood(data);
 
   function showToast(next) {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(next);
-    toastTimer.current = setTimeout(() => setToast(null), 5000);
+    setToast({ ...next, id: Date.now() });
   }
 
   async function handleCheck(a) {
-    const result = await logActivityNow(a.id);
+    if (loggingIds.current.has(a.id)) return;
+    loggingIds.current.add(a.id);
+    let result;
+    try {
+      result = await logActivityNow(a.id);
+    } catch (e) {
+      if (e?.code === 'FREE_LIMIT') {
+        nav.navigate('Paywall', { reason: e.kind || 'history' });
+        return;
+      }
+      throw e;
+    } finally {
+      loggingIds.current.delete(a.id);
+    }
+    if (result.skipped) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      showToast({ text: t('home.logged') });
+      return;
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     showToast({
       text: t('home.logged'),
@@ -209,23 +226,15 @@ export default function HomeScreen() {
           onMic={() => nav.navigate('AiChat', { voice: true })}
         />
       </View>
-      {!!toast && (
-        <View style={[styles.toast, { backgroundColor: c.cell, borderColor: c.sep, bottom: 88 + insets.bottom }]}>
-          <Mascot size={38} mood="happy" />
-          <Text style={{ fontFamily: 'BeenAgesRounded-SemiBold', color: c.label, fontSize: 15 }}>{toast.text}</Text>
-          {toast.undo ? (
-            <TouchableOpacity
-              onPress={async () => {
-                const ok = await toast.undo();
-                if (ok !== false) setToast(null);
-              }}
-              hitSlop={8}
-            >
-              <Text style={{ color: c.brand, fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 15 }}>{t('common.undo')}</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      )}
+      {toast ? (
+        <UndoToast
+          key={toast.id}
+          text={toast.text}
+          undo={toast.undo}
+          onDone={() => setToast(null)}
+          bottom={88 + insets.bottom}
+        />
+      ) : null}
     </View>
   );
 }
@@ -391,17 +400,5 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 12,
     paddingTop: 10,
-  },
-  toast: {
-    position: 'absolute',
-    alignSelf: 'center',
-    borderRadius: 24,
-    paddingLeft: 10,
-    paddingRight: 8,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1.5,
   },
 });

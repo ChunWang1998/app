@@ -1,6 +1,6 @@
 import { parseAppUrl } from '../src/lib/deepLink';
 
-describe('widget paywall deep link', () => {
+describe('paywall deep link', () => {
   it('opens Paywall from beenages://paywall', () => {
     expect(parseAppUrl('beenages://paywall')).toEqual({ name: 'Paywall' });
     expect(parseAppUrl('beenages://paywall/')).toEqual({ name: 'Paywall' });

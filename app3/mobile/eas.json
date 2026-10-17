@@ -7,7 +7,8 @@
     "preview": {
       "distribution": "internal",
       "ios": {
-        "simulator": true
+        "simulator": true,
+        "image": "macos-tahoe-26.5-xcode-26.6"
       },
       "env": {
         "EXPO_PUBLIC_IAP_PRODUCT_ID": "com.beenages.app.fullpack",
@@ -22,6 +23,9 @@
       }
     },
     "production": {
+      "ios": {
+        "image": "macos-tahoe-26.5-xcode-26.6"
+      },
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_IAP_PRODUCT_ID": "com.beenages.app.fullpack",
