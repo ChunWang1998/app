@@ -10,10 +10,11 @@ import { isProUnlocked } from '../lib/entitlements';
 import { DateChips } from '../components/DateChips';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { CategoryGlyph } from '../components/CategoryGlyph';
-import { OTHER_ID, OTHER_ICON, matchCategory, categoryName } from '../lib/categories';
+import { OTHER_ID, OTHER_ICON, matchCategory, categoryName, iconForItem } from '../lib/categories';
 import { ReminderChips } from '../components/ReminderChips';
 import { suggestReminderDays } from '../lib/suggestReminder';
-import { suggestIcon, monogramLetter } from '../lib/suggestIcon';
+import { monogramLetter } from '../lib/suggestIcon';
+import { ICON_DEFAULT } from '../data/models';
 import { t } from '../i18n';
 import { clearDraftReminder, subscribeDraftReminder } from '../data/reminderDraft';
 import {
@@ -25,8 +26,6 @@ import {
   reminderFieldsFromConfig,
 } from '../lib/reminderSchedule';
 
-const PICKER = ['brush', 'drop', 'eye', 'pill', 'leaf', 'bed', 'scissors', 'car', 'paw', 'plug'];
-
 export default function EditScreen() {
   const nav = useNavigation();
   const { params } = useRoute();
@@ -37,8 +36,6 @@ export default function EditScreen() {
   const insets = useSafeAreaInsets();
   const isNew = !current;
   const [title, setTitle] = useState(current?.title || '');
-  const [icon, setIcon] = useState(current?.icon || (isNew ? 'mono' : 'brush'));
-  const [iconManual, setIconManual] = useState(!isNew);
   const [notes, setNotes] = useState(current?.notes || '');
   const [lastDoneAt, setLastDoneAt] = useState(() => (isNew ? new Date().toISOString() : current?.lastDoneAt || null));
   const [reminderCfg, setReminderCfg] = useState(() => reminderConfigFromActivity({ reminderTime: defaultTime }));
@@ -51,7 +48,8 @@ export default function EditScreen() {
   const catObj = shownCategory === OTHER_ID ? { id: OTHER_ID, icon: OTHER_ICON } : categories.find((x) => x.id === shownCategory);
 
   const remLabel = current ? formatReminderLabel(current) : formatReminderLabel(reminderCfg);
-  const tone = useItemTone(icon, title);
+  const previewIcon = iconForItem({ categoryId: shownCategory }, categories) || catObj?.icon || ICON_DEFAULT;
+  const tone = useItemTone(previewIcon, title);
   const chipValue = chipDaysFromConfig(reminderCfg);
 
   useEffect(() => {
@@ -66,7 +64,6 @@ export default function EditScreen() {
 
   function onTitle(text) {
     setTitle(text);
-    if (!iconManual) setIcon(suggestIcon(text));
     if (isNew && !reminderManual) {
       const days = suggestReminderDays(text);
       setReminderCfg(configFromChipDays(days, { ...reminderCfg, time: defaultTime }));
@@ -95,7 +92,7 @@ export default function EditScreen() {
     setBusy(true);
     try {
       if (current) {
-        const patch = { title: trimmed, icon, notes, ...(categoryId ? { categoryId } : {}) };
+        const patch = { title: trimmed, notes, ...(categoryId ? { categoryId } : {}) };
         if (lastDoneAt !== current.lastDoneAt) {
           const rest = (current.history || []).filter((e) => e.at !== current.lastDoneAt);
           patch.history = lastDoneAt ? [{ at: lastDoneAt }, ...rest] : rest;
@@ -112,7 +109,6 @@ export default function EditScreen() {
           const reminderDays = reminderFields.reminderDays;
           await addActivity({
             title: trimmed,
-            icon,
             notes,
             lastDoneAt,
             reminderDays,
@@ -179,7 +175,7 @@ export default function EditScreen() {
         <View style={[styles.grp, { backgroundColor: c.cell }]}>
           <View style={styles.row}>
             <View style={[styles.preview, { backgroundColor: tone.ac }]}>
-              <ItemGlyph kind={icon} color={tone.acf} letter={monogramLetter(title) || title} />
+              <ItemGlyph kind={previewIcon} color={tone.acf} letter={monogramLetter(title) || title} />
             </View>
             <TextInput
               value={title}
@@ -208,12 +204,6 @@ export default function EditScreen() {
           onPick={(id) => { setCategoryId(id); setPicker(false); }}
           onClose={() => setPicker(false)}
         />
-        <View style={styles.icp}>
-          {PICKER.map((k) => (
-            <IconBtn key={k} k={k} on={icon === k} onPress={() => { setIconManual(true); setIcon(k); }} idle={c.cell} dim={c.l2} />
-          ))}
-        </View>
-
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 18 }]}>
           <View style={[styles.rowLine, { paddingTop: 12 }]}>
             <Text style={[styles.lab, styles.secLab, { color: c.label }]}>{t('edit.last')}</Text>
@@ -265,21 +255,6 @@ export default function EditScreen() {
   );
 }
 
-function IconBtn({ k, on, onPress, idle, dim }) {
-  const tone = useItemTone(k);
-  return (
-    <View style={styles.icCell}>
-      <TouchableOpacity
-        onPress={onPress}
-        style={[styles.icBtn, { backgroundColor: on ? tone.ac : idle }]}
-        accessibilityLabel={k}
-      >
-        <ItemGlyph kind={k} color={on ? tone.acf : dim} />
-      </TouchableOpacity>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   nav: {
     height: 56,
@@ -309,8 +284,4 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   preview: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  // 5 per row, wraps: never clips on narrow screens.
-  icp: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 10, paddingTop: 14, paddingHorizontal: 16 },
-  icCell: { width: '20%', alignItems: 'center' },
-  icBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });

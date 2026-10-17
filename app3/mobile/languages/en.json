@@ -123,6 +123,8 @@
     "headline": "More than {n} items",
     "unlimited": "Unlimited items",
     "unlimitedSub": "Free plan: {n}",
+    "history": "Unlimited logs per item",
+    "historySub": "Free plan: {n}",
     "share": "Extra share styles",
     "shareSub": "Cream is free",
     "priceFail": "Could not load price",

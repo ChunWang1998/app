@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import {
-  OTHER_ID, MAX_CATEGORIES, CATEGORIES_STATE_VERSION, DEFAULT_KEYWORDS, seedCategories, seedKeywords, matchCategory,
-  migrateCategories, normalizeCategory, normalizeKeywords, categoryName, filterByCategory, keywordsForLocale,
+  OTHER_ID, OTHER_ICON, MAX_CATEGORIES, CATEGORIES_STATE_VERSION, DEFAULT_KEYWORDS, seedCategories, seedKeywords, matchCategory,
+  migrateCategories, normalizeCategory, normalizeKeywords, categoryName, filterByCategory, keywordsForLocale, iconForItem,
 } from '../src/lib/categories';
 import * as repo from '../src/data/repository';
 import { STATE_KEY } from '../src/data/storage';
@@ -135,6 +135,36 @@ describe('migration', () => {
     });
     expect(out.categories[0].keywords).toEqual(['倒垃圾', '濾水器']);
     expect(out.activities[0].categoryId).toBe('appl');
+    expect(out.version).toBe(3);
+    expect(out.activities[0].icon).toBe('plug');
+  });
+  it('v3 sets each item icon from its category and never drops history', () => {
+    const hist = [{ at: '2026-01-01T00:00:00.000Z' }, { at: '2025-12-01T00:00:00.000Z' }];
+    const out = migrateCategories({
+      version: 2,
+      categories: seedCategories(),
+      activities: [
+        row('1', '換貓砂', { categoryId: 'pet', icon: 'brush', notes: 'keep', history: hist, lastDoneAt: hist[0].at }),
+        row('2', '報稅', { categoryId: OTHER_ID, icon: 'leaf' }),
+        row('3', 'x', { icon: 'car' }),
+      ],
+    });
+    expect(out.version).toBe(CATEGORIES_STATE_VERSION);
+    expect(CATEGORIES_STATE_VERSION).toBe(3);
+    expect(out.activities[0].icon).toBe('paw');
+    expect(out.activities[0].notes).toBe('keep');
+    expect(out.activities[0].history).toHaveLength(2);
+    expect(out.activities[0].history[0].at).toBe('2026-01-01T00:00:00.000Z');
+    expect(out.activities[1].icon).toBe(OTHER_ICON);
+    expect(out.activities[2].categoryId).toBe(OTHER_ID);
+    expect(out.activities[2].icon).toBe(OTHER_ICON);
+  });
+  it('iconForItem uses the default when there is no category or no icon', () => {
+    expect(iconForItem({}, [])).toBe('brush');
+    expect(iconForItem({ categoryId: 'gone' }, [])).toBe('brush');
+    expect(iconForItem({ categoryId: 'mine' }, [{ id: 'mine', icon: null }])).toBe('brush');
+    expect(iconForItem({ categoryId: 'pet' }, seedCategories())).toBe('paw');
+    expect(iconForItem({ categoryId: OTHER_ID }, [])).toBe(OTHER_ICON);
   });
   it('filters invalid categories out of storage', async () => {
     expect(normalizeCategory(null)).toBeNull();
@@ -189,7 +219,17 @@ describe('repository categories (free)', () => {
     expect(moved).toBe(1);
     expect(repo.getCategories().some((c) => c.id === 'pet')).toBe(false);
     expect(repo.getVisibleActivities().find((x) => x.id === a.id).categoryId).toBe(OTHER_ID);
+    expect(repo.getVisibleActivities().find((x) => x.id === a.id).icon).toBe(OTHER_ICON);
     expect(await repo.deleteCategory(OTHER_ID)).toBe(0);
+  });
+  it('item icon follows the category, including after the category icon changes', async () => {
+    const a = await repo.addActivity({ title: '換貓砂' });
+    expect(a.icon).toBe('paw');
+    await repo.updateCategory('pet', { icon: 'leaf' });
+    expect(repo.getVisibleActivities().find((x) => x.id === a.id).icon).toBe('leaf');
+    await repo.updateActivity(a.id, { categoryId: 'car', icon: 'brush' });
+    expect(repo.getVisibleActivities().find((x) => x.id === a.id).icon).toBe('car');
+    expect(repo.getVisibleActivities().find((x) => x.id === a.id).categoryId).toBe('car');
   });
   it('category code has no Pro gate', () => {
     const src = read('../src/data/repository.js');

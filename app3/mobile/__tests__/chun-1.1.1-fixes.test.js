@@ -59,4 +59,15 @@ describe('1.1.1 device-test follow-ups', () => {
     expect(home).toMatch(/home\.logged/);
     expect(detail).toMatch(/home\.logged/);
   });
+
+  it('history-limit check-off and backfill open the existing paywall', () => {
+    const home = read('../src/screens/HomeScreen.js');
+    const detail = read('../src/screens/DetailScreen.js');
+    expect(home).toMatch(/handleCheck/);
+    expect(home).toMatch(/e\?\.code === 'FREE_LIMIT'/);
+    expect(detail).toMatch(/logNow/);
+    expect(detail).toMatch(/saveBackfill/);
+    expect(detail).toMatch(/nav\.navigate\('Paywall'\)/);
+    expect(read('../src/lib/calendar.js')).not.toMatch(/icon/);
+  });
 });

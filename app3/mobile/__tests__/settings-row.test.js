@@ -27,13 +27,15 @@ describe('settings rows', () => {
   });
 });
 
-describe('auto icon on create', () => {
-  it('suggests until the picker is tapped and never overwrites a stored icon', () => {
+describe('item icon from category', () => {
+  it('add/edit have no item icon picker; category editor still does', () => {
     const edit = fs.readFileSync(path.join(__dirname, '../src/screens/EditScreen.js'), 'utf8');
-    expect(edit).toMatch(/suggestIcon/);
-    expect(edit).toMatch(/iconManual/);
-    expect(edit).toMatch(/setIconManual\(true\)/);
-    expect(edit).toMatch(/isNew \? 'mono'/);
-    expect(edit).toMatch(/if \(!iconManual\) setIcon\(suggestIcon\(text\)\)/);
+    expect(edit).not.toMatch(/iconManual/);
+    expect(edit).not.toMatch(/suggestIcon\(/);
+    expect(edit).not.toMatch(/const PICKER/);
+    expect(edit).toMatch(/iconForItem/);
+    const cat = fs.readFileSync(path.join(__dirname, '../src/screens/CategoryEditScreen.js'), 'utf8');
+    expect(cat).toMatch(/CATEGORY_ICONS/);
+    expect(cat).toMatch(/setIconManual\(true\)/);
   });
 });

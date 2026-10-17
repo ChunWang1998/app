@@ -126,6 +126,8 @@
     "headline": "{n}件以上",
     "unlimited": "項目数無制限",
     "unlimitedSub": "無料は{n}件",
+    "history": "項目ごとの記録は無制限",
+    "historySub": "無料は項目{n}件",
     "share": "シェアデザイン追加",
     "shareSub": "クリームは無料",
     "priceFail": "価格を取得できません",

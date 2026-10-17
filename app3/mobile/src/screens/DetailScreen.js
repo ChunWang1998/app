@@ -58,7 +58,16 @@ export default function DetailScreen() {
   const remLabel = formatReminderLabel(item);
 
   async function logNow() {
-    const result = await logActivityNow(item.id);
+    let result;
+    try {
+      result = await logActivityNow(item.id);
+    } catch (e) {
+      if (e?.code === 'FREE_LIMIT') {
+        nav.navigate('Paywall');
+        return;
+      }
+      throw e;
+    }
     if (result.skipped) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       setToast({ id: Date.now(), text: t('home.logged') });
@@ -81,7 +90,16 @@ export default function DetailScreen() {
   async function saveBackfill() {
     const at = backfillAt;
     setBackfillAt(null);
-    if (at) await backfillHistory(item.id, at);
+    if (!at) return;
+    try {
+      await backfillHistory(item.id, at);
+    } catch (e) {
+      if (e?.code === 'FREE_LIMIT') {
+        nav.navigate('Paywall');
+        return;
+      }
+      throw e;
+    }
   }
 
   return (

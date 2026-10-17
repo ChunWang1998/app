@@ -123,6 +123,8 @@
     "headline": "不只記 {n} 件事",
     "unlimited": "無限項目",
     "unlimitedSub": "免費版 {n} 個",
+    "history": "每項紀錄無上限",
+    "historySub": "免費版每項 {n} 筆",
     "share": "更多分享樣式",
     "shareSub": "奶油免費",
     "priceFail": "無法取得價格",

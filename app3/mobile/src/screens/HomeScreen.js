@@ -65,7 +65,16 @@ export default function HomeScreen() {
   }
 
   async function handleCheck(a) {
-    const result = await logActivityNow(a.id);
+    let result;
+    try {
+      result = await logActivityNow(a.id);
+    } catch (e) {
+      if (e?.code === 'FREE_LIMIT') {
+        nav.navigate('Paywall');
+        return;
+      }
+      throw e;
+    }
     if (result.skipped) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       showToast({ text: t('home.logged') });

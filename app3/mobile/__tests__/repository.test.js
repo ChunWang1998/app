@@ -1,4 +1,4 @@
-import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, undoLogActivity, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, FREE_ACTIVITY_LIMIT } from '../src/data/repository';
+import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, logActivityAt, undoLogActivity, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
 
 describe('repository', () => {
@@ -121,11 +121,89 @@ describe('repository', () => {
     expect(getVisibleActivities()[0].history).toHaveLength(2);
   });
 
-  it('persists icon including mono', async () => {
+  it('derives icon from the category and ignores a passed-in icon', async () => {
     await resetRepositoryForTests();
-    const a = await addActivity({ title: '濾心', icon: 'drop' });
-    expect(a.icon).toBe('drop');
+    const a = await addActivity({ title: '換貓砂', icon: 'drop' });
+    expect(a.icon).toBe('paw');
+    expect(a.categoryId).toBe('pet');
     const m = await addActivity({ title: '量子', icon: 'mono' });
-    expect(getVisibleActivities().find((x) => x.id === m.id).icon).toBe('mono');
+    expect(getVisibleActivities().find((x) => x.id === m.id).icon).toBe('dots');
+  });
+});
+
+function histDay(n) {
+  return new Date(Date.UTC(2026, 0, n, 12)).toISOString();
+}
+
+describe('free history limit per item', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  async function itemWithHistory(n, title = 'HistCap') {
+    const a = await addActivity({ title });
+    for (let i = 1; i <= n; i++) {
+      await backfillHistory(a.id, histDay(i));
+    }
+    return a;
+  }
+
+  it('lets the 10th record through and paywalls the 11th', async () => {
+    await resetRepositoryForTests();
+    jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(false);
+    expect(FREE_HISTORY_LIMIT).toBe(10);
+    const a = await itemWithHistory(10);
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(10);
+    await expect(backfillHistory(a.id, histDay(11))).rejects.toHaveProperty('code', 'FREE_LIMIT');
+    await expect(logActivityAt(a.id, histDay(12))).rejects.toHaveProperty('code', 'FREE_LIMIT');
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(10);
+  });
+
+  it('never truncates an item that already has more than 10 records', async () => {
+    await resetRepositoryForTests();
+    jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(false);
+    const a = await addActivity({ title: 'Legacy' });
+    const history = Array.from({ length: 15 }, (_, i) => ({ at: histDay(i + 1) }));
+    await updateActivity(a.id, { history });
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(15);
+    await expect(logActivityAt(a.id, histDay(20))).rejects.toHaveProperty('code', 'FREE_LIMIT');
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(15);
+    expect(getVisibleActivities().find((x) => x.id === a.id).history.map((e) => e.at)).toEqual(
+      history.slice().sort((x, y) => new Date(y.at) - new Date(x.at)).map((e) => e.at),
+    );
+  });
+
+  it('does not limit Pro users', async () => {
+    await resetRepositoryForTests();
+    jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(true);
+    const a = await itemWithHistory(12);
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(12);
+    await logActivityAt(a.id, histDay(20));
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(13);
+  });
+
+  it('allows a new write after a record is removed and the count drops below 10', async () => {
+    await resetRepositoryForTests();
+    jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(false);
+    const a = await itemWithHistory(9);
+    const logged = await logActivityAt(a.id, histDay(10));
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(10);
+    await expect(logActivityAt(a.id, histDay(11))).rejects.toHaveProperty('code', 'FREE_LIMIT');
+    await undoLogActivity(a.id, logged.previousLastDoneAt, logged.previousHistory);
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(9);
+    await logActivityAt(a.id, histDay(11));
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(10);
+  });
+
+  it('same-day check-off still skips without hitting the paywall at the cap', async () => {
+    await resetRepositoryForTests();
+    jest.spyOn(ent, 'isProUnlocked').mockResolvedValue(false);
+    const last = new Date(2026, 9, 14, 8, 0, 0).toISOString();
+    const a = await addActivity({ title: 'TodayCap', lastDoneAt: last });
+    const older = Array.from({ length: 9 }, (_, i) => ({ at: histDay(i + 1) }));
+    await updateActivity(a.id, { history: [{ at: last }, ...older] });
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(10);
+    const noon = new Date(2026, 9, 14, 12, 0, 0).toISOString();
+    const skipped = await logActivityNow(a.id, noon);
+    expect(skipped.skipped).toBe(true);
+    expect(getVisibleActivities().find((x) => x.id === a.id).history).toHaveLength(10);
   });
 });

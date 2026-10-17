@@ -4,8 +4,9 @@ import { doneToday } from '../lib/today';
 import { KeyValueStorage, loadState, saveState } from './storage';
 import { isProUnlocked } from '../lib/entitlements';
 import {
-  OTHER_ID, MAX_CATEGORIES, CATEGORIES_STATE_VERSION, migrateCategories, matchCategory, categoryExists,
+  OTHER_ID, OTHER_ICON, MAX_CATEGORIES, CATEGORIES_STATE_VERSION, migrateCategories, matchCategory, categoryExists,
   normalizeCategory, normalizeCategoryIcon, normalizeKeywords, newCategoryId, seedCategories, categoryNameTaken,
+  iconForItem,
 } from '../lib/categories';
 
 const storage = new KeyValueStorage();
@@ -14,25 +15,39 @@ let initialized = false;
 const listeners = new Set();
 
 export const DEFAULT_FREE_ACTIVITY_LIMIT = 10;
+export const DEFAULT_FREE_HISTORY_LIMIT = 10;
 
-/** Positive integer from env, else 10. */
-export function parseFreeLimit(raw) {
+/** Positive integer from env, else the given fallback (10). */
+export function parseFreeLimit(raw, fallback = DEFAULT_FREE_ACTIVITY_LIMIT) {
   const s = String(raw ?? '').trim();
-  if (!/^\d+$/.test(s)) return DEFAULT_FREE_ACTIVITY_LIMIT;
+  if (!/^\d+$/.test(s)) return fallback;
   const n = Number(s);
-  return Number.isSafeInteger(n) && n > 0 ? n : DEFAULT_FREE_ACTIVITY_LIMIT;
+  return Number.isSafeInteger(n) && n > 0 ? n : fallback;
 }
 
 export const FREE_ACTIVITY_LIMIT = parseFreeLimit(process.env.EXPO_PUBLIC_FREE_ACTIVITY_LIMIT);
+export const FREE_HISTORY_LIMIT = parseFreeLimit(
+  process.env.EXPO_PUBLIC_FREE_HISTORY_LIMIT,
+  DEFAULT_FREE_HISTORY_LIMIT,
+);
 
 function notify() {
   for (const l of listeners) l(state);
 }
 
-function freeLimitError() {
-  const err = new Error(`Free tier limit ${FREE_ACTIVITY_LIMIT}`);
+function freeLimitError(limit = FREE_ACTIVITY_LIMIT) {
+  const err = new Error(`Free tier limit ${limit}`);
   err.code = 'FREE_LIMIT';
   return err;
+}
+
+/** New unique history row is blocked for free users at FREE_HISTORY_LIMIT. Existing rows are never dropped. */
+async function assertCanWriteHistory(item, atIso) {
+  if (await isProUnlocked()) return;
+  const current = normalizeHistory(item?.history, item?.lastDoneAt);
+  const next = normalizeHistory([{ at: atIso }, ...current]);
+  if (next.length <= current.length) return;
+  if (current.length >= FREE_HISTORY_LIMIT) throw freeLimitError(FREE_HISTORY_LIMIT);
 }
 
 function visibleCount(list = state.activities) {
@@ -55,7 +70,10 @@ export async function initRepository() {
   if (
     loaded.version !== CATEGORIES_STATE_VERSION
     || !Array.isArray(loaded.categories)
-    || kept.some((a, i) => a.categoryId !== state.activities[i].categoryId)
+    || kept.some((a, i) => (
+      a.categoryId !== state.activities[i].categoryId
+      || a.icon !== state.activities[i].icon
+    ))
   ) {
     await saveState(state, storage);
   }
@@ -90,11 +108,20 @@ export function subscribe(cb) {
 export function useActivities() {
   const [snap, setSnap] = React.useState(state);
   React.useEffect(() => subscribe(setSnap), []);
-  return { activities: snap.activities.filter(a => !a.deletedAt), categories: snap.categories || [], ready: initialized, raw: snap.activities };
+  const categories = snap.categories || [];
+  return {
+    activities: snap.activities.filter((a) => !a.deletedAt).map((a) => ({ ...a, icon: iconForItem(a, categories) })),
+    categories,
+    ready: initialized,
+    raw: snap.activities,
+  };
 }
 
 export function getVisibleActivities() {
-  return (state.activities || []).filter((a) => !a.deletedAt);
+  const categories = state.categories || [];
+  return (state.activities || [])
+    .filter((a) => !a.deletedAt)
+    .map((a) => ({ ...a, icon: iconForItem(a, categories) }));
 }
 
 export async function refreshReminders() {
@@ -121,7 +148,7 @@ export async function addActivity(input) {
   const categoryId = input.categoryId && categoryExists(input.categoryId, state.categories)
     ? input.categoryId
     : matchCategory(input.title, state.categories);
-  const a = createActivity({ ...input, categoryId });
+  const a = createActivity({ ...input, categoryId, icon: iconForItem({ categoryId }, state.categories) });
   await persist({ ...state, activities: [a, ...state.activities] });
   return a;
 }
@@ -130,11 +157,14 @@ export async function updateActivity(id, changes) {
   const ts = nowIso();
   const next = state.activities.map((a) => {
     if (a.id !== id) return a;
-    const merged = { ...a, ...changes, updatedAt: ts };
+    const { icon: _ignored, ...rest } = changes || {};
+    const merged = { ...a, ...rest, updatedAt: ts };
     if (changes.history || changes.lastDoneAt !== undefined) {
       const history = normalizeHistory(merged.history, merged.lastDoneAt);
-      return { ...merged, history, lastDoneAt: lastDoneFromHistory(history) };
+      merged.history = history;
+      merged.lastDoneAt = lastDoneFromHistory(history);
     }
+    merged.icon = iconForItem(merged, state.categories);
     return merged;
   });
   await persist({ ...state, activities: next });
@@ -142,6 +172,8 @@ export async function updateActivity(id, changes) {
 
 export async function logActivityAt(id, atIso) {
   const ts = atIso || nowIso();
+  const item = state.activities.find((a) => a.id === id);
+  if (item) await assertCanWriteHistory(item, ts);
   let previousLastDoneAt = null;
   let previousHistory = [];
   const next = state.activities.map((a) => {
@@ -187,6 +219,8 @@ export async function undoLogActivity(id, previousLastDoneAt, previousHistory) {
 
 export async function backfillHistory(id, atIso) {
   const at = new Date(atIso).toISOString();
+  const item = state.activities.find((a) => a.id === id);
+  if (item) await assertCanWriteHistory(item, at);
   const ts = nowIso();
   const next = state.activities.map((a) => {
     if (a.id !== id) return a;
@@ -263,7 +297,8 @@ export async function updateCategory(id, changes = {}) {
     if (changes.keywords !== undefined) merged.keywords = normalizeKeywords(changes.keywords);
     return normalizeCategory(merged) || c;
   });
-  await persist({ ...state, categories: next });
+  const activities = state.activities.map((a) => ({ ...a, icon: iconForItem(a, next) }));
+  await persist({ ...state, categories: next, activities });
 }
 
 /** Delete a category and move its items (including Recently Deleted ones) to Other. Returns the moved visible count. */
@@ -273,7 +308,7 @@ export async function deleteCategory(id) {
   const activities = state.activities.map((a) => {
     if (a.categoryId !== id) return a;
     if (!a.deletedAt) moved += 1;
-    return { ...a, categoryId: OTHER_ID };
+    return { ...a, categoryId: OTHER_ID, icon: OTHER_ICON };
   });
   await persist({ ...state, activities, categories: getCategories().filter((c) => c.id !== id) });
   return moved;

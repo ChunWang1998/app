@@ -4,10 +4,10 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
-import { ChevronLeftIcon, InfinityIcon, ShareIcon } from '../components/Icons';
+import { ChevronLeftIcon, InfinityIcon, ShareIcon, CheckIcon } from '../components/Icons';
 import { purchaseProUnlock, restoreProUnlock, getProDisplayPrice, canPresentRedeemCode, presentRedeemCodeSheet } from '../lib/iap';
 import { isProUnlocked, subscribePro } from '../lib/entitlements';
-import { FREE_ACTIVITY_LIMIT } from '../data/repository';
+import { FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../data/repository';
 import { t } from '../i18n';
 
 export default function PaywallScreen() {
@@ -98,6 +98,11 @@ export default function PaywallScreen() {
             icon={<InfinityIcon color={c.brand} size={22} />}
             title={t('paywall.unlimited')}
             sub={t('paywall.unlimitedSub', { n: FREE_ACTIVITY_LIMIT })}
+          />
+          <Feature
+            icon={<CheckIcon color={c.brand} size={20} />}
+            title={t('paywall.history')}
+            sub={t('paywall.historySub', { n: FREE_HISTORY_LIMIT })}
           />
           <Feature
             icon={<ShareIcon color={c.brand} size={20} />}

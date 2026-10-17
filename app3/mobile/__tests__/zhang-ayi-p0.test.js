@@ -4,7 +4,7 @@ import { quickDateIso, quickDateFor, pickedDateIso, QUICK_DATES } from '../src/l
 import { suggestReminderDays } from '../src/lib/suggestReminder';
 import { isDueToday, splitToday, homeMood } from '../src/lib/today';
 import { reminderOptions } from '../src/components/ReminderChips';
-import { FREE_ACTIVITY_LIMIT, parseFreeLimit, resetRepositoryForTests, addActivity } from '../src/data/repository';
+import { FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT, parseFreeLimit, resetRepositoryForTests, addActivity } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
 import en from '../languages/en.json';
 import zh from '../languages/zh-Hant.json';
@@ -97,6 +97,15 @@ describe('free limit and paywall', () => {
     for (const l of [en, zh, ja]) expect(l.paywall.headline).toMatch(/\{n\}/);
     expect(read('../src/screens/PaywallScreen.js')).toMatch(/paywall\.headline', \{ n: FREE_ACTIVITY_LIMIT \}/);
   });
+  it('paywall lists unlimited logs per item in all languages', () => {
+    expect(FREE_HISTORY_LIMIT).toBe(10);
+    expect(en.paywall.history).toBe('Unlimited logs per item');
+    expect(zh.paywall.history).toBe('每項紀錄無上限');
+    expect(ja.paywall.history).toBe('項目ごとの記録は無制限');
+    for (const l of [en, zh, ja]) expect(l.paywall.historySub).toMatch(/\{n\}/);
+    expect(read('../src/screens/PaywallScreen.js')).toMatch(/paywall\.history/);
+    expect(read('../src/screens/PaywallScreen.js')).toMatch(/FREE_HISTORY_LIMIT/);
+  });
 });
 
 describe('today section', () => {
@@ -165,8 +174,8 @@ describe('due status (PR #20 preview fixes)', () => {
     expect(src).toMatch(/ds === 'today'\) status = t\('common\.today'\)/);
     expect(src).not.toMatch(/const od = due < 0/);
   });
-  it('icon picker wraps instead of clipping', () => {
-    const src = fs.readFileSync(path.join(__dirname, '../src/screens/EditScreen.js'), 'utf8');
+  it('category icon picker wraps instead of clipping', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../src/screens/CategoryEditScreen.js'), 'utf8');
     expect(src).toMatch(/flexWrap: 'wrap'/);
     expect(src).toMatch(/icCell: \{ width: '20%'/);
   });
