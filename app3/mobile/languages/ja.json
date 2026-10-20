@@ -223,7 +223,9 @@
     "title": "最近削除した項目",
     "empty": "項目がありません",
     "restore": "復元",
-    "purge": "30日後に完全削除"
+    "purge": "3日後に完全削除",
+    "daysLeft": "あと{n}日",
+    "oneDayLeft": "あと1日"
   },
   "demo": {
     "filter": "浄水器のカートリッジ交換",

@@ -116,3 +116,28 @@ describe('F11 home countdown is days, not minutes', () => {
     expect(formatHomeCountdown(13 * 36e5 + 32 * 60e3, now, 'zh-Hant')).toBe('今天');
   });
 });
+
+describe('recently deleted 3-day window', () => {
+  it('purges on launch and foreground via enqueueWrite', () => {
+    const repo = read('../src/data/repository.js');
+    const app = read('../src/App.js');
+    const screen = read('../src/screens/RecentlyDeletedScreen.js');
+    expect(repo).toMatch(/export const TRASH_DAYS = 3/);
+    expect(repo).toMatch(/export async function purgeExpiredDeleted/);
+    expect(repo).toMatch(/enqueueWrite\(async \(\) => \{[\s\S]*isExpiredDeleted/);
+    expect(app).toMatch(/AppState\.addEventListener\('change'/);
+    expect(app).toMatch(/purgeExpiredDeleted/);
+    expect(screen).toMatch(/deleted\.daysLeft/);
+    expect(screen).toMatch(/deleted\.oneDayLeft/);
+    expect(screen).toMatch(/deleted\.purge/);
+  });
+
+  it.each(LOCALES)('%s copy is 3 days, with remaining days', (locale) => {
+    const purge = tLocale(locale, 'deleted.purge');
+    expect(purge).toMatch(/3/);
+    expect(purge).not.toMatch(/30/);
+    expect(tLocale(locale, 'deleted.daysLeft', { n: 2 }).length).toBeGreaterThan(0);
+    expect(tLocale(locale, 'deleted.oneDayLeft').length).toBeGreaterThan(0);
+    expect(tLocale(locale, 'deleted.daysLeft', { n: 2 })).toMatch(/2/);
+  });
+});

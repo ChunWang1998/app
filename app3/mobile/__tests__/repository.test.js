@@ -1,4 +1,4 @@
-import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, logActivityAt, logActivityOnDay, undoLogActivity, undoLogAt, undoHandlerForLog, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
+import { initRepository, resetRepositoryForTests, reloadRepositoryForTests, addActivity, logActivityNow, logActivityAt, logActivityOnDay, undoLogActivity, undoLogAt, undoHandlerForLog, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, purgeExpiredDeleted, trashDaysLeft, TRASH_DAYS, TRASH_MS, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
 import { sameLocalDay } from '../src/lib/today';
 import * as ent from '../src/lib/entitlements';
 
@@ -38,6 +38,39 @@ describe('repository', () => {
       await addActivity({ title: `P${i}` });
     }
     expect(getVisibleActivities()).toHaveLength(FREE_ACTIVITY_LIMIT + 3);
+  });
+
+  it('keeps recently deleted for 3 days and purges older rows on launch', async () => {
+    await resetRepositoryForTests();
+    expect(TRASH_DAYS).toBe(3);
+    expect(TRASH_MS).toBe(3 * 864e5);
+    const stale = await addActivity({ title: 'Stale trash' });
+    const recent = await addActivity({ title: 'Recent trash' });
+    const alive = await addActivity({ title: 'Still here' });
+    await softDeleteActivity(stale.id);
+    await softDeleteActivity(recent.id);
+    const now = Date.parse('2026-10-20T16:00:00.000Z');
+    await updateActivity(stale.id, { deletedAt: new Date(now - 4 * 864e5).toISOString() });
+    await updateActivity(recent.id, { deletedAt: new Date(now - 1 * 864e5).toISOString() });
+    const dropped = await purgeExpiredDeleted(now);
+    expect(dropped.removed).toBe(1);
+    expect(getRecentlyDeleted().map((x) => x.id)).toEqual([recent.id]);
+    expect(getVisibleActivities().map((x) => x.id)).toContain(alive.id);
+
+    await updateActivity(recent.id, { deletedAt: new Date(now - 4 * 864e5).toISOString() });
+    await reloadRepositoryForTests();
+    expect(getRecentlyDeleted().find((x) => x.id === recent.id)).toBeUndefined();
+    expect(getRecentlyDeleted().find((x) => x.id === stale.id)).toBeUndefined();
+    expect(getVisibleActivities().find((x) => x.id === alive.id)).toBeTruthy();
+    await reloadRepositoryForTests();
+    expect(getRecentlyDeleted().map((x) => x.id)).not.toContain(recent.id);
+  });
+
+  it('counts whole days left in recently deleted', () => {
+    const now = Date.parse('2026-10-20T16:00:00.000Z');
+    expect(trashDaysLeft(new Date(now).toISOString(), now)).toBe(3);
+    expect(trashDaysLeft(new Date(now - 2 * 864e5).toISOString(), now)).toBe(1);
+    expect(trashDaysLeft(new Date(now - 3 * 864e5).toISOString(), now)).toBe(0);
   });
 
   it('keeps swipe-deletes in recently deleted', async () => {

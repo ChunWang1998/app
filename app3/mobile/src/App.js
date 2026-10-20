@@ -2,11 +2,11 @@ import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initializeI18n, setLocale, t } from './i18n';
-import { initRepository, resetRepositoryForTests, addActivity, updateActivity, logActivityNow } from './data/repository';
+import { initRepository, resetRepositoryForTests, addActivity, updateActivity, logActivityNow, purgeExpiredDeleted } from './data/repository';
 import { initPrefs, updatePrefs } from './data/prefs';
 import AppNavigator from './navigation/AppNavigator';
 import * as Font from 'expo-font';
-import { StatusBar } from 'react-native';
+import { AppState, StatusBar } from 'react-native';
 import { startPurchaseUpdates, verifyProOnLaunch } from './lib/iap';
 import { ThemeProvider, useForcedScheme } from './theme/useTheme';
 import { setProUnlocked } from './lib/entitlements';
@@ -22,6 +22,12 @@ function AppStatusBar() {
 export default function App() {
   const [ready, setReady] = React.useState(false);
   const [initial, setInitial] = React.useState(null);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') purgeExpiredDeleted().catch(() => {});
+    });
+    return () => sub.remove();
+  }, []);
   useEffect(() => {
     (async () => {
       try {

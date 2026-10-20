@@ -220,7 +220,9 @@
     "title": "最近刪除",
     "empty": "沒有項目",
     "restore": "還原",
-    "purge": "30 天後永久刪除"
+    "purge": "3 天後永久刪除",
+    "daysLeft": "還有 {n} 天",
+    "oneDayLeft": "還有 1 天"
   },
   "demo": {
     "filter": "換濾水器濾心",

@@ -69,29 +69,54 @@ function visibleCount(list = state.activities) {
   return (list || []).filter((a) => !a.deletedAt).length;
 }
 
-const TRASH_MS = 30 * 864e5;
+export const TRASH_DAYS = 3;
+export const TRASH_MS = TRASH_DAYS * 864e5;
+
+export function isExpiredDeleted(item, now = Date.now()) {
+  if (!item?.deletedAt) return false;
+  const t = new Date(item.deletedAt).getTime();
+  return Number.isFinite(t) && now - t >= TRASH_MS;
+}
+
+/** Whole days left in Recently Deleted (1–3). 0 means it should already be gone. */
+export function trashDaysLeft(deletedAt, now = Date.now()) {
+  const t = new Date(deletedAt).getTime();
+  if (!Number.isFinite(t)) return 0;
+  const left = TRASH_MS - (now - t);
+  if (left <= 0) return 0;
+  return Math.max(1, Math.ceil(left / 864e5));
+}
+
+/** Drop rows past the 3-day window and persist. Launch + foreground. */
+export async function purgeExpiredDeleted(now = Date.now()) {
+  return enqueueWrite(async () => {
+    if (!initialized) return { removed: 0 };
+    const prev = state.activities || [];
+    const next = prev.filter((a) => !isExpiredDeleted(a, now));
+    const removed = prev.length - next.length;
+    if (!removed) return { removed: 0 };
+    await persist({ ...state, activities: next });
+    return { removed };
+  });
+}
 
 export async function initRepository() {
   if (initialized) return;
   const loaded = await loadState(storage);
-  const now = Date.now();
-  const kept = (loaded.activities || []).filter((a) => {
-    if (!a.deletedAt) return true;
-    const t = new Date(a.deletedAt).getTime();
-    return Number.isFinite(t) && now - t < TRASH_MS;
-  });
-  state = migrateCategories({ ...loaded, activities: kept });
+  const loadedActs = loaded.activities || [];
+  state = migrateCategories({ ...loaded, activities: loadedActs });
   initialized = true;
   if (
     loaded.version !== CATEGORIES_STATE_VERSION
     || !Array.isArray(loaded.categories)
-    || kept.some((a, i) => (
+    || loadedActs.some((a, i) => (
       a.categoryId !== state.activities[i].categoryId
       || a.icon !== state.activities[i].icon
     ))
   ) {
     await saveState(state, storage);
   }
+  await purgeExpiredDeleted();
   notify();
 }
 

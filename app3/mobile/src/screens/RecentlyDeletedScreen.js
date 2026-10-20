@@ -2,11 +2,17 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getRecentlyDeleted, undoDelete, subscribe } from '../data/repository';
+import { getRecentlyDeleted, undoDelete, subscribe, trashDaysLeft } from '../data/repository';
 import { useThemeColors } from '../theme/useTheme';
 import { ChevronLeftIcon } from '../components/Icons';
 import { formatDate } from '../lib/time';
 import { t } from '../i18n';
+
+function trashLeftCopy(deletedAt) {
+  const n = trashDaysLeft(deletedAt);
+  if (n <= 1) return t('deleted.oneDayLeft');
+  return t('deleted.daysLeft', { n });
+}
 
 export default function RecentlyDeletedScreen() {
   const c = useThemeColors();
@@ -44,7 +50,7 @@ export default function RecentlyDeletedScreen() {
             <View style={{ flex: 1 }}>
               <Text style={{ color: c.label, fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 }}>{it.title}</Text>
               <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', marginTop: 2, fontSize: 13 }}>
-                {it.deletedAt ? formatDate(it.deletedAt) : ''}
+                {it.deletedAt ? `${formatDate(it.deletedAt)} \u00b7 ${trashLeftCopy(it.deletedAt)}` : ''}
               </Text>
             </View>
             <TouchableOpacity onPress={() => restore(it)} style={[styles.btn, { borderColor: c.brand }]}>
