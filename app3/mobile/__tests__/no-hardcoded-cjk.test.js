@@ -183,22 +183,30 @@ describe('i18n: no hardcoded CJK in app source', () => {
   });
 
   it('marks de and fr as machine-translated and avoids unlock wording', () => {
-    const de = JSON.stringify(require('../languages/de.json'));
-    const fr = JSON.stringify(require('../languages/fr.json'));
-    const deIos = JSON.stringify(require('../languages/ios/de.json'));
-    const frIos = JSON.stringify(require('../languages/ios/fr.json'));
-    expect(de).toMatch(/machine-draft|Machine-translated/i);
-    expect(fr).toMatch(/machine-draft|Machine-translated/i);
-    for (const blob of [de, deIos]) {
-      expect(blob.toLowerCase()).not.toMatch(/freischalten|freigeschaltet|entsperren|unlock/);
-    }
-    for (const blob of [fr, frIos]) {
-      expect(blob.toLowerCase()).not.toMatch(/débloquer|débloqué|unlock/);
-    }
-    expect(require('../languages/de.json').paywall.once).toMatch(/Einmalkauf/);
-    expect(require('../languages/fr.json').paywall.once).toMatch(/Achat unique/);
-    expect(require('../languages/de.json').settings.restore).toBe('Käufe wiederherstellen');
-    expect(require('../languages/fr.json').settings.restore).toBe('Restaurer les achats');
+    const de = require('../languages/de.json');
+    const fr = require('../languages/fr.json');
+    const deIos = require('../languages/ios/de.json');
+    const frIos = require('../languages/ios/fr.json');
+    expect(de._meta?.status).toBe('machine-draft');
+    expect(fr._meta?.status).toBe('machine-draft');
+    const values = (obj) => {
+      const out = [];
+      const walk = (o, key) => {
+        if (key === '_meta') return;
+        if (typeof o === 'string') out.push(o);
+        else if (o && typeof o === 'object') Object.entries(o).forEach(([k, v]) => walk(v, k));
+      };
+      walk(obj);
+      return out.join('\n').toLowerCase();
+    };
+    expect(values(de)).not.toMatch(/freischalten|freigeschaltet|entsperren|unlock/);
+    expect(values(fr)).not.toMatch(/débloquer|débloqué|unlock/);
+    expect(values(deIos)).not.toMatch(/freischalten|freigeschaltet|entsperren|unlock/);
+    expect(values(frIos)).not.toMatch(/débloquer|débloqué|unlock/);
+    expect(de.paywall.once).toMatch(/Einmalkauf/);
+    expect(fr.paywall.once).toMatch(/Achat unique/);
+    expect(de.settings.restore).toBe('Käufe wiederherstellen');
+    expect(fr.settings.restore).toBe('Restaurer les achats');
   });
 
   it('does not embed ASC API key fields in eas.json', () => {

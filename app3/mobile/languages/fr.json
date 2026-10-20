@@ -295,6 +295,6 @@
     "a11yNew": "Nouveau chat",
     "speechDenied": "Micro désactivé",
     "speechUnavailable": "Reconnaissance hors ligne indisponible",
-    "micOffHint": "Sur l’appareil seulement"
+    "micOffHint": "Sur l’appareil"
   }
 }
