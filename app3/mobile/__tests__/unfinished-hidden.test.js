@@ -45,8 +45,8 @@ describe('v1.1 ships finished entry points only', () => {
     expect(settings).not.toMatch(/settings\.contact/);
     expect(settings).not.toMatch(/settings\.support/);
     expect(settings).not.toMatch(/hideName/);
-    expect(settings).toMatch('chunwang1998.github.io/app/app3/store/privacy.html');
-    expect(settings).not.toMatch('chunwang1998.github.io/app/app3/store/support.html');
+    expect(settings).toMatch('tinytoolshedhq.github.io/app/app3/store/privacy.html');
+    expect(settings).not.toMatch('tinytoolshedhq.github.io/app/app3/store/support.html');
   });
 
   it('list header has settings, sort and add, not a persistent 刪 button', () => {

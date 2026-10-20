@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Deploy app1/app2/app3/app4 store HTML (support + privacy) to GitHub Pages (gh-pages).
 # After running:
-#   https://chunwang1998.github.io/app/app4/store/support.html
-#   https://chunwang1998.github.io/app/app4/store/privacy.html
+#   https://tinytoolshedhq.github.io/app/app4/store/support.html
+#   https://tinytoolshedhq.github.io/app/app4/store/privacy.html
 # (same pattern for app1 / app2 / app3)
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -68,5 +68,5 @@ cd "$REPO_ROOT"
 git worktree remove "$TEMP_DIR" --force 2>/dev/null || true
 
 echo "Done. Verify:"
-echo "  https://chunwang1998.github.io/app/app4/store/support.html"
-echo "  https://chunwang1998.github.io/app/app4/store/privacy.html"
+echo "  https://tinytoolshedhq.github.io/app/app4/store/support.html"
+echo "  https://tinytoolshedhq.github.io/app/app4/store/privacy.html"

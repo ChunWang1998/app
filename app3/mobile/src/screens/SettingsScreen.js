@@ -11,7 +11,7 @@ import { SettingsRow, SettingsSwitch } from '../components/SettingsRow';
 import { t } from '../i18n';
 import Constants from 'expo-constants';
 
-const PRIVACY_URL = 'https://chunwang1998.github.io/app/app3/store/privacy.html';
+const PRIVACY_URL = 'https://tinytoolshedhq.github.io/app/app3/store/privacy.html';
 const APPEARANCE_ORDER = ['auto', 'light', 'dark'];
 const TIMES = ['08:00', '09:00', '10:00', '18:00', '21:00'];
 const APPEARANCE_KEYS = { auto: 'settings.appearanceAuto', light: 'settings.appearanceLight', dark: 'settings.appearanceDark' };

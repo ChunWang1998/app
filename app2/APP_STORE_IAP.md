@@ -119,8 +119,8 @@ TestFlight 安裝後，用 **Sandbox 帳號** 實機測：
 
 CDN 確認（購買後下載用）：
 
-- `https://chunwang1998.github.io/app/places/pack/manifest.json`
-- `https://chunwang1998.github.io/app/places/pack/full.json`
+- `https://tinytoolshedhq.github.io/app/places/pack/manifest.json`
+- `https://tinytoolshedhq.github.io/app/places/pack/full.json`
 
 若下載失敗，先跑 `app2/deploy-places.sh` 更新 gh-pages。
 

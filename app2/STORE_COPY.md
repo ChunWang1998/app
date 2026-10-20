@@ -97,7 +97,7 @@
 ## 支援 URL
 
 ```
-https://chunwang1998.github.io/app/app2/store/support.html
+https://tinytoolshedhq.github.io/app/app2/store/support.html
 ```
 
 ## 行銷 URL
@@ -105,7 +105,7 @@ https://chunwang1998.github.io/app/app2/store/support.html
 可留空，或同支援頁：
 
 ```
-https://chunwang1998.github.io/app/app2/store/support.html
+https://tinytoolshedhq.github.io/app/app2/store/support.html
 ```
 
 ---
@@ -205,7 +205,7 @@ npm run deploy:testflight
 |------|-----|
 | 主要類別 | 生活風格（Lifestyle）或導航（Navigation） |
 | 次要類別 | 旅遊（Travel）或工具（Utilities） |
-| 隱私權政策 URL | `https://chunwang1998.github.io/app/app2/store/privacy.html` |
+| 隱私權政策 URL | `https://tinytoolshedhq.github.io/app/app2/store/privacy.html` |
 
 ### App 隱私權
 
@@ -229,7 +229,7 @@ npm run deploy:testflight
 
 ## 上架前檢查
 
-- [ ] GitHub Pages 已能開 `privacy.html` / `support.html`（推上 `chunwang1998.github.io/app` 的 `app2/store/`）
+- [ ] GitHub Pages 已能開 `privacy.html` / `support.html`（推上 `tinytoolshedhq.github.io/app` 的 `app2/store/`）
 - [ ] Google Play 見 `PLAY_STORE.md`（Android 文案、資料安全、建置指令）
 - [ ] **iOS 內購** 見 `APP_STORE_IAP.md`（付費協議、建立 `com.toiletgo.app.pro`、Sandbox、TestFlight 購買測試）
 - [ ] App Store Connect 已新建 App（名稱「急廁 Go」、Bundle `com.toiletgo.app`），並把 ASC ID 填回本檔標題
