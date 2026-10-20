@@ -71,6 +71,9 @@ describe('reminder suggestion from name', () => {
     expect(reminder).toMatch(/MODE_INTERVAL/);
     expect(reminder).toMatch(/MODE_WEEK/);
     expect(reminder).toMatch(/MODE_MONTH/);
+    expect(reminder).toMatch(/reminder-md-\$\{n\}/);
+    expect(reminder).toMatch(/length:\s*31/);
+    expect(reminder).not.toMatch(/MONTH_DAY_CHIPS/);
     expect(reminder).toMatch(/TimeWheel/);
     expect(reminder).toMatch(/reminder-next/);
   });

@@ -13,6 +13,7 @@ import {
   formatNextOccurrence,
   formatWeekdayList,
   hasReminder,
+  clampMonthDay,
   MODE_WEEK,
   MODE_MONTH,
   MODE_INTERVAL,
@@ -160,6 +161,83 @@ describe('monthly short months and leap years', () => {
     const due = firstDueInstant(a, reminderConfigFromActivity(a));
     expect(due.getMonth()).toBe(1);
     expect(due.getDate()).toBe(29);
+  });
+
+  it('clamps 31 to the last local day of Apr/Jun/Sep/Nov', () => {
+    expect(clampMonthDay(2026, 3, 31)).toBe(30);
+    expect(clampMonthDay(2026, 5, 31)).toBe(30);
+    expect(clampMonthDay(2026, 8, 31)).toBe(30);
+    expect(clampMonthDay(2026, 10, 31)).toBe(30);
+    expect(clampMonthDay(2026, 0, 31)).toBe(31);
+    expect(clampMonthDay(2026, 1, 31)).toBe(28);
+    expect(clampMonthDay(2028, 1, 31)).toBe(29);
+    expect(clampMonthDay(2028, 1, 29)).toBe(29);
+  });
+
+  it('after May 31, the 31st lands on Jun 30; notify and next copy match', () => {
+    setLocale('en');
+    const a = item({
+      reminderMode: MODE_MONTH,
+      reminderMonthDay: 31,
+      lastDoneAt: at(2026, 4, 31, 8).toISOString(),
+      reminderTime: '09:00',
+    });
+    const cfg = reminderConfigFromActivity(a);
+    const due = firstDueInstant(a, cfg);
+    expect(due.getFullYear()).toBe(2026);
+    expect(due.getMonth()).toBe(5);
+    expect(due.getDate()).toBe(30);
+    expect(due.getHours()).toBe(9);
+    const now = at(2026, 5, 1, 12).getTime();
+    const fire = nextFireDate(a, now);
+    expect(fire.getMonth()).toBe(5);
+    expect(fire.getDate()).toBe(30);
+    expect(fire.getHours()).toBe(9);
+    expect(nextTriggerDate(a, now).getTime()).toBe(fire.getTime());
+    expect(nextDueDate(a, new Date(now)).getDate()).toBe(30);
+    expect(formatNextOccurrence(due, 'en', now)).toMatch(/6\/30/);
+    expect(formatNextOccurrence(due, 'zh-Hant', now)).toMatch(/6\/30/);
+  });
+
+  it('keeps the stored 31st so later 31-day months still fire on the 31st', () => {
+    const a = item({
+      reminderMode: MODE_MONTH,
+      reminderMonthDay: 31,
+      lastDoneAt: at(2026, 5, 30, 8).toISOString(), // Jun 30 (clamped)
+      reminderTime: '09:00',
+    });
+    const due = firstDueInstant(a, reminderConfigFromActivity(a));
+    expect(due.getMonth()).toBe(6);
+    expect(due.getDate()).toBe(31);
+  });
+
+  it('uses local Y-M-D so a UTC ISO stamp cannot skip the clamped day', () => {
+    const local = at(2026, 3, 30, 9);
+    const a = item({
+      reminderMode: MODE_MONTH,
+      reminderMonthDay: 31,
+      lastDoneAt: local.toISOString(),
+      reminderTime: '09:00',
+    });
+    const due = firstDueInstant(a, reminderConfigFromActivity(a));
+    expect(due.getMonth()).toBe(4);
+    expect(due.getDate()).toBe(31);
+    const roundTrip = new Date(due.toISOString());
+    expect(roundTrip.getDate()).toBe(31);
+    expect(roundTrip.getHours()).toBe(9);
+  });
+
+  it('monthly 31st after Oct 31 lands on Nov 30 and stays 09:00 across DST', () => {
+    const a = item({
+      reminderMode: MODE_MONTH,
+      reminderMonthDay: 31,
+      lastDoneAt: at(2026, 9, 31, 10).toISOString(),
+      reminderTime: '09:00',
+    });
+    const due = firstDueInstant(a, reminderConfigFromActivity(a));
+    expect(due.getMonth()).toBe(10);
+    expect(due.getDate()).toBe(30);
+    expect(due.getHours()).toBe(9);
   });
 
   it('after logging on the 15th, jumps to next month the 15th', () => {
@@ -351,6 +429,23 @@ describe('natural copy en / zh-Hant / ja', () => {
     expect(formatReminderLabel(monthly, 'zh-Hant')).toBe('每月 15 日');
     expect(formatReminderLabel(monthly, 'ja')).toBe('毎月15日');
     expect(formatWeekdayList([1, 4], 'zh-Hant')).toBe('一、四');
+  });
+
+  it.each([
+    ['en', 5, 'Monthly on the 5th'],
+    ['zh-Hant', 5, '每月 5 日'],
+    ['ja', 5, '毎月5日'],
+    ['de', 5, 'Monatlich am 5.'],
+    ['fr', 5, 'Le 5 du mois'],
+    ['en', 1, 'Monthly on the 1st'],
+    ['de', 31, 'Monatlich am 31.'],
+    ['fr', 31, 'Le 31 du mois'],
+  ])('%s day %s label', (loc, day, copy) => {
+    expect(formatReminderLabel({
+      reminderMode: MODE_MONTH,
+      reminderMonthDay: day,
+      reminderTime: '09:00',
+    }, loc)).toBe(copy);
   });
 
   it('keeps interval-day presets short, with 每 / Every on numeric chips', () => {

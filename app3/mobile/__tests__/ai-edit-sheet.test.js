@@ -83,6 +83,19 @@ describe('sheet reminder init matches the card', () => {
     };
     expect(sheetReminderValue(item)).toBe('more');
   });
+
+  it('treats calendar-monthly as more, not the 30-day chip', () => {
+    const item = {
+      title: 'Club',
+      reminderMode: 'month',
+      reminderMonthDay: 5,
+      reminderDays: null,
+      reminderTime: '09:00',
+    };
+    expect(sheetReminderValue(item)).toBe('more');
+    expect(reminderLabelForDraft(item, 'en')).toBe('Monthly on the 5th');
+    expect(reminderLabelForDraft(item, 'zh-Hant')).toBe('每月 5 日');
+  });
 });
 
 describe('no-reminder chip copy exists in all locales', () => {
@@ -223,6 +236,29 @@ describe('AiEditSheet keeps in-progress edits across message updates', () => {
     expect(saved.title).toBe('Plant');
     expect(sheetLastDays(saved.lastDoneAt, NOW)).toBe(1);
     expect(saved.reminderDays).toBe(14);
+  });
+
+  it('saves calendar-monthly fields when chips stay on more', () => {
+    const onSave = jest.fn();
+    const item = {
+      title: 'Club',
+      lastDoneAt: today,
+      reminderMode: 'month',
+      reminderMonthDay: 5,
+      reminderDays: null,
+      reminderTime: '09:00',
+    };
+    let tree;
+    act(() => {
+      tree = renderer.create(
+        <AiEditSheet visible itemKey="m1" item={item} onSave={onSave} onClose={() => {}} now={NOW} />,
+      );
+    });
+    act(() => { tree.root.findByProps({ testID: 'ai-sheet-save' }).props.onPress(); });
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.reminderMode).toBe('month');
+    expect(saved.reminderMonthDay).toBe(5);
+    expect(saved.reminderDays).toBeNull();
   });
 
   it('re-inits after close then open', () => {

@@ -18,7 +18,6 @@ import {
   UNIT_MONTH,
   UNIT_YEAR,
   WEEKDAY_ORDER,
-  MONTH_DAY_CHIPS,
   INTERVAL_DAY_CHIPS,
   reminderConfigFromActivity,
   reminderFieldsFromConfig,
@@ -373,32 +372,23 @@ function WeekPanel({ cfg, c, tone, onToggle }) {
 function MonthPanel({ cfg, c, tone, onN }) {
   return (
     <View style={[styles.bigblk, { backgroundColor: tone.ac }]}>
-      <View style={styles.big}>
-        <StepperBtn c={c} label="−" onPress={() => onN(cfg.monthDay - 1)} />
-        <View>
-          <Text style={[styles.num, { color: c.label }]}>{cfg.monthDay}</Text>
-          <Text style={{ textAlign: 'center', color: c.l2, marginTop: 2, fontSize: 15, fontFamily: 'BeenAgesRounded-Regular' }}>
-            {t('reminder.monthDayUnit')}
-          </Text>
-        </View>
-        <StepperBtn c={c} label="+" onPress={() => onN(cfg.monthDay + 1)} />
-      </View>
-      <View style={styles.chips}>
-        {MONTH_DAY_CHIPS.map((n) => {
+      <View style={styles.mdGrid}>
+        {Array.from({ length: 31 }, (_, i) => i + 1).map((n) => {
           const on = cfg.monthDay === n;
           return (
             <TouchableOpacity
               key={n}
+              testID={`reminder-md-${n}`}
               onPress={() => onN(n)}
-              style={[styles.chip, { backgroundColor: on ? c.brand : c.cell }]}
+              style={[styles.md, { backgroundColor: on ? c.brand : c.cell }]}
             >
               <Text style={{
                 color: on ? c.onbrand : c.label,
                 fontFamily: on ? 'BeenAgesRounded-Bold' : 'BeenAgesRounded-Regular',
-                fontSize: 14,
+                fontSize: 16,
               }}
               >
-                {t('reminder.monthDayChip', { n })}
+                {n}
               </Text>
             </TouchableOpacity>
           );
@@ -444,6 +434,8 @@ const styles = StyleSheet.create({
   uc: { paddingVertical: 7, paddingHorizontal: 16, borderRadius: 16 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingTop: 14, justifyContent: 'center' },
   chip: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 18 },
+  mdGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 10, paddingVertical: 6 },
+  md: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 999 },
   wdays: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   wd: { flex: 1, aspectRatio: 1, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   sum: {
