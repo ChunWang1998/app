@@ -1,5 +1,4 @@
 import { resolveLocale } from '../../i18n';
-import { suggestReminderDays } from '../suggestReminder';
 import {
   parseReminderDays,
   parseLastDoneDaysAgo,
@@ -7,9 +6,11 @@ import {
   stripLastDone,
   stripReminder,
   stripNameExtras,
+  stripFuture,
   stripPrefixes,
   tidyName,
   table,
+  looksLikeFutureIntent,
 } from './relative';
 
 function hasPattern(text, patterns) {
@@ -42,6 +43,7 @@ function extractCreateName(text, locale) {
   s = stripLastDone(s, locale);
   s = stripReminder(s, locale);
   s = stripNameExtras(s, locale);
+  s = stripFuture(s, locale);
   s = stripPrefixes(s, table('createPrefixes', locale));
   return tidyName(s, locale);
 }
@@ -79,20 +81,26 @@ function looksLikeCreateCue(text, locale) {
   return false;
 }
 
+function lastDoneFields(text, locale, now, future) {
+  if (future) return { lastDoneDaysAgo: null, lastDoneAt: null };
+  const lastDoneDaysAgo = parseLastDoneDaysAgo(text, locale, now);
+  if (lastDoneDaysAgo === undefined) {
+    return { lastDoneDaysAgo: 0, lastDoneAt: new Date(now).toISOString() };
+  }
+  return { lastDoneDaysAgo, lastDoneAt: lastDoneIsoFromDaysAgo(lastDoneDaysAgo, now) };
+}
+
 function buildCreate(text, locale, now) {
+  const future = looksLikeFutureIntent(text, locale);
   const name = extractCreateName(text, locale);
   if (!name) return null;
-  const lastDoneDaysAgo = parseLastDoneDaysAgo(text, locale, now);
-  const reminderDays = parseReminderDays(text, locale) ?? suggestReminderDays(name);
-  const lastDoneAt = lastDoneDaysAgo === undefined
-    ? new Date(now).toISOString()
-    : lastDoneIsoFromDaysAgo(lastDoneDaysAgo, now);
+  const reminderDays = parseReminderDays(text, locale) ?? null;
   return {
     type: 'create',
     name,
-    lastDoneDaysAgo: lastDoneDaysAgo === undefined ? 0 : lastDoneDaysAgo,
-    lastDoneAt,
+    ...lastDoneFields(text, locale, now, future),
     reminderDays,
+    ...(future ? { future: true } : {}),
   };
 }
 
@@ -133,7 +141,7 @@ export function parseRules(text, { locale, now = new Date() } = {}) {
     return { type: 'query_since', name: sinceName, source: 'rules' };
   }
 
-  if (looksLikeLog(raw, loc) && !looksLikeCreateCue(raw, loc)) {
+  if (looksLikeLog(raw, loc) && !looksLikeCreateCue(raw, loc) && !looksLikeFutureIntent(raw, loc)) {
     const logged = buildLog(raw, loc, now);
     if (logged) return { ...logged, source: 'rules' };
   }
@@ -146,8 +154,11 @@ export function parseRules(text, { locale, now = new Date() } = {}) {
 /** Fill lastDoneAt / reminderDays from phrases. Always compute numbers in JS. */
 export function hydrateIntent(partial, { locale, now = new Date(), text = '' } = {}) {
   const loc = resolveLocale(locale);
-  const type = normalizeType(partial?.type || partial?.kind);
-  const name = tidyName(partial?.name || '', loc);
+  const spoken = `${text || ''} ${partial?.lastDonePhrase || ''} ${partial?.name || ''}`;
+  const future = looksLikeFutureIntent(spoken, loc);
+  let type = normalizeType(partial?.type || partial?.kind);
+  if (future && (type === 'log' || type === 'unknown' || !type)) type = 'create';
+  const name = tidyName(stripFuture(partial?.name || '', loc), loc);
   if (type === 'query_week' || type === 'query_today') {
     return { type, source: partial?.source || 'fm' };
   }
@@ -170,20 +181,23 @@ export function hydrateIntent(partial, { locale, now = new Date(), text = '' } =
   }
   const phraseLast = parseLastDoneDaysAgo(partial?.lastDonePhrase || '', loc, now);
   const textLast = parseLastDoneDaysAgo(text, loc, now);
-  const lastDoneDaysAgo = phraseLast !== undefined ? phraseLast : textLast;
+  const lastDoneDaysAgo = future ? null : (phraseLast !== undefined ? phraseLast : textLast);
   const phraseRem = parseReminderDays(partial?.reminderPhrase || '', loc);
   const textRem = parseReminderDays(text, loc);
-  const reminderDays = phraseRem ?? textRem ?? suggestReminderDays(name);
-  const lastDoneAt = lastDoneDaysAgo === undefined
-    ? new Date(now).toISOString()
-    : lastDoneIsoFromDaysAgo(lastDoneDaysAgo, now);
+  const reminderDays = phraseRem ?? textRem ?? null;
+  const lastDoneAt = future || lastDoneDaysAgo === null
+    ? null
+    : lastDoneDaysAgo === undefined
+      ? new Date(now).toISOString()
+      : lastDoneIsoFromDaysAgo(lastDoneDaysAgo, now);
   return {
     type: 'create',
     name,
-    lastDoneDaysAgo: lastDoneDaysAgo === undefined ? 0 : lastDoneDaysAgo,
+    lastDoneDaysAgo: future ? null : (lastDoneDaysAgo === undefined ? 0 : lastDoneDaysAgo),
     lastDoneAt,
     reminderDays,
     source: partial?.source || 'fm',
+    ...(future ? { future: true } : {}),
   };
 }
 

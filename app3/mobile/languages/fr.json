@@ -57,8 +57,11 @@
     "empty": "Rien à suivre",
     "add": "+ Ajouter",
     "logged": "Noté aujourd’hui",
+    "alreadyLogged": "Déjà noté",
     "deleted": "Supprimé",
     "neverLogged": "Pas encore",
+    "last": "Dernière",
+    "justNow": "À l’instant",
     "overdue": "En retard",
     "remaining": "Dans",
     "a11ySettings": "Réglages",
@@ -165,7 +168,8 @@
     "week": "sem",
     "month": "mo",
     "year": "an",
-    "lastDoneLine": "{relative} · Dernière fois {date}"
+    "lastDoneLine": "{relative} · Dernière fois {date}",
+    "ago": "il y a {span}"
   },
   "reminder": {
     "title": "Rappel",
@@ -224,7 +228,9 @@
     "title": "Supprimés récemment",
     "empty": "Aucun élément",
     "restore": "Restaurer",
-    "purge": "Supprimés pour de bon après 30 jours"
+    "purge": "Supprimés pour de bon après 3 jours",
+    "daysLeft": "Plus que {n} jours",
+    "oneDayLeft": "Plus que 1 jour"
   },
   "demo": {
     "filter": "Changer le filtre à eau",
@@ -238,7 +244,8 @@
   "date": {
     "weekAgo": "Il y a 1 semaine",
     "monthAgo": "Il y a 1 mois",
-    "unknown": "Pas sûr"
+    "unknown": "Pas sûr",
+    "pick": "Choisir le jour"
   },
   "category": {
     "title": "Catégories",
@@ -271,6 +278,7 @@
     "logged": "Noté",
     "undone": "Annulé",
     "createIntro": "C’est noté :",
+    "plannedIntro": "Ajouté :",
     "logIntro": "{name} noté.",
     "sinceOnly": "{span}.",
     "sinceNext": "{span}. Prochain {next}.",
@@ -298,7 +306,7 @@
     "a11ySend": "Envoyer",
     "a11yNew": "Nouveau chat",
     "speechDenied": "Micro désactivé",
-    "speechUnavailable": "Reconnaissance hors ligne indisponible",
-    "micOffHint": "Sur l’appareil"
+    "speechUnavailable": "La dictée n’est pas dispo ici. Écrivez.",
+    "micOffHint": "Écrivez"
   }
 }

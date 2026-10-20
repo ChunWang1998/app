@@ -18,7 +18,6 @@ import {
   UNIT_MONTH,
   UNIT_YEAR,
   WEEKDAY_ORDER,
-  MONTH_DAY_CHIPS,
   INTERVAL_DAY_CHIPS,
   reminderConfigFromActivity,
   reminderFieldsFromConfig,
@@ -102,13 +101,7 @@ export default function ReminderScreen() {
 
   async function apply(patch, opts = {}) {
     const next = { ...cfg, ...patch };
-    if (opts.animate) animate();
-    setCfg(next);
-    await persist(next);
-  }
-
-  async function toggleOn(v) {
-    if (v) {
+    if (next.enabled && !cfg.enabled) {
       try {
         const { requestNotificationPermissions } = require('../notifications/reminders');
         await requestNotificationPermissions();
@@ -116,12 +109,23 @@ export default function ReminderScreen() {
         // web / denied — persist the setting; scheduling skips if not granted
       }
     }
+    if (opts.animate) animate();
+    setCfg(next);
+    await persist(next);
+  }
+
+  /** Any option in the schedule section turns reminders on and selects that option. */
+  function pick(patch, opts = {}) {
+    return apply({ enabled: true, ...patch }, opts);
+  }
+
+  async function toggleOn(v) {
     await apply({ enabled: v }, { animate: true });
   }
 
   async function changeN(n) {
-    if (cfg.mode === MODE_MONTH) await apply({ enabled: true, monthDay: Math.min(31, Math.max(1, n)) });
-    else await apply({ enabled: true, n: clampNUi(n, cfg.unit) });
+    if (cfg.mode === MODE_MONTH) await pick({ monthDay: Math.min(31, Math.max(1, n)) });
+    else await pick({ n: clampNUi(n, cfg.unit) });
   }
 
   if (!stored && !isDraft) {
@@ -157,11 +161,26 @@ export default function ReminderScreen() {
           <SettingsRow
             title={title}
             right={<SettingsSwitch value={cfg.enabled} onValueChange={toggleOn} accessibilityLabel={t('reminder.title')} />}
-            last
           />
+          <TouchableOpacity
+            testID="reminder-off"
+            onPress={() => toggleOn(false)}
+            style={styles.rowOff}
+            accessibilityLabel={t('detail.noReminder')}
+          >
+            <Text style={{
+              color: cfg.enabled ? c.label : c.brand,
+              fontSize: 17,
+              fontFamily: cfg.enabled ? 'BeenAgesRounded-Regular' : 'BeenAgesRounded-SemiBold',
+              flex: 1,
+            }}
+            >
+              {t('detail.noReminder')}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={{ opacity: cfg.enabled ? 1 : 0.35 }} pointerEvents={cfg.enabled ? 'auto' : 'none'}>
+        <View style={{ opacity: cfg.enabled ? 1 : 0.55 }}>
           <View style={[styles.seg, { backgroundColor: c.fill }]}>
             {[
               { mode: MODE_INTERVAL, key: 'reminder.modeInterval' },
@@ -173,7 +192,7 @@ export default function ReminderScreen() {
                 <TouchableOpacity
                   key={m.mode}
                   testID={`reminder-mode-${m.mode}`}
-                  onPress={() => apply({ mode: m.mode, enabled: true }, { animate: true })}
+                  onPress={() => pick({ mode: m.mode }, { animate: true })}
                   style={[styles.segBtn, on && { backgroundColor: c.cell }]}
                 >
                   <Text style={{
@@ -191,7 +210,7 @@ export default function ReminderScreen() {
           </View>
 
           {cfg.mode === MODE_INTERVAL ? (
-            <IntervalPanel cfg={cfg} c={c} tone={tone} onN={changeN} onUnit={(unit) => apply({ unit, n: 1, enabled: true }, { animate: true })} />
+            <IntervalPanel cfg={cfg} c={c} tone={tone} onN={changeN} onUnit={(unit) => pick({ unit, n: 1 }, { animate: true })} />
           ) : null}
           {cfg.mode === MODE_WEEK ? (
             <WeekPanel
@@ -201,10 +220,13 @@ export default function ReminderScreen() {
               onToggle={(day) => {
                 const has = cfg.weekdays.includes(day);
                 if (has) {
-                  if (cfg.weekdays.length <= 1) return;
-                  apply({ weekdays: cfg.weekdays.filter((d) => d !== day), enabled: true });
+                  if (cfg.weekdays.length <= 1) {
+                    if (!cfg.enabled) pick({ weekdays: cfg.weekdays });
+                    return;
+                  }
+                  pick({ weekdays: cfg.weekdays.filter((d) => d !== day) });
                 } else {
-                  apply({ weekdays: [...cfg.weekdays, day], enabled: true });
+                  pick({ weekdays: [...cfg.weekdays, day] });
                 }
               }}
             />
@@ -219,6 +241,7 @@ export default function ReminderScreen() {
               onPress={() => {
                 animate();
                 setTimeOpen((v) => !v);
+                if (!cfg.enabled) pick({});
               }}
               right={(
                 <Text style={{
@@ -236,7 +259,7 @@ export default function ReminderScreen() {
                 hour={h}
                 minute={min}
                 uses24h={uses24h}
-                onChange={(nh, nm) => apply({ time: formatHm(nh, nm) })}
+                onChange={(nh, nm) => pick({ time: formatHm(nh, nm) })}
               />
             ) : null}
             <SettingsRow
@@ -244,7 +267,7 @@ export default function ReminderScreen() {
               right={(
                 <SettingsSwitch
                   value={cfg.snoozeEnabled}
-                  onValueChange={(v) => apply({ snoozeEnabled: v })}
+                  onValueChange={(v) => pick({ snoozeEnabled: v })}
                   accessibilityLabel={t('reminder.snooze')}
                 />
               )}
@@ -373,32 +396,23 @@ function WeekPanel({ cfg, c, tone, onToggle }) {
 function MonthPanel({ cfg, c, tone, onN }) {
   return (
     <View style={[styles.bigblk, { backgroundColor: tone.ac }]}>
-      <View style={styles.big}>
-        <StepperBtn c={c} label="−" onPress={() => onN(cfg.monthDay - 1)} />
-        <View>
-          <Text style={[styles.num, { color: c.label }]}>{cfg.monthDay}</Text>
-          <Text style={{ textAlign: 'center', color: c.l2, marginTop: 2, fontSize: 15, fontFamily: 'BeenAgesRounded-Regular' }}>
-            {t('reminder.monthDayUnit')}
-          </Text>
-        </View>
-        <StepperBtn c={c} label="+" onPress={() => onN(cfg.monthDay + 1)} />
-      </View>
-      <View style={styles.chips}>
-        {MONTH_DAY_CHIPS.map((n) => {
+      <View style={styles.mdGrid}>
+        {Array.from({ length: 31 }, (_, i) => i + 1).map((n) => {
           const on = cfg.monthDay === n;
           return (
             <TouchableOpacity
               key={n}
+              testID={`reminder-md-${n}`}
               onPress={() => onN(n)}
-              style={[styles.chip, { backgroundColor: on ? c.brand : c.cell }]}
+              style={[styles.md, { backgroundColor: on ? c.brand : c.cell }]}
             >
               <Text style={{
                 color: on ? c.onbrand : c.label,
                 fontFamily: on ? 'BeenAgesRounded-Bold' : 'BeenAgesRounded-Regular',
-                fontSize: 14,
+                fontSize: 16,
               }}
               >
-                {t('reminder.monthDayChip', { n })}
+                {n}
               </Text>
             </TouchableOpacity>
           );
@@ -427,6 +441,7 @@ const styles = StyleSheet.create({
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
   grp: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden', marginTop: 12 },
+  rowOff: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16, gap: 12 },
   seg: {
     flexDirection: 'row',
     marginHorizontal: 16,
@@ -444,6 +459,8 @@ const styles = StyleSheet.create({
   uc: { paddingVertical: 7, paddingHorizontal: 16, borderRadius: 16 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingTop: 14, justifyContent: 'center' },
   chip: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 18 },
+  mdGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 10, paddingVertical: 6 },
+  md: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 999 },
   wdays: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   wd: { flex: 1, aspectRatio: 1, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   sum: {

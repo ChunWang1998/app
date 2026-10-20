@@ -40,3 +40,35 @@ export function pickedDateIso(date, now = new Date()) {
   if (Number.isNaN(d.getTime())) return null;
   return (d.getTime() > now.getTime() ? now : d).toISOString();
 }
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+/** Local calendar `YYYY-MM-DD` for an ISO timestamp (empty if invalid). */
+export function isoToYmd(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/**
+ * Local midnight-preserving ISO from a `YYYY-MM-DD` field, clamped to now.
+ * Keeps the current time of day, matching quick chips.
+ */
+export function ymdToIso(ymd, now = new Date()) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || '').trim());
+  if (!m) return null;
+  const d = new Date(
+    Number(m[1]),
+    Number(m[2]) - 1,
+    Number(m[3]),
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds(),
+    now.getMilliseconds(),
+  );
+  if (Number.isNaN(d.getTime())) return null;
+  return pickedDateIso(d, now);
+}

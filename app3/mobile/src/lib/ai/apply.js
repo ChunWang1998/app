@@ -75,7 +75,7 @@ export function formatWeekDue(item, now = Date.now(), locale) {
 }
 
 export function formatLastDoneChip(iso, now = Date.now()) {
-  if (!iso) return t('date.unknown');
+  if (!iso) return t('home.neverLogged');
   const a = new Date(iso);
   const b = new Date(now);
   const startA = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
@@ -109,6 +109,18 @@ export function reminderLabelForDraft(draft, locale) {
 
 export function resolveItem(name, items) {
   return fuzzyMatchItem(name, items);
+}
+
+/**
+ * Future plans map an existing item without logging, or draft a new one
+ * with last-done left empty. Does not write.
+ */
+export function cardFromCreateIntent(intent, { activities, categories, reminderTime } = {}) {
+  if (intent?.future) {
+    const existing = resolveItem(intent.name, activities);
+    if (existing) return { item: existing, state: 'view', mapped: true };
+  }
+  return { item: draftFromCreate(intent, { categories, reminderTime }), state: 'new', mapped: false };
 }
 
 export function sinceCopy(item, now = Date.now(), locale) {

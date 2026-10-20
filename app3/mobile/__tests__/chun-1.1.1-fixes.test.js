@@ -19,8 +19,11 @@ describe('1.1.1 device-test follow-ups', () => {
     expect(zh.reminder.daily).toBe('每天');
     expect(ja.reminder.daily).toBe('毎日');
     expect(en.home.logged).toBe('Logged today');
+    expect(en.home.alreadyLogged).toBe('Already logged today');
     expect(zh.home.logged).toBe('已記下今天');
+    expect(zh.home.alreadyLogged).toBe('今天已記過了');
     expect(ja.home.logged).toBe('今日記録済み');
+    expect(ja.home.alreadyLogged).toBe('今日は記録済み');
     expect(de.common.yesterday).toBe('Gestern');
     expect(fr.common.yesterday).toBe('Hier');
     expect(de.reminder.daily).toBe('Täglich');
@@ -66,6 +69,10 @@ describe('1.1.1 device-test follow-ups', () => {
     expect(detail).toMatch(/ImpactFeedbackStyle\.Light/);
     expect(home).toMatch(/home\.logged/);
     expect(detail).toMatch(/home\.logged/);
+    expect(home).toMatch(/home\.alreadyLogged/);
+    expect(detail).toMatch(/home\.alreadyLogged/);
+    expect(home).toMatch(/undoHandlerForLog/);
+    expect(detail).toMatch(/undoHandlerForLog/);
   });
 
   it('history-limit check-off and backfill open the existing paywall', () => {

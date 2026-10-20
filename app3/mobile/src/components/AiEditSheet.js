@@ -1,18 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../theme/useTheme';
-import { lastDoneIsoFromDaysAgo } from '../lib/ai/relative';
+import { DateChips } from './DateChips';
 import { configFromChipDays, reminderFieldsFromConfig, chipDaysFromConfig, reminderConfigFromActivity } from '../lib/reminderSchedule';
 import { t } from '../i18n';
 
-const LAST = [
-  { d: 0, key: 'common.today' },
-  { d: 1, key: 'common.yesterday' },
-  { d: 7, key: 'date.weekAgo' },
-];
-
 const REM = [
+  { d: null, key: 'detail.noReminder' },
   { d: 7, key: 'reminder.weekly' },
   { d: 14, key: 'reminder.twoWeeks' },
   { d: 30, key: 'reminder.monthly' },
@@ -28,25 +23,55 @@ function daysAgoOf(iso, now) {
   return Math.round((startB - startA) / 864e5);
 }
 
-export function AiEditSheet({ visible, item, onClose, onSave, now }) {
+/** Chip value for the sheet: interval days, `more`, or null (off). */
+export function sheetReminderValue(item) {
+  const v = chipDaysFromConfig(reminderConfigFromActivity(item));
+  if (typeof v === 'number') return v;
+  if (v === 'more') return 'more';
+  return null;
+}
+
+export function sheetLastDays(iso, now) {
+  return daysAgoOf(iso, now);
+}
+
+export function sheetSessionKey(itemKey, item) {
+  if (itemKey != null && itemKey !== false) return String(itemKey);
+  if (item?.id) return String(item.id);
+  return item?.title ? `title:${item.title}` : '';
+}
+
+export function AiEditSheet({ visible, item, itemKey, onClose, onSave, now }) {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
   const nowRef = useRef(now ?? Date.now());
-  const [lastDays, setLastDays] = useState(0);
-  const [remDays, setRemDays] = useState(7);
+  const initKeyRef = useRef(null);
+  const [lastAt, setLastAt] = useState(null);
+  const [remDays, setRemDays] = useState(null);
 
   useEffect(() => {
-    if (!visible || !item) return;
+    if (!visible) {
+      initKeyRef.current = null;
+      return;
+    }
+    if (!item) return;
+    const key = sheetSessionKey(itemKey, item);
+    if (!key || initKeyRef.current === key) return;
+    initKeyRef.current = key;
     nowRef.current = now ?? Date.now();
-    setLastDays(daysAgoOf(item.lastDoneAt, nowRef.current) ?? 0);
-    const v = chipDaysFromConfig(reminderConfigFromActivity(item));
-    setRemDays(typeof v === 'number' ? v : (item.reminderDays || 7));
-  }, [visible, item, now]);
+    Keyboard.dismiss();
+    setLastAt(item.lastDoneAt || null);
+    setRemDays(sheetReminderValue(item));
+  }, [visible, item, itemKey, now]);
 
   if (!item) return null;
 
   function save() {
-    const lastDoneAt = lastDoneIsoFromDaysAgo(lastDays, nowRef.current);
+    const lastDoneAt = lastAt || null;
+    if (remDays === 'more') {
+      onSave({ ...item, lastDoneAt });
+      return;
+    }
     const fields = reminderFieldsFromConfig(configFromChipDays(remDays, item));
     onSave({ ...item, lastDoneAt, reminderDays: fields.reminderDays, ...fields });
   }
@@ -54,8 +79,16 @@ export function AiEditSheet({ visible, item, onClose, onSave, now }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.wrap}>
-        <Pressable style={[styles.dim, { backgroundColor: c.dim }]} onPress={onClose} />
-        <View style={[styles.bs, { backgroundColor: c.sheetbg, paddingBottom: 34 + insets.bottom }]}>
+        <Pressable
+          testID="ai-sheet-dim"
+          style={[styles.dim, { backgroundColor: c.dim }]}
+          onPress={onClose}
+        />
+        <View
+          testID="ai-sheet-body"
+          pointerEvents="auto"
+          style={[styles.bs, { backgroundColor: c.sheetbg, paddingBottom: 34 + insets.bottom }]}
+        >
           <View style={[styles.grab, { backgroundColor: c.l3 }]} />
           <View style={styles.bsn}>
             <TouchableOpacity onPress={onClose} style={styles.side}>
@@ -74,31 +107,17 @@ export function AiEditSheet({ visible, item, onClose, onSave, now }) {
             </View>
           </View>
           <Text style={[styles.lab, { color: c.l2 }]}>{t('edit.last')}</Text>
-          <View style={styles.qc}>
-            {LAST.map((o) => {
-              const on = lastDays === o.d;
-              return (
-                <TouchableOpacity
-                  key={o.d}
-                  testID={`ai-last-${o.d}`}
-                  onPress={() => setLastDays(o.d)}
-                  style={[styles.q, { backgroundColor: on ? c.brand : c.cell }]}
-                >
-                  <Text style={{ color: on ? c.onbrand : c.label, fontFamily: on ? 'BeenAgesRounded-Bold' : 'BeenAgesRounded-Regular', fontSize: 15 }}>
-                    {t(o.key)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          <View pointerEvents="auto">
+            <DateChips value={lastAt} onChange={setLastAt} />
           </View>
           <Text style={[styles.lab, { color: c.l2 }]}>{t('edit.reminder')}</Text>
-          <View style={styles.qc}>
+          <View style={styles.qc} pointerEvents="auto">
             {REM.map((o) => {
               const on = remDays === o.d;
               return (
                 <TouchableOpacity
-                  key={o.d}
-                  testID={`ai-rem-${o.d}`}
+                  key={String(o.d)}
+                  testID={`ai-rem-${o.d ?? 'off'}`}
                   onPress={() => setRemDays(o.d)}
                   style={[styles.q, { backgroundColor: on ? c.brand : c.cell }]}
                 >
@@ -117,8 +136,9 @@ export function AiEditSheet({ visible, item, onClose, onSave, now }) {
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, justifyContent: 'flex-end' },
-  dim: { ...StyleSheet.absoluteFillObject },
-  bs: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10 },
+  // Flex sibling above the sheet so the dim cannot steal chip taps.
+  dim: { flex: 1 },
+  bs: { zIndex: 2, elevation: 8, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 10 },
   grab: { width: 36, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 8 },
   bsn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 44, marginBottom: 8 },
   side: { minWidth: 56 },

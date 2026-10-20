@@ -57,8 +57,11 @@
     "empty": "Noch nichts zu merken",
     "add": "+ Neu",
     "logged": "Heute gemerkt",
+    "alreadyLogged": "Heute schon gemerkt",
     "deleted": "Gelöscht",
     "neverLogged": "Noch nicht",
+    "last": "Zuletzt",
+    "justNow": "Gerade",
     "overdue": "Überfällig",
     "remaining": "In",
     "a11ySettings": "Einstellungen",
@@ -165,7 +168,8 @@
     "week": "Wo",
     "month": "Mon",
     "year": "J",
-    "lastDoneLine": "{relative} · Zuletzt {date}"
+    "lastDoneLine": "{relative} · Zuletzt {date}",
+    "ago": "vor {span}"
   },
   "reminder": {
     "title": "Erinnerung",
@@ -224,7 +228,9 @@
     "title": "Zuletzt gelöscht",
     "empty": "Keine Einträge",
     "restore": "Wiederherstellen",
-    "purge": "Nach 30 Tagen endgültig weg"
+    "purge": "Nach 3 Tagen endgültig weg",
+    "daysLeft": "Noch {n} Tage",
+    "oneDayLeft": "Noch 1 Tag"
   },
   "demo": {
     "filter": "Wasserfilter wechseln",
@@ -238,7 +244,8 @@
   "date": {
     "weekAgo": "Vor 1 Woche",
     "monthAgo": "Vor 1 Monat",
-    "unknown": "Unsicher"
+    "unknown": "Unsicher",
+    "pick": "Tag wählen"
   },
   "category": {
     "title": "Kategorien",
@@ -271,6 +278,7 @@
     "logged": "Gemerkt",
     "undone": "Rückgängig",
     "createIntro": "Alles klar:",
+    "plannedIntro": "Hinzugefügt:",
     "logIntro": "{name} gemerkt.",
     "sinceOnly": "{span}.",
     "sinceNext": "{span}. Nächste {next}.",
@@ -298,7 +306,7 @@
     "a11ySend": "Senden",
     "a11yNew": "Neuer Chat",
     "speechDenied": "Mikrofon ist aus",
-    "speechUnavailable": "Nur auf dem Gerät, nicht verfügbar",
-    "micOffHint": "Nur auf dem Gerät"
+    "speechUnavailable": "Spracheingabe geht hier nicht. Bitte tippen.",
+    "micOffHint": "Bitte tippen"
   }
 }

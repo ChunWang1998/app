@@ -60,6 +60,7 @@ describe('reminder suggestion from name', () => {
   it('add screen saves the interval directly', () => {
     const src = read('../src/screens/EditScreen.js');
     expect(src).toMatch(/<ReminderChips/);
+    expect(src).not.toMatch(/suggestReminderDays/);
     expect(src).toMatch(/\n\s+reminderDays,\n/);
     expect(src).not.toMatch(/reminderNew/);
     expect(src).toMatch(/onMore/);
@@ -71,6 +72,9 @@ describe('reminder suggestion from name', () => {
     expect(reminder).toMatch(/MODE_INTERVAL/);
     expect(reminder).toMatch(/MODE_WEEK/);
     expect(reminder).toMatch(/MODE_MONTH/);
+    expect(reminder).toMatch(/reminder-md-\$\{n\}/);
+    expect(reminder).toMatch(/length:\s*31/);
+    expect(reminder).not.toMatch(/MONTH_DAY_CHIPS/);
     expect(reminder).toMatch(/TimeWheel/);
     expect(reminder).toMatch(/reminder-next/);
   });
@@ -181,7 +185,8 @@ describe('due status (PR #20 preview fixes)', () => {
   });
   it('home row shows Today, not overdue 0 min', () => {
     const src = fs.readFileSync(path.join(__dirname, '../src/screens/HomeScreen.js'), 'utf8');
-    expect(src).toMatch(/ds === 'today'\) status = t\('common\.today'\)/);
+    expect(src).toMatch(/ds === 'today'/);
+    expect(src).toMatch(/status = t\('common\.today'\)/);
     expect(src).not.toMatch(/const od = due < 0/);
   });
   it('category icon picker wraps instead of clipping', () => {

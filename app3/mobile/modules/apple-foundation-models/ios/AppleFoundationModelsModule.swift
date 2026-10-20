@@ -76,7 +76,8 @@ public class AppleFoundationModelsModule: Module {
     let session = LanguageModelSession(instructions: """
       Extract a habit-tracker intent from the user. On-device only.
       kind is one of: create, query_since, query_week, query_today, log, unknown.
-      name is the item title only — no cadence or date words.
+      Future plans (tomorrow, next week, going to, will, intend to) are kind=create with empty lastDonePhrase, not log.
+      name is the item title only — no cadence, date, or future-plan words.
       lastDonePhrase and reminderPhrase are copied as spoken; do not convert them to dates or numbers.
       """)
     do {
@@ -113,11 +114,11 @@ public class AppleFoundationModelsModule: Module {
 @available(iOS 26, *)
 @Generable
 struct TrackerIntent {
-  @Guide(description: "One of: create, query_since, query_week, query_today, log, unknown")
+  @Guide(description: "One of: create, query_since, query_week, query_today, log, unknown. Future plans are create, not log.")
   var kind: String
-  @Guide(description: "Item name only, no dates or cadence")
+  @Guide(description: "Item name only, no dates, cadence, or future-plan words")
   var name: String?
-  @Guide(description: "Last-done phrase as spoken, or empty")
+  @Guide(description: "Last-done phrase as spoken, or empty. Empty for future plans.")
   var lastDonePhrase: String?
   @Guide(description: "Reminder cadence phrase as spoken, or empty")
   var reminderPhrase: String?

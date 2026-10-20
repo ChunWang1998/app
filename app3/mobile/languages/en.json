@@ -53,8 +53,11 @@
     "empty": "Nothing to track yet",
     "add": "+ Add",
     "logged": "Logged today",
+    "alreadyLogged": "Already logged today",
     "deleted": "Deleted",
     "neverLogged": "Not yet",
+    "last": "Last",
+    "justNow": "Just now",
     "overdue": "Overdue",
     "remaining": "In",
     "a11ySettings": "Settings",
@@ -161,7 +164,8 @@
     "week": "w",
     "month": "mo",
     "year": "y",
-    "lastDoneLine": "{relative} · Last done {date}"
+    "lastDoneLine": "{relative} · Last done {date}",
+    "ago": "{span} ago"
   },
   "reminder": {
     "title": "Reminder",
@@ -220,7 +224,9 @@
     "title": "Recently deleted",
     "empty": "No items",
     "restore": "Restore",
-    "purge": "Permanently deleted after 30 days"
+    "purge": "Permanently deleted after 3 days",
+    "daysLeft": "{n} days left",
+    "oneDayLeft": "1 day left"
   },
   "demo": {
     "filter": "Change water filter",
@@ -234,7 +240,8 @@
   "date": {
     "weekAgo": "1 week ago",
     "monthAgo": "1 month ago",
-    "unknown": "Not sure"
+    "unknown": "Not sure",
+    "pick": "Pick a day"
   },
   "category": {
     "title": "Categories",
@@ -267,6 +274,7 @@
     "logged": "Logged",
     "undone": "Undone",
     "createIntro": "Got it:",
+    "plannedIntro": "Added:",
     "logIntro": "Logged {name}.",
     "sinceOnly": "{span}.",
     "sinceNext": "{span}. Next {next}.",
@@ -294,7 +302,7 @@
     "a11ySend": "Send",
     "a11yNew": "New chat",
     "speechDenied": "Microphone is off",
-    "speechUnavailable": "On-device speech isn't available",
-    "micOffHint": "On-device only"
+    "speechUnavailable": "Voice isn’t available here. Please type.",
+    "micOffHint": "Please type"
   }
 }

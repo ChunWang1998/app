@@ -1,4 +1,5 @@
-import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, logActivityAt, logActivityOnDay, undoLogActivity, undoLogAt, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
+import { initRepository, resetRepositoryForTests, reloadRepositoryForTests, addActivity, logActivityNow, logActivityAt, logActivityOnDay, undoLogActivity, undoLogAt, undoHandlerForLog, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, purgeExpiredDeleted, trashDaysLeft, clampIsoToNow, TRASH_DAYS, TRASH_MS, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
+import { createActivity } from '../src/data/models';
 import { sameLocalDay } from '../src/lib/today';
 import * as ent from '../src/lib/entitlements';
 
@@ -38,6 +39,39 @@ describe('repository', () => {
       await addActivity({ title: `P${i}` });
     }
     expect(getVisibleActivities()).toHaveLength(FREE_ACTIVITY_LIMIT + 3);
+  });
+
+  it('keeps recently deleted for 3 days and purges older rows on launch', async () => {
+    await resetRepositoryForTests();
+    expect(TRASH_DAYS).toBe(3);
+    expect(TRASH_MS).toBe(3 * 864e5);
+    const stale = await addActivity({ title: 'Stale trash' });
+    const recent = await addActivity({ title: 'Recent trash' });
+    const alive = await addActivity({ title: 'Still here' });
+    await softDeleteActivity(stale.id);
+    await softDeleteActivity(recent.id);
+    const now = Date.parse('2026-10-20T16:00:00.000Z');
+    await updateActivity(stale.id, { deletedAt: new Date(now - 4 * 864e5).toISOString() });
+    await updateActivity(recent.id, { deletedAt: new Date(now - 1 * 864e5).toISOString() });
+    const dropped = await purgeExpiredDeleted(now);
+    expect(dropped.removed).toBe(1);
+    expect(getRecentlyDeleted().map((x) => x.id)).toEqual([recent.id]);
+    expect(getVisibleActivities().map((x) => x.id)).toContain(alive.id);
+
+    await updateActivity(recent.id, { deletedAt: new Date(now - 4 * 864e5).toISOString() });
+    await reloadRepositoryForTests();
+    expect(getRecentlyDeleted().find((x) => x.id === recent.id)).toBeUndefined();
+    expect(getRecentlyDeleted().find((x) => x.id === stale.id)).toBeUndefined();
+    expect(getVisibleActivities().find((x) => x.id === alive.id)).toBeTruthy();
+    await reloadRepositoryForTests();
+    expect(getRecentlyDeleted().map((x) => x.id)).not.toContain(recent.id);
+  });
+
+  it('counts whole days left in recently deleted', () => {
+    const now = Date.parse('2026-10-20T16:00:00.000Z');
+    expect(trashDaysLeft(new Date(now).toISOString(), now)).toBe(3);
+    expect(trashDaysLeft(new Date(now - 2 * 864e5).toISOString(), now)).toBe(1);
+    expect(trashDaysLeft(new Date(now - 3 * 864e5).toISOString(), now)).toBe(0);
   });
 
   it('keeps swipe-deletes in recently deleted', async () => {
@@ -145,6 +179,103 @@ describe('repository', () => {
     const row = getVisibleActivities()[0];
     expect(row.history).toHaveLength(2);
     expect(row.history.filter((e) => sameLocalDay(e.at, y1))).toHaveLength(1);
+  });
+
+  it('does not offer undo when a same-day duplicate log was skipped', async () => {
+    await resetRepositoryForTests();
+    const last = new Date(2026, 9, 14, 8, 0, 0).toISOString();
+    const a = await addActivity({ title: 'SkipUndo', lastDoneAt: last });
+    const skipped = await logActivityNow(a.id, new Date(2026, 9, 14, 12, 0, 0).toISOString());
+    expect(skipped.skipped).toBe(true);
+    expect(undoHandlerForLog(a.id, skipped)).toBeNull();
+    expect(getVisibleActivities()[0].history).toHaveLength(1);
+    expect(getVisibleActivities()[0].lastDoneAt).toBe(last);
+  });
+
+  it('undo after a log removes only that stamp so later writes survive the toast', async () => {
+    await resetRepositoryForTests();
+    const a = await addActivity({ title: 'Toast race', lastDoneAt: '2026-09-01T00:00:00.000Z' });
+    const logged = await logActivityNow(a.id, '2026-10-17T12:00:00.000Z');
+    expect(logged.skipped).toBe(false);
+    const undo = undoHandlerForLog(a.id, logged);
+    expect(typeof undo).toBe('function');
+    await backfillHistory(a.id, '2026-08-01T00:00:00.000Z');
+    await undo();
+    const row = getVisibleActivities()[0];
+    expect(row.history.map((e) => e.at)).toEqual([
+      '2026-09-01T00:00:00.000Z',
+      '2026-08-01T00:00:00.000Z',
+    ]);
+  });
+
+  it('clamps future timestamps to now on log, backfill, and update', async () => {
+    await resetRepositoryForTests();
+    const future = '2099-06-01T00:00:00.000Z';
+    expect(Date.parse(clampIsoToNow(future))).toBeLessThanOrEqual(Date.now());
+    expect(clampIsoToNow('2026-01-01T00:00:00.000Z')).toBe('2026-01-01T00:00:00.000Z');
+
+    const a = await addActivity({ title: 'Future log' });
+    const before = Date.now();
+    const logged = await logActivityAt(a.id, future);
+    const after = Date.now();
+    const loggedMs = Date.parse(logged.loggedAt);
+    expect(loggedMs).toBeGreaterThanOrEqual(before);
+    expect(loggedMs).toBeLessThanOrEqual(after);
+    expect(getVisibleActivities()[0].history.some((e) => e.at === future)).toBe(false);
+    expect(getVisibleActivities()[0].lastDoneAt).toBe(logged.loggedAt);
+
+    const onDay = await logActivityOnDay(a.id, '2099-07-01T00:00:00.000Z');
+    expect(onDay.skipped).toBe(true);
+    expect(getVisibleActivities()[0].history).toHaveLength(1);
+
+    await resetRepositoryForTests();
+    const b = await addActivity({ title: 'Future backfill' });
+    const bBefore = Date.now();
+    await backfillHistory(b.id, future);
+    const bRow = getVisibleActivities()[0];
+    expect(bRow.history.some((e) => e.at === future)).toBe(false);
+    expect(Date.parse(bRow.lastDoneAt)).toBeGreaterThanOrEqual(bBefore);
+    expect(Date.parse(bRow.lastDoneAt)).toBeLessThanOrEqual(Date.now());
+
+    await resetRepositoryForTests();
+    const c = await addActivity({ title: 'Future lastDone' });
+    await updateActivity(c.id, { lastDoneAt: future });
+    const patched = getVisibleActivities()[0];
+    expect(patched.lastDoneAt).not.toBe(future);
+    expect(Date.parse(patched.lastDoneAt)).toBeLessThanOrEqual(Date.now());
+
+    await resetRepositoryForTests();
+    const d = await addActivity({ title: 'Future hist' });
+    await updateActivity(d.id, { history: [{ at: '2026-01-01T00:00:00.000Z' }, { at: future }] });
+    const hist = getVisibleActivities()[0].history;
+    expect(hist.some((e) => e.at === future)).toBe(false);
+    expect(hist.some((e) => e.at === '2026-01-01T00:00:00.000Z')).toBe(true);
+    expect(Date.parse(hist[0].at)).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('clamps initial lastDoneAt on create/add and dedupes same-day after a future clamp', async () => {
+    const future = '2099-06-01T00:00:00.000Z';
+    const made = createActivity({ title: 'Seed future', lastDoneAt: future });
+    expect(made.lastDoneAt).not.toBe(future);
+    expect(Date.parse(made.lastDoneAt)).toBeLessThanOrEqual(Date.now());
+    expect(made.history).toHaveLength(1);
+
+    await resetRepositoryForTests();
+    const a = await addActivity({ title: 'Add future', lastDoneAt: future });
+    expect(a.lastDoneAt).not.toBe(future);
+    expect(Date.parse(a.lastDoneAt)).toBeLessThanOrEqual(Date.now());
+
+    await resetRepositoryForTests();
+    const morning = new Date();
+    morning.setHours(8, 0, 0, 0);
+    const b = await addActivity({ title: 'Same day clamp', lastDoneAt: morning.toISOString() });
+    await updateActivity(b.id, {
+      history: [{ at: morning.toISOString() }, { at: future }],
+    });
+    const row = getVisibleActivities()[0];
+    expect(row.history).toHaveLength(1);
+    expect(row.history.some((e) => e.at === future)).toBe(false);
+    expect(sameLocalDay(row.lastDoneAt, new Date().toISOString())).toBe(true);
   });
 
   it('still appends two check-offs when they fall on different local days across midnight', async () => {

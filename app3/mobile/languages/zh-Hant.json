@@ -53,8 +53,11 @@
     "empty": "還沒有要記的事",
     "add": "+ 新增",
     "logged": "已記下今天",
+    "alreadyLogged": "今天已記過了",
     "deleted": "已刪除",
     "neverLogged": "還沒記錄",
+    "last": "上次",
+    "justNow": "剛剛",
     "overdue": "逾期",
     "remaining": "還有",
     "a11ySettings": "設定",
@@ -161,7 +164,8 @@
     "week": "週",
     "month": "個月",
     "year": "年",
-    "lastDoneLine": "{relative} · 上次做是 {date}"
+    "lastDoneLine": "{relative} · 上次做是 {date}",
+    "ago": "{span}前"
   },
   "reminder": {
     "title": "提醒",
@@ -220,7 +224,9 @@
     "title": "最近刪除",
     "empty": "沒有項目",
     "restore": "還原",
-    "purge": "30 天後永久刪除"
+    "purge": "3 天後永久刪除",
+    "daysLeft": "還有 {n} 天",
+    "oneDayLeft": "還有 1 天"
   },
   "demo": {
     "filter": "換濾水器濾心",
@@ -234,7 +240,8 @@
   "date": {
     "weekAgo": "1 週前",
     "monthAgo": "1 個月前",
-    "unknown": "不記得"
+    "unknown": "不記得",
+    "pick": "哪一天"
   },
   "category": {
     "title": "類型",
@@ -267,6 +274,7 @@
     "logged": "已記錄",
     "undone": "已復原",
     "createIntro": "好，幫你記這件：",
+    "plannedIntro": "已幫你加入：",
     "logIntro": "記下了，{name}。",
     "sinceOnly": "{span}了。",
     "sinceNext": "{span}了，下次是 {next}。",
@@ -294,7 +302,7 @@
     "a11ySend": "送出",
     "a11yNew": "新對話",
     "speechDenied": "麥克風未開",
-    "speechUnavailable": "這台不能離線辨識",
-    "micOffHint": "不能離線"
+    "speechUnavailable": "這台不能用語音，改打字",
+    "micOffHint": "打字"
   }
 }

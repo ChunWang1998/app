@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useActivities, logActivityNow, undoLogActivity, backfillHistory } from '../data/repository';
+import { useActivities, logActivityNow, undoHandlerForLog, logActivityOnDay } from '../data/repository';
 import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
 import { ChevronLeftIcon, CheckIcon, BellIcon, PlusIcon, ChevronRightIcon, ShareIcon, CalendarIcon } from '../components/Icons';
@@ -75,16 +75,14 @@ export default function DetailScreen() {
     }
     if (result.skipped) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      setToast({ id: Date.now(), text: t('home.logged') });
-      return;
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    const undo = undoHandlerForLog(item.id, result);
     setToast({
       id: Date.now(),
-      text: t('home.logged'),
-      undo: async () => {
-        await undoLogActivity(item.id, result.previousLastDoneAt, result.previousHistory);
-      },
+      text: t(result.skipped ? 'home.alreadyLogged' : 'home.logged'),
+      undo: undo || undefined,
     });
   }
 
@@ -97,7 +95,7 @@ export default function DetailScreen() {
     setBackfillAt(null);
     if (!at) return;
     try {
-      await backfillHistory(item.id, at);
+      await logActivityOnDay(item.id, at);
     } catch (e) {
       if (e?.code === 'FREE_LIMIT') {
         nav.navigate('Paywall', { reason: e.kind || 'history' });

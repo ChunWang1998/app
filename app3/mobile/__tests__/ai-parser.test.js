@@ -3,7 +3,8 @@ import { parseRules } from '../src/lib/ai/ruleParser';
 import { parseIntent } from '../src/lib/ai/parseIntent';
 import { __setNativeForTests } from '../src/lib/ai/foundationModels';
 import { fuzzyMatchItem } from '../src/lib/ai/matchItem';
-import { draftFromCreate, itemsDueThisWeek, sinceCopy, formatNextShort } from '../src/lib/ai/apply';
+import { hydrateIntent } from '../src/lib/ai/ruleParser';
+import { draftFromCreate, cardFromCreateIntent, itemsDueThisWeek, sinceCopy, formatNextShort } from '../src/lib/ai/apply';
 import { seedCategories } from '../src/lib/categories';
 import {
   resetRepositoryForTests,
@@ -343,6 +344,117 @@ describe('foundation models fallback', () => {
     expect(r.source).toBe('rules');
     expect(r.type).toBe('log');
   });
+
+  it('does not treat FM future plans as done today, even if kind is log', async () => {
+    __setNativeForTests({
+      parseIntent: async () => ({
+        ok: true,
+        kind: 'log',
+        name: 'gym',
+        lastDonePhrase: 'tomorrow',
+        reminderPhrase: '',
+      }),
+    });
+    const r = await parseIntent('I will go to the gym tomorrow', { locale: 'en', now: NOW });
+    expect(r.source).toBe('fm');
+    expect(r.type).toBe('create');
+    expect(r.future).toBe(true);
+    expect(r.lastDoneAt).toBeNull();
+    expect(r.lastDoneDaysAgo).toBeNull();
+    expect(r.reminderDays).toBeNull();
+  });
+});
+
+describe('future plans are not logged as today', () => {
+  const rows = [
+    { locale: 'zh-Hant', text: '明天要去重訓', name: /重訓/ },
+    { locale: 'zh-Hant', text: '下週要重訓', name: /重訓/ },
+    { locale: 'zh-Hant', text: '打算重訓', name: /重訓/ },
+    { locale: 'en', text: 'I will go to the gym tomorrow', name: /gym/i },
+    { locale: 'en', text: 'going to the gym tomorrow', name: /gym/i },
+    { locale: 'ja', text: '明日筋トレする', name: /筋トレ/ },
+    { locale: 'de', text: 'Ich werde morgen trainieren', name: /trainieren/i },
+    { locale: 'fr', text: 'Je vais à la gym demain', name: /gym/i },
+  ];
+
+  it.each(rows)('$locale $text', ({ locale, text, name }) => {
+    const r = parse(text, locale);
+    expect(r.type).toBe('create');
+    expect(r.future).toBe(true);
+    expect(r.name).toMatch(name);
+    expect(r.lastDoneAt).toBeNull();
+    expect(r.lastDoneDaysAgo).toBeNull();
+    expect(r.reminderDays).toBeNull();
+  });
+
+  it('still treats cadence creates as done today', () => {
+    const r = parse('每週倒垃圾', 'zh-Hant');
+    expect(r.type).toBe('create');
+    expect(r.future).toBeUndefined();
+    expect(r.lastDoneDaysAgo).toBe(0);
+    expect(r.reminderDays).toBe(7);
+  });
+
+  it('does not treat I will without a time word as a future plan', () => {
+    const r = parse('I will go jogging', 'en');
+    expect(r.future).toBeUndefined();
+    expect(r.lastDoneAt == null).toBe(false);
+  });
+
+  it('does not treat ich will joggen as a future plan', () => {
+    const r = parse('ich will joggen', 'de');
+    expect(r.future).toBeUndefined();
+    expect(r.lastDoneAt == null).toBe(false);
+  });
+
+  it('keeps will + time-word as future, without a bare will / ich will matcher', () => {
+    const phrases = require('../src/lib/ai/phrases.json');
+    expect(phrases.futureIntent.en).not.toContain('\\bwill\\b');
+    expect(phrases.futureIntent.en).not.toContain('\\bi will\\b');
+    expect(phrases.futureIntent.de).not.toContain('\\bich will\\b');
+    expect(phrases.futureIntent.en.some((p) => p.includes('will') && p.includes('tomorrow'))).toBe(true);
+    const r = parse('I will go to the gym tomorrow', 'en');
+    expect(r.future).toBe(true);
+    expect(r.lastDoneAt).toBeNull();
+  });
+
+  it('hydrates FM create phrases without a last-done date', () => {
+    const r = hydrateIntent(
+      { type: 'create', name: '重訓', lastDonePhrase: '', reminderPhrase: '', source: 'fm' },
+      { locale: 'zh-Hant', now: NOW, text: '明天要去重訓' },
+    );
+    expect(r.type).toBe('create');
+    expect(r.future).toBe(true);
+    expect(r.lastDoneAt).toBeNull();
+    expect(r.reminderDays).toBeNull();
+    expect(r.name).toMatch(/重訓/);
+  });
+
+  it('maps an existing item without adding a log, and drafts a new one empty', () => {
+    const existing = {
+      id: 'a1',
+      title: '重訓',
+      lastDoneAt: '2026-01-01T00:00:00.000Z',
+      reminderDays: 7,
+    };
+    const mapped = cardFromCreateIntent(
+      { type: 'create', name: '重訓', future: true, lastDoneAt: null, reminderDays: null },
+      { activities: [existing], categories: seedCategories() },
+    );
+    expect(mapped.mapped).toBe(true);
+    expect(mapped.state).toBe('view');
+    expect(mapped.item.lastDoneAt).toBe(existing.lastDoneAt);
+    expect(mapped.item.reminderDays).toBe(7);
+
+    const fresh = cardFromCreateIntent(
+      { type: 'create', name: '重訓', future: true, lastDoneAt: null, reminderDays: null },
+      { activities: [], categories: seedCategories() },
+    );
+    expect(fresh.mapped).toBe(false);
+    expect(fresh.state).toBe('new');
+    expect(fresh.item.lastDoneAt).toBeNull();
+    expect(fresh.item.reminderDays).toBeNull();
+  });
 });
 
 describe('since copy stays short', () => {
@@ -455,7 +567,7 @@ describe('QA parser-results 38', () => {
     { locale: 'zh-Hant', text: '我剛換了貓砂', type: 'log', name: /貓砂/ },
     { locale: 'zh-Hant', text: '昨天澆了花', type: 'log', name: /花/, lastDoneDaysAgo: 1 },
     { locale: 'zh-Hant', text: '洗好碗了', type: 'log', name: /碗/ },
-    { locale: 'zh-Hant', text: '記一下剪頭髮', type: 'create', name: /剪頭髮/, reminderDays: 42, lastDoneDaysAgo: 0 },
+    { locale: 'zh-Hant', text: '記一下剪頭髮', type: 'create', name: /剪頭髮/, lastDoneDaysAgo: 0 },
     { locale: 'zh-Hant', text: '三天前換了床單', type: 'log', name: /床單/, lastDoneDaysAgo: 3 },
     { locale: 'zh-Hant', text: '每隔10天澆花', type: 'create', name: /^澆花$/, reminderDays: 10, lastDoneDaysAgo: 0 },
     { locale: 'en', text: 'change the filter every 2 weeks, last done yesterday', type: 'create', name: /filter/i, reminderDays: 14, lastDoneDaysAgo: 1 },
@@ -492,6 +604,17 @@ describe('QA parser-results 38', () => {
     else expect(r.name == null || r.name === '').toBe(true);
     if (reminderDays != null) expect(r.reminderDays).toBe(reminderDays);
     if (lastDoneDaysAgo != null) expect(r.lastDoneDaysAgo).toBe(lastDoneDaysAgo);
+  });
+
+  it('does not invent a reminder when the user did not say one', () => {
+    expect(qa('記一下剪頭髮', 'zh-Hant').reminderDays).toBeNull();
+    expect(qa('記一下澆花', 'zh-Hant').reminderDays).toBeNull();
+    expect(qa('add haircut', 'en').reminderDays).toBeNull();
+    const hydrated = hydrateIntent(
+      { type: 'create', name: '澆花', lastDonePhrase: '', reminderPhrase: '', source: 'fm' },
+      { locale: 'zh-Hant', now: QA_NOW, text: '澆花' },
+    );
+    expect(hydrated.reminderDays).toBeNull();
   });
 
   it('parses every-N days in all locales', () => {
@@ -556,6 +679,21 @@ describe('AiEditSheet now is stable', () => {
     expect(src).not.toMatch(/now\s*=\s*Date\.now\(\)/);
     expect(src).toMatch(/useRef/);
     expect(src).toMatch(/nowRef/);
+  });
+});
+
+describe('AI chat future-plan card', () => {
+  it('maps future creates in memory and still writes through addActivity', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../src/screens/AiChatScreen.js'), 'utf8');
+    expect(src).toMatch(/cardFromCreateIntent/);
+    expect(src).toMatch(/ai\.plannedIntro/);
+    expect(src).toMatch(/itemKey=\{sheet\}/);
+    expect(src).toMatch(/Keyboard\.dismiss/);
+    expect(src).toMatch(/await addActivity/);
+    expect(src).not.toMatch(/draftFromCreate/);
+    const repo = fs.readFileSync(path.join(__dirname, '../src/data/repository.js'), 'utf8');
+    expect(repo).toMatch(/function enqueueWrite/);
+    expect(repo).toMatch(/return enqueueWrite\(async \(\) => \{/);
   });
 });
 

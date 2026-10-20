@@ -56,8 +56,11 @@
     "empty": "まだ記録がありません",
     "add": "+ 追加",
     "logged": "今日記録済み",
+    "alreadyLogged": "今日は記録済み",
     "deleted": "削除しました",
     "neverLogged": "未記録",
+    "last": "前回",
+    "justNow": "いま",
     "overdue": "期限切れ",
     "remaining": "あと",
     "a11ySettings": "設定",
@@ -164,7 +167,8 @@
     "week": "週",
     "month": "か月",
     "year": "年",
-    "lastDoneLine": "{relative} · 前回 {date}"
+    "lastDoneLine": "{relative} · 前回 {date}",
+    "ago": "{span}前"
   },
   "reminder": {
     "title": "リマインダー",
@@ -223,7 +227,9 @@
     "title": "最近削除した項目",
     "empty": "項目がありません",
     "restore": "復元",
-    "purge": "30日後に完全削除"
+    "purge": "3日後に完全削除",
+    "daysLeft": "あと{n}日",
+    "oneDayLeft": "あと1日"
   },
   "demo": {
     "filter": "浄水器のカートリッジ交換",
@@ -237,7 +243,8 @@
   "date": {
     "weekAgo": "1週間前",
     "monthAgo": "1か月前",
-    "unknown": "覚えてない"
+    "unknown": "覚えてない",
+    "pick": "日付"
   },
   "category": {
     "title": "カテゴリ",
@@ -270,6 +277,7 @@
     "logged": "記録した",
     "undone": "元に戻した",
     "createIntro": "メモします：",
+    "plannedIntro": "追加した：",
     "logIntro": "{name}を記録した。",
     "sinceOnly": "{span}。",
     "sinceNext": "{span}。次は {next}。",
@@ -297,7 +305,7 @@
     "a11ySend": "送信",
     "a11yNew": "新しい会話",
     "speechDenied": "マイクがオフ",
-    "speechUnavailable": "端末内の音声認識は使えない",
-    "micOffHint": "端末内のみ"
+    "speechUnavailable": "ここでは音声入力できません。文字で入力してください",
+    "micOffHint": "文字で入力"
   }
 }

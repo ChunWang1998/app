@@ -5,14 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useActivities, addActivity, updateActivity, softDeleteActivity, FREE_ACTIVITY_LIMIT } from '../data/repository';
 import { useThemeColors, useItemTone, useTheme } from '../theme/useTheme';
 import { ItemGlyph } from '../components/ItemGlyph';
-import { ChevronRightIcon } from '../components/Icons';
 import { isProUnlocked } from '../lib/entitlements';
 import { DateChips } from '../components/DateChips';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { CategoryGlyph } from '../components/CategoryGlyph';
 import { OTHER_ID, OTHER_ICON, matchCategory, categoryName, iconForItem } from '../lib/categories';
 import { ReminderChips } from '../components/ReminderChips';
-import { suggestReminderDays } from '../lib/suggestReminder';
 import { monogramLetter } from '../lib/suggestIcon';
 import { ICON_DEFAULT } from '../data/models';
 import { t } from '../i18n';
@@ -21,7 +19,6 @@ import {
   chipDaysFromConfig,
   configFromChipDays,
   ensureReminderEnabled,
-  formatReminderLabel,
   reminderConfigFromActivity,
   reminderFieldsFromConfig,
 } from '../lib/reminderSchedule';
@@ -38,8 +35,7 @@ export default function EditScreen() {
   const [title, setTitle] = useState(current?.title || '');
   const [notes, setNotes] = useState(current?.notes || '');
   const [lastDoneAt, setLastDoneAt] = useState(() => (isNew ? new Date().toISOString() : current?.lastDoneAt || null));
-  const [reminderCfg, setReminderCfg] = useState(() => reminderConfigFromActivity({ reminderTime: defaultTime }));
-  const [reminderManual, setReminderManual] = useState(false);
+  const [reminderCfg, setReminderCfg] = useState(() => reminderConfigFromActivity(current || { reminderTime: defaultTime }));
   const [categoryId, setCategoryId] = useState(current?.categoryId || null);
   const [picker, setPicker] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -47,7 +43,6 @@ export default function EditScreen() {
   const shownCategory = categoryId || (title.trim() ? matchCategory(title, categories) : null);
   const catObj = shownCategory === OTHER_ID ? { id: OTHER_ID, icon: OTHER_ICON } : categories.find((x) => x.id === shownCategory);
 
-  const remLabel = current ? formatReminderLabel(current) : formatReminderLabel(reminderCfg);
   const previewIcon = iconForItem({ categoryId: shownCategory }, categories) || catObj?.icon || ICON_DEFAULT;
   const tone = useItemTone(previewIcon, title);
   const chipValue = chipDaysFromConfig(reminderCfg);
@@ -57,24 +52,22 @@ export default function EditScreen() {
     clearDraftReminder();
     return subscribeDraftReminder((fields) => {
       if (!fields) return;
-      setReminderManual(true);
       setReminderCfg(reminderConfigFromActivity(fields));
     });
   }, [isNew]);
 
   function onTitle(text) {
     setTitle(text);
-    if (isNew && !reminderManual) {
-      const days = suggestReminderDays(text);
-      setReminderCfg(configFromChipDays(days, { ...reminderCfg, time: defaultTime }));
-    }
   }
 
   function openMore() {
-    const next = ensureReminderEnabled(reminderCfg);
-    if (!reminderCfg.enabled) {
-      setReminderManual(true);
-      setReminderCfg(next);
+    const next = reminderCfg.enabled ? reminderCfg : ensureReminderEnabled(reminderCfg);
+    setReminderCfg(next);
+    if (current) {
+      updateActivity(current.id, reminderFieldsFromConfig(next)).then(() => {
+        nav.navigate('Reminder', { id: current.id });
+      });
+      return;
     }
     nav.navigate('Reminder', {
       draft: true,
@@ -92,7 +85,12 @@ export default function EditScreen() {
     setBusy(true);
     try {
       if (current) {
-        const patch = { title: trimmed, notes, ...(categoryId ? { categoryId } : {}) };
+        const patch = {
+          title: trimmed,
+          notes,
+          ...(categoryId ? { categoryId } : {}),
+          ...reminderFieldsFromConfig(reminderCfg),
+        };
         if (lastDoneAt !== current.lastDoneAt) {
           const rest = (current.history || []).filter((e) => e.at !== current.lastDoneAt);
           patch.history = lastDoneAt ? [{ at: lastDoneAt }, ...rest] : rest;
@@ -209,27 +207,16 @@ export default function EditScreen() {
             <Text style={[styles.lab, styles.secLab, { color: c.label }]}>{t('edit.last')}</Text>
             <DateChips value={lastDoneAt} onChange={setLastDoneAt} />
           </View>
-          {isNew ? (
-            <View style={{ paddingTop: 12 }}>
-              <Text style={[styles.lab, styles.secLab, { color: c.label }]}>{t('edit.reminder')}</Text>
-              <ReminderChips
-                value={chipValue}
-                onChange={(d) => {
-                  setReminderManual(true);
-                  setReminderCfg(configFromChipDays(d, { ...reminderCfg, time: defaultTime }));
-                }}
-                onMore={openMore}
-              />
-            </View>
-          ) : (
-            <TouchableOpacity style={styles.row} onPress={() => nav.navigate('Reminder', { id: current.id })}>
-              <Text style={[styles.lab, { color: c.label }]}>{t('edit.reminder')}</Text>
-              <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', marginLeft: 'auto', marginRight: 6 }}>
-                {remLabel}
-              </Text>
-              <ChevronRightIcon color={c.l3} />
-            </TouchableOpacity>
-          )}
+          <View style={{ paddingTop: 12 }}>
+            <Text style={[styles.lab, styles.secLab, { color: c.label }]}>{t('edit.reminder')}</Text>
+            <ReminderChips
+              value={chipValue}
+              onChange={(d) => {
+                setReminderCfg(configFromChipDays(d, { ...reminderCfg, time: defaultTime }));
+              }}
+              onMore={openMore}
+            />
+          </View>
         </View>
 
         <View style={[styles.grp, { backgroundColor: c.cell, marginTop: 18, minHeight: 96 }]}>
