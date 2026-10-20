@@ -90,7 +90,7 @@
 ## 支援 URL
 
 ```
-https://chunwang1998.github.io/app/app1/store/support.html
+https://tinytoolshedhq.github.io/app/app1/store/support.html
 ```
 
 ## 行銷 URL
@@ -98,7 +98,7 @@ https://chunwang1998.github.io/app/app1/store/support.html
 可留空，或同支援頁：
 
 ```
-https://chunwang1998.github.io/app/app1/store/support.html
+https://tinytoolshedhq.github.io/app/app1/store/support.html
 ```
 
 ---
@@ -166,7 +166,7 @@ https://chunwang1998.github.io/app/app1/store/support.html
 |------|-----|
 | 主要類別 | 遊戲 → 文字／益智問答（Word / Trivia） |
 | 次要類別 | 遊戲 → 益智（Puzzle）或娛樂 |
-| 隱私權政策 URL | `https://chunwang1998.github.io/app/app1/store/privacy.html` |
+| 隱私權政策 URL | `https://tinytoolshedhq.github.io/app/app1/store/privacy.html` |
 
 ### App 隱私權
 

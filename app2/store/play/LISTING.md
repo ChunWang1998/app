@@ -2,8 +2,8 @@
 
 Package：`com.toiletgo.app`  
 聯絡信箱：`jjooee1998@gmail.com`  
-隱私權：`https://chunwang1998.github.io/app/app2/store/privacy.html`  
-支援：`https://chunwang1998.github.io/app/app2/store/support.html`
+隱私權：`https://tinytoolshedhq.github.io/app/app2/store/privacy.html`  
+支援：`https://tinytoolshedhq.github.io/app/app2/store/support.html`
 
 ---
 

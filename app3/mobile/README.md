@@ -24,5 +24,5 @@ Submit (EAS)
 - Submission uses EAS credentials / env vars: `EXPO_ASC_API_KEY_PATH`, `EXPO_ASC_KEY_ID`, `EXPO_ASC_ISSUER_ID`, `EXPO_APPLE_TEAM_ID`.
 
 Store pages (GitHub Pages, `gh-pages` branch)
-- Privacy: https://chunwang1998.github.io/app/app3/store/privacy.html
-- Support: https://chunwang1998.github.io/app/app3/store/support.html
+- Privacy: https://tinytoolshedhq.github.io/app/app3/store/privacy.html
+- Support: https://tinytoolshedhq.github.io/app/app3/store/support.html

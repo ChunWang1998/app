@@ -3,10 +3,10 @@ set -euo pipefail
 
 # Deploy data/dist/ to GitHub Pages (gh-pages branch) under /places/
 # After running, assets are available at:
-#   https://chunwang1998.github.io/app/places/cells/{i}_{j}.json
-#   https://chunwang1998.github.io/app/places/cities/{縣市}.json
-#   https://chunwang1998.github.io/app/places/pack/full.json
-#   https://chunwang1998.github.io/app/places/pack/manifest.json
+#   https://tinytoolshedhq.github.io/app/places/cells/{i}_{j}.json
+#   https://tinytoolshedhq.github.io/app/places/cities/{縣市}.json
+#   https://tinytoolshedhq.github.io/app/places/pack/full.json
+#   https://tinytoolshedhq.github.io/app/places/pack/manifest.json
 
 DIST_DIR="$(cd "$(dirname "$0")/data/dist" && pwd)"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -52,4 +52,4 @@ git push origin gh-pages
 cd "$REPO_ROOT"
 git worktree remove "$TEMP_DIR" --force 2>/dev/null || true
 
-echo "Done! Places CDN: https://chunwang1998.github.io/app/places"
+echo "Done! Places CDN: https://tinytoolshedhq.github.io/app/places"

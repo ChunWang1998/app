@@ -186,8 +186,8 @@ fetchData/*.py → data/711_with_toilet.json → buildDataSet.py
                       ↓
               deploy-places.sh → GitHub Pages
                       ↓
-  https://chunwang1998.github.io/app/places/cells/{i}_{j}.json
-  https://chunwang1998.github.io/app/places/cities/{縣市}.json
+  https://tinytoolshedhq.github.io/app/places/cells/{i}_{j}.json
+  https://tinytoolshedhq.github.io/app/places/cities/{縣市}.json
                       ↓
               mobile app（EXPO_PUBLIC_PLACES_URL）
 ```

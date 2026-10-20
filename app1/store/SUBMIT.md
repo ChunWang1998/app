@@ -4,8 +4,8 @@ Build：EAS `1.0.0` build **4** · ASC App ID `6798265759`
 
 ## 已完成
 
-- [x] 隱私權：https://chunwang1998.github.io/app/app1/store/privacy.html
-- [x] 支援：https://chunwang1998.github.io/app/app1/store/support.html
+- [x] 隱私權：https://tinytoolshedhq.github.io/app/app1/store/privacy.html
+- [x] 支援：https://tinytoolshedhq.github.io/app/app1/store/support.html
 - [x] 截圖 6.7"（1290×2796）：`screenshots/01-home.png`、`02-play.png`、`03-solved.png`
 - [x] 文案／ASO：`../STORE_COPY.md`
 
