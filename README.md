@@ -38,7 +38,7 @@ cd app1/game && npm install && npm start
 cd app2/mobile && npm install && npm start
 ```
 
-需設定 `mobile/.env`（參考 `.env.example`）：`EXPO_PUBLIC_SUPABASE_URL`、`EXPO_PUBLIC_SUPABASE_ANON_KEY`。地點 CDN 預設在 `app2/mobile/eas.json`：`EXPO_PUBLIC_PLACES_URL=https://chunwang1998.github.io/app/places`。Android 正式包還需要 `GOOGLE_MAPS_API_KEY`（見 `app2/mobile/app.config.js`）。
+需設定 `mobile/.env`（參考 `.env.example`）：`EXPO_PUBLIC_SUPABASE_URL`、`EXPO_PUBLIC_SUPABASE_ANON_KEY`。地點 CDN 預設在 `app2/mobile/eas.json`：`EXPO_PUBLIC_PLACES_URL=https://tinytoolshedhq.github.io/app/places`。Android 正式包還需要 `GOOGLE_MAPS_API_KEY`（見 `app2/mobile/app.config.js`）。
 
 | 文件 | 用途 |
 |------|------|

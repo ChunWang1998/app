@@ -2,8 +2,8 @@
 
 > Package：`com.toiletgo.app`  
 > 內購商品 ID：`com.toiletgo.app.pro`（非消耗型 / 單次）  
-> 隱私權：`https://chunwang1998.github.io/app/app2/store/privacy.html`  
-> 支援：`https://chunwang1998.github.io/app/app2/store/support.html`
+> 隱私權：`https://tinytoolshedhq.github.io/app/app2/store/privacy.html`  
+> 支援：`https://tinytoolshedhq.github.io/app/app2/store/support.html`
 
 帳號核准後依序：建立 App → 填商店資訊 → 建立 IAP → Internal testing 上傳 AAB。
 
@@ -130,7 +130,7 @@ npm run deploy:play
 
 正式建置已內建：
 
-- `EXPO_PUBLIC_PLACES_URL=https://chunwang1998.github.io/app/places`
+- `EXPO_PUBLIC_PLACES_URL=https://tinytoolshedhq.github.io/app/places`
 - `EXPO_PUBLIC_IAP_PRODUCT_ID=com.toiletgo.app.pro`
 
 Supabase 金鑰請用 EAS Environment Variables（勿寫進 repo）。本機已有 `mobile/.env` 時：
