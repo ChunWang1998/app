@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.beenages.app",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "infoPlist": {
         "CFBundleDevelopmentRegion": "en",
         "CFBundleLocalizations": [
@@ -22,6 +22,7 @@
         ],
         "CFBundleAllowMixedLocalizations": true,
         "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Saves or shares a card image using your Photos.",
         "NSPhotoLibraryAddUsageDescription": "Saves a share card image to your Photos.",
         "NSCalendarsUsageDescription": "Been Ages only adds an item's next due date to your calendar when you tap Add to Calendar. It never reads your events.",
         "NSCalendarsFullAccessUsageDescription": "Been Ages only adds an item's next due date to your calendar when you tap Add to Calendar. It never reads your events.",

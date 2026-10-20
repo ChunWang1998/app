@@ -84,6 +84,7 @@ describe('add to calendar', () => {
       'NSCalendarsWriteOnlyAccessUsageDescription',
       'NSRemindersUsageDescription',
       'NSRemindersFullAccessUsageDescription',
+      'NSPhotoLibraryUsageDescription',
       'NSPhotoLibraryAddUsageDescription',
     ]) {
       expect(typeof plist[key]).toBe('string');
@@ -109,6 +110,8 @@ describe('add to calendar', () => {
     expect(merged.NSRemindersUsageDescription).toMatch(/Reminders app/i);
     expect(merged.NSRemindersFullAccessUsageDescription).toMatch(/Reminders app/i);
     expect(merged.NSPhotoLibraryAddUsageDescription).toMatch(/Photos/i);
+    expect(merged.NSPhotoLibraryUsageDescription).toMatch(/Photos/i);
+    expect(plist.NSPhotoLibraryUsageDescription).toMatch(/save|share/i);
     expect(appJson.expo.ios.infoPlist.CFBundleDevelopmentRegion).toBe('en');
     expect(appJson.expo.ios.infoPlist.CFBundleLocalizations).toEqual(['en', 'zh-Hant', 'ja', 'de', 'fr']);
     const locales = appJson.expo.locales;
@@ -129,6 +132,7 @@ describe('add to calendar', () => {
       'NSCalendarsWriteOnlyAccessUsageDescription',
       'NSRemindersUsageDescription',
       'NSRemindersFullAccessUsageDescription',
+      'NSPhotoLibraryUsageDescription',
       'NSPhotoLibraryAddUsageDescription',
       'NSMicrophoneUsageDescription',
       'NSSpeechRecognitionUsageDescription',
@@ -156,6 +160,31 @@ describe('add to calendar', () => {
     expect(fr.NSMicrophoneUsageDescription).toMatch(/micro/i);
     expect(de.NSSpeechRecognitionUsageDescription).toMatch(/Gerät/);
     expect(fr.NSSpeechRecognitionUsageDescription).toMatch(/appareil/);
+    expect(Number(appJson.expo.ios.buildNumber)).toBeGreaterThanOrEqual(10);
+    expect(en.NSPhotoLibraryUsageDescription).toMatch(/Photos/i);
+    expect(zh.NSPhotoLibraryUsageDescription).toMatch(/照片/);
+    expect(ja.NSPhotoLibraryUsageDescription).toMatch(/写真/);
+    expect(de.NSPhotoLibraryUsageDescription).toMatch(/Fotos/);
+    expect(fr.NSPhotoLibraryUsageDescription).toMatch(/Photos/);
+    const usageKeys = Object.keys(plist).filter((k) => /UsageDescription$/.test(k)).sort();
+    expect(usageKeys).toEqual([
+      'NSCalendarsFullAccessUsageDescription',
+      'NSCalendarsUsageDescription',
+      'NSCalendarsWriteOnlyAccessUsageDescription',
+      'NSMicrophoneUsageDescription',
+      'NSPhotoLibraryAddUsageDescription',
+      'NSPhotoLibraryUsageDescription',
+      'NSRemindersFullAccessUsageDescription',
+      'NSRemindersUsageDescription',
+      'NSSpeechRecognitionUsageDescription',
+    ]);
+    expect(plist.NSCameraUsageDescription).toBeUndefined();
+    expect(plist.NSContactsUsageDescription).toBeUndefined();
+    expect(plist.NSLocationWhenInUseUsageDescription).toBeUndefined();
+    expect(plist.NSUserTrackingUsageDescription).toBeUndefined();
+    const eas = require('../eas.json');
+    expect(eas.cli.appVersionSource).toBe('local');
+    expect(eas.build.production.autoIncrement).toBe(true);
     expect(eventTitle({ title: 'TÜV' }, 'de')).toBe('TÜV | Been Ages');
     expect(eventTitle({ title: 'Ramonage' }, 'fr')).toBe('Ramonage | Been Ages');
     expect(calendarNote('de')).toBe('Aus Been Ages hinzugefügt');

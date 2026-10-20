@@ -1,5 +1,6 @@
 {
   "CFBundleDisplayName": "久しぶり",
+  "NSPhotoLibraryUsageDescription": "シェアカードを写真に保存、または共有します。",
   "NSPhotoLibraryAddUsageDescription": "シェアカードを写真に保存します。",
   "NSCalendarsUsageDescription": "「カレンダーに追加」をタップしたときだけ、次の予定日を追加します。予定は読みません。",
   "NSCalendarsFullAccessUsageDescription": "「カレンダーに追加」をタップしたときだけ、次の予定日を追加します。予定は読みません。",
