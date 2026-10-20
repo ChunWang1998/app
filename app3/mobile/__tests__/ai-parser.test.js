@@ -395,6 +395,29 @@ describe('future plans are not logged as today', () => {
     expect(r.reminderDays).toBe(7);
   });
 
+  it('does not treat I will without a time word as a future plan', () => {
+    const r = parse('I will go jogging', 'en');
+    expect(r.future).toBeUndefined();
+    expect(r.lastDoneAt == null).toBe(false);
+  });
+
+  it('does not treat ich will joggen as a future plan', () => {
+    const r = parse('ich will joggen', 'de');
+    expect(r.future).toBeUndefined();
+    expect(r.lastDoneAt == null).toBe(false);
+  });
+
+  it('keeps will + time-word as future, without a bare will / ich will matcher', () => {
+    const phrases = require('../src/lib/ai/phrases.json');
+    expect(phrases.futureIntent.en).not.toContain('\\bwill\\b');
+    expect(phrases.futureIntent.en).not.toContain('\\bi will\\b');
+    expect(phrases.futureIntent.de).not.toContain('\\bich will\\b');
+    expect(phrases.futureIntent.en.some((p) => p.includes('will') && p.includes('tomorrow'))).toBe(true);
+    const r = parse('I will go to the gym tomorrow', 'en');
+    expect(r.future).toBe(true);
+    expect(r.lastDoneAt).toBeNull();
+  });
+
   it('hydrates FM create phrases without a last-done date', () => {
     const r = hydrateIntent(
       { type: 'create', name: '重訓', lastDonePhrase: '', reminderPhrase: '', source: 'fm' },
