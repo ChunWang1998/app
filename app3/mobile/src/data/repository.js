@@ -72,6 +72,24 @@ function visibleCount(list = state.activities) {
 export const TRASH_DAYS = 3;
 export const TRASH_MS = TRASH_DAYS * 864e5;
 
+/** Pin a timestamp to now when it is later than now. Invalid values are left alone. */
+export function clampIsoToNow(iso, now = Date.now()) {
+  if (iso == null || iso === '') return iso;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return iso;
+  return t > now ? new Date(now).toISOString() : (typeof iso === 'string' ? iso : new Date(t).toISOString());
+}
+
+function clampHistoryToNow(history, now = Date.now()) {
+  if (!Array.isArray(history)) return history;
+  return history.map((e) => {
+    if (e == null) return e;
+    if (typeof e === 'string') return clampIsoToNow(e, now);
+    if (typeof e === 'object') return { ...e, at: clampIsoToNow(e.at, now) };
+    return e;
+  });
+}
+
 export function isExpiredDeleted(item, now = Date.now()) {
   if (!item?.deletedAt) return false;
   const t = new Date(item.deletedAt).getTime();
@@ -198,19 +216,23 @@ export async function addActivity(input) {
 
 export async function updateActivity(id, changes) {
   return enqueueWrite(async () => {
-    if (changes.history !== undefined || changes.lastDoneAt !== undefined) {
+    const now = Date.now();
+    const patch = { ...(changes || {}) };
+    if (patch.lastDoneAt !== undefined) patch.lastDoneAt = clampIsoToNow(patch.lastDoneAt, now);
+    if (patch.history !== undefined) patch.history = clampHistoryToNow(patch.history, now);
+    if (patch.history !== undefined || patch.lastDoneAt !== undefined) {
       const latest = state.activities.find((a) => a.id === id);
       const prev = historyOf(latest);
       const nextHist = normalizeHistory(
-        changes.history !== undefined ? changes.history : latest?.history,
-        changes.lastDoneAt !== undefined ? changes.lastDoneAt : latest?.lastDoneAt,
+        patch.history !== undefined ? patch.history : latest?.history,
+        patch.lastDoneAt !== undefined ? patch.lastDoneAt : latest?.lastDoneAt,
       );
       if (nextHist.length > prev.length && !(await isProUnlocked())) {
         const again = state.activities.find((a) => a.id === id);
         const prev2 = historyOf(again);
         const next2 = normalizeHistory(
-          changes.history !== undefined ? changes.history : again?.history,
-          changes.lastDoneAt !== undefined ? changes.lastDoneAt : again?.lastDoneAt,
+          patch.history !== undefined ? patch.history : again?.history,
+          patch.lastDoneAt !== undefined ? patch.lastDoneAt : again?.lastDoneAt,
         );
         if (next2.length > prev2.length && next2.length > FREE_HISTORY_LIMIT) {
           throw freeLimitError(FREE_HISTORY_LIMIT, 'history');
@@ -220,9 +242,9 @@ export async function updateActivity(id, changes) {
     const ts = nowIso();
     const next = state.activities.map((a) => {
       if (a.id !== id) return a;
-      const { icon: _ignored, ...rest } = changes || {};
+      const { icon: _ignored, ...rest } = patch;
       const merged = { ...a, ...rest, updatedAt: ts };
-      if (changes.history || changes.lastDoneAt !== undefined) {
+      if (patch.history || patch.lastDoneAt !== undefined) {
         const history = normalizeHistory(merged.history, merged.lastDoneAt);
         merged.history = history;
         merged.lastDoneAt = lastDoneFromHistory(history);
@@ -235,18 +257,19 @@ export async function updateActivity(id, changes) {
 }
 
 async function logActivityAtUnlocked(id, ts) {
-  await assertCanWriteHistory(id, ts);
+  const at = clampIsoToNow(ts || nowIso());
+  await assertCanWriteHistory(id, at);
   let previousLastDoneAt = null;
   let previousHistory = [];
   const next = state.activities.map((a) => {
     if (a.id !== id) return a;
     previousLastDoneAt = a.lastDoneAt ?? null;
     previousHistory = Array.isArray(a.history) ? a.history : [];
-    const history = normalizeHistory([{ at: ts }, ...previousHistory]);
+    const history = normalizeHistory([{ at }, ...previousHistory]);
     return { ...a, history, lastDoneAt: lastDoneFromHistory(history), updatedAt: nowIso() };
   });
   await persist({ ...state, activities: next });
-  return { previousLastDoneAt, previousHistory, loggedAt: ts };
+  return { previousLastDoneAt, previousHistory, loggedAt: at };
 }
 
 export async function logActivityAt(id, atIso) {
@@ -264,7 +287,7 @@ function existingOnLocalDay(item, atIso) {
  */
 export async function logActivityOnDay(id, atIso) {
   return enqueueWrite(async () => {
-    const ts = atIso || nowIso();
+    const ts = clampIsoToNow(atIso || nowIso());
     const item = state.activities.find((a) => a.id === id);
     const hit = existingOnLocalDay(item, ts);
     if (hit) {
@@ -293,7 +316,7 @@ export async function logActivityOnDay(id, atIso) {
  */
 export async function logActivityNow(id, atIso) {
   return enqueueWrite(async () => {
-    const ts = atIso || nowIso();
+    const ts = clampIsoToNow(atIso || nowIso());
     const item = state.activities.find((a) => a.id === id);
     if (item && doneToday(item, new Date(ts).getTime())) {
       return {
@@ -307,15 +330,12 @@ export async function logActivityNow(id, atIso) {
   });
 }
 
-/** Undo helper for a check-off result, including same-day skips (removes today's row). */
+/** Undo a check-off by removing only that timestamp. Same-day skips get no undo. */
 export function undoHandlerForLog(id, result) {
-  if (!result) return null;
-  if (result.skipped) {
-    const at = result.loggedAt;
-    if (!at) return null;
-    return () => undoLogAt(id, at);
-  }
-  return () => undoLogActivity(id, result.previousLastDoneAt, result.previousHistory);
+  if (!result || result.skipped) return null;
+  const at = result.loggedAt;
+  if (!at) return null;
+  return () => undoLogAt(id, at);
 }
 
 export async function undoLogActivity(id, previousLastDoneAt, previousHistory) {
@@ -349,7 +369,7 @@ export async function undoLogAt(id, loggedAt) {
 
 export async function backfillHistory(id, atIso) {
   return enqueueWrite(async () => {
-    const at = new Date(atIso).toISOString();
+    const at = clampIsoToNow(new Date(atIso).toISOString());
     await assertCanWriteHistory(id, at);
     const ts = nowIso();
     const next = state.activities.map((a) => {

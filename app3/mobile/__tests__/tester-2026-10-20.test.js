@@ -86,11 +86,35 @@ describe('F16 notes: no auto reminder, Off on every editor', () => {
   });
 });
 
-describe('F04 undo after ticking a today-created item', () => {
-  it('home and detail wire skipped logs through undoHandlerForLog', () => {
+describe('F04 skipped check-off has no undo', () => {
+  it('home and detail still go through undoHandlerForLog', () => {
     expect(read('../src/screens/HomeScreen.js')).toMatch(/undoHandlerForLog/);
     expect(read('../src/screens/DetailScreen.js')).toMatch(/undoHandlerForLog/);
-    expect(read('../src/data/repository.js')).toMatch(/undoLogAt/);
+    const repo = read('../src/data/repository.js');
+    expect(repo).toMatch(/if \(!result \|\| result\.skipped\) return null/);
+    expect(repo).toMatch(/return \(\) => undoLogAt\(id, at\)/);
+  });
+});
+
+describe('store privacy copy matches 2s undo and 3-day trash', () => {
+  it('privacy.html and README use 2 seconds / 3 days in all 5 locales', () => {
+    const privacy = fs.readFileSync(path.join(__dirname, '../../store/privacy.html'), 'utf8');
+    const support = fs.readFileSync(path.join(__dirname, '../../store/support.html'), 'utf8');
+    const readme = fs.readFileSync(path.join(__dirname, '../README.md'), 'utf8');
+    expect(privacy).not.toMatch(/5 秒|5 seconds|5 Sekunden|5 secondes|30 天|30 days|30 日間|30 Tage|30 jours/);
+    expect(support).not.toMatch(/5 秒|5 seconds|30 天|30 days/);
+    expect(readme).not.toMatch(/30 days/);
+    expect(privacy).toMatch(/2 秒/);
+    expect(privacy).toMatch(/3 天/);
+    expect(privacy).toMatch(/2 seconds/);
+    expect(privacy).toMatch(/3 days/);
+    expect(privacy).toMatch(/3 日間/);
+    expect(privacy).toMatch(/2 Sekunden/);
+    expect(privacy).toMatch(/3 Tage/);
+    expect(privacy).toMatch(/2 secondes/);
+    expect(privacy).toMatch(/3 jours/);
+    expect(readme).toMatch(/2s undo toast/);
+    expect(readme).toMatch(/Recently Deleted \(3 days\)/);
   });
 });
 
