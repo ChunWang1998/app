@@ -233,6 +233,25 @@ function joinSpanParts(parts) {
   return parts.map((p) => `${p.n}\u2009${p.unit}`).join('');
 }
 
+/**
+ * Home remaining / overdue: calendar days only (never hours or minutes).
+ * Less than one day remaining reads as “today”.
+ */
+export function formatHomeCountdown(dueMs, now = Date.now(), locale) {
+  if (!Number.isFinite(dueMs)) return '';
+  const loc = locale || getLocale();
+  const at = now + dueMs;
+  if (dueMs < 0) {
+    const days = Math.max(1, localCalendarDays(at, now));
+    return joinSpanParts(formatCoarseDayParts(days, 2, loc));
+  }
+  if (dueMs < DAY || localCalendarDays(now, at) <= 0) {
+    return tLocale(resolveLocale(loc), 'common.today');
+  }
+  const days = Math.max(1, localCalendarDays(now, at));
+  return joinSpanParts(formatCoarseDayParts(days, 2, loc));
+}
+
 /** Format a span on the detail screen using the item's reminder precision. */
 export function formatDetailSpanParts(item, fromTs, toTs, n = 2, locale) {
   if (detailSpanPrecision(item) === 'fine') {

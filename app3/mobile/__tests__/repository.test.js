@@ -1,4 +1,4 @@
-import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, logActivityAt, logActivityOnDay, undoLogActivity, undoLogAt, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
+import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, logActivityAt, logActivityOnDay, undoLogActivity, undoLogAt, undoHandlerForLog, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
 import { sameLocalDay } from '../src/lib/today';
 import * as ent from '../src/lib/entitlements';
 
@@ -145,6 +145,21 @@ describe('repository', () => {
     const row = getVisibleActivities()[0];
     expect(row.history).toHaveLength(2);
     expect(row.history.filter((e) => sameLocalDay(e.at, y1))).toHaveLength(1);
+  });
+
+  it('undo after a same-day skip clears a today-created log', async () => {
+    await resetRepositoryForTests();
+    const today = new Date(2026, 9, 20, 10, 0, 0).toISOString();
+    const a = await addActivity({ title: 'New today', lastDoneAt: today });
+    expect(getVisibleActivities()[0].history).toHaveLength(1);
+    const skipped = await logActivityNow(a.id, new Date(2026, 9, 20, 16, 0, 0).toISOString());
+    expect(skipped.skipped).toBe(true);
+    const undo = undoHandlerForLog(a.id, skipped);
+    expect(typeof undo).toBe('function');
+    await undo();
+    const row = getVisibleActivities()[0];
+    expect(row.lastDoneAt).toBeNull();
+    expect(row.history).toEqual([]);
   });
 
   it('still appends two check-offs when they fall on different local days across midnight', async () => {

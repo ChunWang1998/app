@@ -36,11 +36,10 @@ describe('AiEditSheet overlay does not cover chips', () => {
   });
 
   it('exposes last-done and reminder chips that are not disabled', () => {
-    expect(src).toMatch(/testID=\{`ai-last-\$\{o\.d \?\? 'never'\}`\}/);
+    expect(src).toMatch(/<DateChips/);
     expect(src).toMatch(/testID=\{`ai-rem-\$\{o\.d \?\? 'off'\}`\}/);
     expect(src).not.toMatch(/disabled=\{true\}/);
     expect(src).toMatch(/detail\.noReminder/);
-    expect(src).toMatch(/home\.neverLogged/);
     expect(src).toMatch(/initKeyRef/);
     expect(src).toMatch(/sheetSessionKey/);
   });
@@ -124,7 +123,7 @@ describe('AiEditSheet chips are pressable', () => {
         />,
       );
     });
-    const last = tree.root.findByProps({ testID: 'ai-last-1' });
+    const last = tree.root.findByProps({ testID: 'date-chip-yesterday' });
     const remOff = tree.root.findByProps({ testID: 'ai-rem-off' });
     const remWeek = tree.root.findByProps({ testID: 'ai-rem-7' });
     expect(last.props.disabled).toBeFalsy();
@@ -143,7 +142,7 @@ describe('AiEditSheet chips are pressable', () => {
     expect(saved.reminderDays).toBe(7);
 
     act(() => { remOff.props.onPress(); });
-    act(() => { tree.root.findByProps({ testID: 'ai-last-never' }).props.onPress(); });
+    act(() => { tree.root.findByProps({ testID: 'date-chip-unknown' }).props.onPress(); });
     act(() => { tree.root.findByProps({ testID: 'ai-sheet-save' }).props.onPress(); });
     const savedOff = onSave.mock.calls[1][0];
     expect(savedOff.lastDoneAt).toBeNull();
@@ -193,7 +192,7 @@ describe('AiEditSheet keeps in-progress edits across message updates', () => {
     act(() => {
       tree = renderer.create(<AiEditSheet {...props({ onSave })} />);
     });
-    act(() => { tree.root.findByProps({ testID: 'ai-last-1' }).props.onPress(); });
+    act(() => { tree.root.findByProps({ testID: 'date-chip-yesterday' }).props.onPress(); });
     act(() => { tree.root.findByProps({ testID: 'ai-rem-7' }).props.onPress(); });
     act(() => {
       tree.update(
@@ -267,7 +266,7 @@ describe('AiEditSheet keeps in-progress edits across message updates', () => {
     act(() => {
       tree = renderer.create(<AiEditSheet {...props({ onSave })} />);
     });
-    act(() => { tree.root.findByProps({ testID: 'ai-last-1' }).props.onPress(); });
+    act(() => { tree.root.findByProps({ testID: 'date-chip-yesterday' }).props.onPress(); });
     act(() => {
       tree.update(<AiEditSheet {...props({ onSave, visible: false })} />);
     });

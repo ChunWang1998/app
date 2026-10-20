@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useActivities,
   logActivityNow,
-  undoLogActivity,
+  undoHandlerForLog,
   softDeleteActivity,
   undoDelete,
   FREE_ACTIVITY_LIMIT,
@@ -17,7 +17,7 @@ import { Mascot } from '../components/Mascot';
 import { UndoToast } from '../components/UndoToast';
 import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { AiComposer } from '../components/AiComposer';
-import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort, isDetailHeroToday } from '../lib/time';
+import { dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort, isDetailHeroToday, formatHomeCountdown } from '../lib/time';
 import { monogramLetter } from '../lib/suggestIcon';
 import { splitToday, homeMood, dueStatus } from '../lib/today';
 import { CategoryChips } from '../components/CategoryChips';
@@ -83,15 +83,13 @@ export default function HomeScreen() {
     }
     if (result.skipped) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      showToast({ text: t('home.logged') });
-      return;
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     }
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    const undo = undoHandlerForLog(a.id, result);
     showToast({
       text: t('home.logged'),
-      undo: async () => {
-        await undoLogActivity(a.id, result.previousLastDoneAt, result.previousHistory);
-      },
+      undo: undo || undefined,
     });
   }
 
@@ -254,9 +252,9 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
   let status;
   if (!item.lastDoneAt) status = t('home.neverLogged');
   else if (!hasReminderOn) status = formatLastDoneShort(item.lastDoneAt, Date.now(), getLocale());
-  else if (ds === 'today') status = t('common.today');
-  else if (od) status = `${t('home.overdue')}\u2009${formatSpan(-due)}`;
-  else status = `${t('home.remaining')}\u2009${formatSpan(due)}`;
+  else if (ds === 'today' || (due >= 0 && due < 864e5)) status = t('common.today');
+  else if (od) status = `${t('home.overdue')}\u2009${formatHomeCountdown(due)}`;
+  else status = `${t('home.remaining')}\u2009${formatHomeCountdown(due)}`;
 
   const renderRight = () => (
     <TouchableOpacity

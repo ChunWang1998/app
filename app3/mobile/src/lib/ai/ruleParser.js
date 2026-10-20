@@ -1,5 +1,4 @@
 import { resolveLocale } from '../../i18n';
-import { suggestReminderDays } from '../suggestReminder';
 import {
   parseReminderDays,
   parseLastDoneDaysAgo,
@@ -95,7 +94,7 @@ function buildCreate(text, locale, now) {
   const future = looksLikeFutureIntent(text, locale);
   const name = extractCreateName(text, locale);
   if (!name) return null;
-  const reminderDays = parseReminderDays(text, locale) ?? (future ? null : suggestReminderDays(name));
+  const reminderDays = parseReminderDays(text, locale) ?? null;
   return {
     type: 'create',
     name,
@@ -185,7 +184,7 @@ export function hydrateIntent(partial, { locale, now = new Date(), text = '' } =
   const lastDoneDaysAgo = future ? null : (phraseLast !== undefined ? phraseLast : textLast);
   const phraseRem = parseReminderDays(partial?.reminderPhrase || '', loc);
   const textRem = parseReminderDays(text, loc);
-  const reminderDays = phraseRem ?? textRem ?? (future ? null : suggestReminderDays(name));
+  const reminderDays = phraseRem ?? textRem ?? null;
   const lastDoneAt = future || lastDoneDaysAgo === null
     ? null
     : lastDoneDaysAgo === undefined

@@ -234,7 +234,8 @@
   "date": {
     "weekAgo": "1 week ago",
     "monthAgo": "1 month ago",
-    "unknown": "Not sure"
+    "unknown": "Not sure",
+    "pick": "Pick a day"
   },
   "category": {
     "title": "Categories",
@@ -295,7 +296,7 @@
     "a11ySend": "Send",
     "a11yNew": "New chat",
     "speechDenied": "Microphone is off",
-    "speechUnavailable": "On-device speech isn't available",
-    "micOffHint": "On-device only"
+    "speechUnavailable": "Voice isn’t available here. Please type.",
+    "micOffHint": "Please type"
   }
 }

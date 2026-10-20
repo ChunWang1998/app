@@ -66,6 +66,8 @@ describe('1.1.1 device-test follow-ups', () => {
     expect(detail).toMatch(/ImpactFeedbackStyle\.Light/);
     expect(home).toMatch(/home\.logged/);
     expect(detail).toMatch(/home\.logged/);
+    expect(home).toMatch(/undoHandlerForLog/);
+    expect(detail).toMatch(/undoHandlerForLog/);
   });
 
   it('history-limit check-off and backfill open the existing paywall', () => {

@@ -237,7 +237,8 @@
   "date": {
     "weekAgo": "1週間前",
     "monthAgo": "1か月前",
-    "unknown": "覚えてない"
+    "unknown": "覚えてない",
+    "pick": "日付"
   },
   "category": {
     "title": "カテゴリ",
@@ -298,7 +299,7 @@
     "a11ySend": "送信",
     "a11yNew": "新しい会話",
     "speechDenied": "マイクがオフ",
-    "speechUnavailable": "端末内の音声認識は使えない",
-    "micOffHint": "端末内のみ"
+    "speechUnavailable": "ここでは音声入力できません。文字で入力してください",
+    "micOffHint": "文字で入力"
   }
 }

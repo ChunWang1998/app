@@ -282,6 +282,17 @@ export async function logActivityNow(id, atIso) {
   });
 }
 
+/** Undo helper for a check-off result, including same-day skips (removes today's row). */
+export function undoHandlerForLog(id, result) {
+  if (!result) return null;
+  if (result.skipped) {
+    const at = result.loggedAt;
+    if (!at) return null;
+    return () => undoLogAt(id, at);
+  }
+  return () => undoLogActivity(id, result.previousLastDoneAt, result.previousHistory);
+}
+
 export async function undoLogActivity(id, previousLastDoneAt, previousHistory) {
   return enqueueWrite(async () => {
     const ts = nowIso();

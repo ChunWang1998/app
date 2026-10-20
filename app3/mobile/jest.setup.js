@@ -111,6 +111,22 @@ jest.mock('expo-asset', () => ({
   Asset: { fromModule: () => ({ downloadAsync: async () => ({ localUri: null, uri: null }) }) },
 }), { virtual: true });
 
+jest.mock('@react-native-community/datetimepicker', () => {
+  const React = require('react');
+  const { TextInput } = require('react-native');
+  function MockPicker({ value, onChange, testID }) {
+    return React.createElement(TextInput, {
+      testID,
+      value: value instanceof Date ? value.toISOString() : '',
+      onChangeText: (text) => {
+        const d = new Date(text);
+        if (!Number.isNaN(d.getTime())) onChange({ type: 'set' }, d);
+      },
+    });
+  }
+  return { __esModule: true, default: MockPicker };
+});
+
 jest.mock('expo-speech-recognition', () => ({
   ExpoSpeechRecognitionModule: {
     isRecognitionAvailable: jest.fn(() => false),

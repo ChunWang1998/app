@@ -567,7 +567,7 @@ describe('QA parser-results 38', () => {
     { locale: 'zh-Hant', text: '我剛換了貓砂', type: 'log', name: /貓砂/ },
     { locale: 'zh-Hant', text: '昨天澆了花', type: 'log', name: /花/, lastDoneDaysAgo: 1 },
     { locale: 'zh-Hant', text: '洗好碗了', type: 'log', name: /碗/ },
-    { locale: 'zh-Hant', text: '記一下剪頭髮', type: 'create', name: /剪頭髮/, reminderDays: 42, lastDoneDaysAgo: 0 },
+    { locale: 'zh-Hant', text: '記一下剪頭髮', type: 'create', name: /剪頭髮/, lastDoneDaysAgo: 0 },
     { locale: 'zh-Hant', text: '三天前換了床單', type: 'log', name: /床單/, lastDoneDaysAgo: 3 },
     { locale: 'zh-Hant', text: '每隔10天澆花', type: 'create', name: /^澆花$/, reminderDays: 10, lastDoneDaysAgo: 0 },
     { locale: 'en', text: 'change the filter every 2 weeks, last done yesterday', type: 'create', name: /filter/i, reminderDays: 14, lastDoneDaysAgo: 1 },
@@ -604,6 +604,17 @@ describe('QA parser-results 38', () => {
     else expect(r.name == null || r.name === '').toBe(true);
     if (reminderDays != null) expect(r.reminderDays).toBe(reminderDays);
     if (lastDoneDaysAgo != null) expect(r.lastDoneDaysAgo).toBe(lastDoneDaysAgo);
+  });
+
+  it('does not invent a reminder when the user did not say one', () => {
+    expect(qa('記一下剪頭髮', 'zh-Hant').reminderDays).toBeNull();
+    expect(qa('記一下澆花', 'zh-Hant').reminderDays).toBeNull();
+    expect(qa('add haircut', 'en').reminderDays).toBeNull();
+    const hydrated = hydrateIntent(
+      { type: 'create', name: '澆花', lastDonePhrase: '', reminderPhrase: '', source: 'fm' },
+      { locale: 'zh-Hant', now: QA_NOW, text: '澆花' },
+    );
+    expect(hydrated.reminderDays).toBeNull();
   });
 
   it('parses every-N days in all locales', () => {

@@ -2,16 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../theme/useTheme';
-import { lastDoneIsoFromDaysAgo } from '../lib/ai/relative';
+import { DateChips } from './DateChips';
 import { configFromChipDays, reminderFieldsFromConfig, chipDaysFromConfig, reminderConfigFromActivity } from '../lib/reminderSchedule';
 import { t } from '../i18n';
-
-const LAST = [
-  { d: null, key: 'home.neverLogged' },
-  { d: 0, key: 'common.today' },
-  { d: 1, key: 'common.yesterday' },
-  { d: 7, key: 'date.weekAgo' },
-];
 
 const REM = [
   { d: null, key: 'detail.noReminder' },
@@ -53,7 +46,7 @@ export function AiEditSheet({ visible, item, itemKey, onClose, onSave, now }) {
   const insets = useSafeAreaInsets();
   const nowRef = useRef(now ?? Date.now());
   const initKeyRef = useRef(null);
-  const [lastDays, setLastDays] = useState(null);
+  const [lastAt, setLastAt] = useState(null);
   const [remDays, setRemDays] = useState(null);
 
   useEffect(() => {
@@ -67,14 +60,14 @@ export function AiEditSheet({ visible, item, itemKey, onClose, onSave, now }) {
     initKeyRef.current = key;
     nowRef.current = now ?? Date.now();
     Keyboard.dismiss();
-    setLastDays(sheetLastDays(item.lastDoneAt, nowRef.current));
+    setLastAt(item.lastDoneAt || null);
     setRemDays(sheetReminderValue(item));
   }, [visible, item, itemKey, now]);
 
   if (!item) return null;
 
   function save() {
-    const lastDoneAt = lastDoneIsoFromDaysAgo(lastDays, nowRef.current);
+    const lastDoneAt = lastAt || null;
     if (remDays === 'more') {
       onSave({ ...item, lastDoneAt });
       return;
@@ -114,22 +107,8 @@ export function AiEditSheet({ visible, item, itemKey, onClose, onSave, now }) {
             </View>
           </View>
           <Text style={[styles.lab, { color: c.l2 }]}>{t('edit.last')}</Text>
-          <View style={styles.qc} pointerEvents="auto">
-            {LAST.map((o) => {
-              const on = lastDays === o.d;
-              return (
-                <TouchableOpacity
-                  key={String(o.d)}
-                  testID={`ai-last-${o.d ?? 'never'}`}
-                  onPress={() => setLastDays(o.d)}
-                  style={[styles.q, { backgroundColor: on ? c.brand : c.cell }]}
-                >
-                  <Text style={{ color: on ? c.onbrand : c.label, fontFamily: on ? 'BeenAgesRounded-Bold' : 'BeenAgesRounded-Regular', fontSize: 15 }}>
-                    {t(o.key)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          <View pointerEvents="auto">
+            <DateChips value={lastAt} onChange={setLastAt} />
           </View>
           <Text style={[styles.lab, { color: c.l2 }]}>{t('edit.reminder')}</Text>
           <View style={styles.qc} pointerEvents="auto">

@@ -12,6 +12,7 @@ import {
   formatDetailSpan,
   formatDetailSpanParts,
   isDetailHeroToday,
+  formatHomeCountdown,
 } from '../src/lib/time';
 import { tLocale } from '../src/i18n';
 import { setLocale } from '../src/i18n';
@@ -25,6 +26,16 @@ describe('time helpers', () => {
     const parts = formatSpanParts(19 * 864e5 + 7 * 36e5, 2);
     expect(parts[0]).toEqual({ n: 19, unit: '天' });
     expect(parts[1]).toEqual({ n: 7, unit: '小時' });
+  });
+
+  it('home countdown uses days, or today when under one day', () => {
+    const now = new Date(2026, 9, 20, 19, 30, 0).getTime();
+    expect(formatHomeCountdown(13 * 36e5 + 32 * 60e3, now, 'zh-Hant')).toBe('今天');
+    expect(formatHomeCountdown(13 * 36e5, now, 'en')).toBe('Today');
+    expect(formatHomeCountdown(2 * 864e5, now, 'zh-Hant')).toBe('2\u2009天');
+    expect(formatHomeCountdown(-(3 * 864e5), now, 'zh-Hant')).toBe('3\u2009天');
+    expect(formatHomeCountdown(13 * 36e5, now, 'zh-Hant')).not.toMatch(/分/);
+    expect(formatHomeCountdown(13 * 36e5, now, 'zh-Hant')).not.toMatch(/小時/);
   });
 
   it('computes due at reminderTime, not last-done clock time', () => {

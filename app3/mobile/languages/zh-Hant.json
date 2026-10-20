@@ -234,7 +234,8 @@
   "date": {
     "weekAgo": "1 週前",
     "monthAgo": "1 個月前",
-    "unknown": "不記得"
+    "unknown": "不記得",
+    "pick": "哪一天"
   },
   "category": {
     "title": "類型",
@@ -295,7 +296,7 @@
     "a11ySend": "送出",
     "a11yNew": "新對話",
     "speechDenied": "麥克風未開",
-    "speechUnavailable": "這台不能離線辨識",
-    "micOffHint": "不能離線"
+    "speechUnavailable": "這台不能用語音，改打字",
+    "micOffHint": "打字"
   }
 }

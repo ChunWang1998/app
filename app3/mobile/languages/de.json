@@ -238,7 +238,8 @@
   "date": {
     "weekAgo": "Vor 1 Woche",
     "monthAgo": "Vor 1 Monat",
-    "unknown": "Unsicher"
+    "unknown": "Unsicher",
+    "pick": "Tag wählen"
   },
   "category": {
     "title": "Kategorien",
@@ -299,7 +300,7 @@
     "a11ySend": "Senden",
     "a11yNew": "Neuer Chat",
     "speechDenied": "Mikrofon ist aus",
-    "speechUnavailable": "Nur auf dem Gerät, nicht verfügbar",
-    "micOffHint": "Nur auf dem Gerät"
+    "speechUnavailable": "Spracheingabe geht hier nicht. Bitte tippen.",
+    "micOffHint": "Bitte tippen"
   }
 }

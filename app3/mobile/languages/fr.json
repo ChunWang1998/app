@@ -238,7 +238,8 @@
   "date": {
     "weekAgo": "Il y a 1 semaine",
     "monthAgo": "Il y a 1 mois",
-    "unknown": "Pas sûr"
+    "unknown": "Pas sûr",
+    "pick": "Choisir le jour"
   },
   "category": {
     "title": "Catégories",
@@ -299,7 +300,7 @@
     "a11ySend": "Envoyer",
     "a11yNew": "Nouveau chat",
     "speechDenied": "Micro désactivé",
-    "speechUnavailable": "Reconnaissance hors ligne indisponible",
-    "micOffHint": "Sur l’appareil"
+    "speechUnavailable": "La dictée n’est pas dispo ici. Écrivez.",
+    "micOffHint": "Écrivez"
   }
 }

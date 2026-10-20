@@ -156,8 +156,23 @@ export default function ReminderScreen() {
           <SettingsRow
             title={title}
             right={<SettingsSwitch value={cfg.enabled} onValueChange={toggleOn} accessibilityLabel={t('reminder.title')} />}
-            last
           />
+          <TouchableOpacity
+            testID="reminder-off"
+            onPress={() => toggleOn(false)}
+            style={styles.rowOff}
+            accessibilityLabel={t('detail.noReminder')}
+          >
+            <Text style={{
+              color: cfg.enabled ? c.label : c.brand,
+              fontSize: 17,
+              fontFamily: cfg.enabled ? 'BeenAgesRounded-Regular' : 'BeenAgesRounded-SemiBold',
+              flex: 1,
+            }}
+            >
+              {t('detail.noReminder')}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View style={{ opacity: cfg.enabled ? 1 : 0.35 }} pointerEvents={cfg.enabled ? 'auto' : 'none'}>
@@ -417,6 +432,7 @@ const styles = StyleSheet.create({
   navBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: 'BeenAgesRounded-SemiBold', fontSize: 17 },
   grp: { marginHorizontal: 16, borderRadius: 20, overflow: 'hidden', marginTop: 12 },
+  rowOff: { flexDirection: 'row', alignItems: 'center', minHeight: 46, paddingHorizontal: 16, gap: 12 },
   seg: {
     flexDirection: 'row',
     marginHorizontal: 16,
