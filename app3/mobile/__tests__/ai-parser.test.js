@@ -676,6 +676,7 @@ describe('AI chat future-plan card', () => {
     const src = fs.readFileSync(path.join(__dirname, '../src/screens/AiChatScreen.js'), 'utf8');
     expect(src).toMatch(/cardFromCreateIntent/);
     expect(src).toMatch(/ai\.plannedIntro/);
+    expect(src).toMatch(/itemKey=\{sheet\}/);
     expect(src).toMatch(/Keyboard\.dismiss/);
     expect(src).toMatch(/await addActivity/);
     expect(src).not.toMatch(/draftFromCreate/);

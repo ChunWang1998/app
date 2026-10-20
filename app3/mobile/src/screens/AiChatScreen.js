@@ -383,6 +383,7 @@ export default function AiChatScreen() {
 
         <AiEditSheet
           visible={!!sheet}
+          itemKey={sheet}
           item={msgs.find((m) => m.id === sheet)?.item}
           onClose={() => setSheet(null)}
           onSave={(next) => {

@@ -42,20 +42,34 @@ export function sheetLastDays(iso, now) {
   return daysAgoOf(iso, now);
 }
 
-export function AiEditSheet({ visible, item, onClose, onSave, now }) {
+export function sheetSessionKey(itemKey, item) {
+  if (itemKey != null && itemKey !== false) return String(itemKey);
+  if (item?.id) return String(item.id);
+  return item?.title ? `title:${item.title}` : '';
+}
+
+export function AiEditSheet({ visible, item, itemKey, onClose, onSave, now }) {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
   const nowRef = useRef(now ?? Date.now());
+  const initKeyRef = useRef(null);
   const [lastDays, setLastDays] = useState(null);
   const [remDays, setRemDays] = useState(null);
 
   useEffect(() => {
-    if (!visible || !item) return;
+    if (!visible) {
+      initKeyRef.current = null;
+      return;
+    }
+    if (!item) return;
+    const key = sheetSessionKey(itemKey, item);
+    if (!key || initKeyRef.current === key) return;
+    initKeyRef.current = key;
     nowRef.current = now ?? Date.now();
     Keyboard.dismiss();
     setLastDays(sheetLastDays(item.lastDoneAt, nowRef.current));
     setRemDays(sheetReminderValue(item));
-  }, [visible, item, now]);
+  }, [visible, item, itemKey, now]);
 
   if (!item) return null;
 

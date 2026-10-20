@@ -3,7 +3,7 @@ import renderer, { act } from 'react-test-renderer';
 import fs from 'fs';
 import path from 'path';
 import { setLocale, tLocale } from '../src/i18n';
-import { AiEditSheet, sheetReminderValue, sheetLastDays } from '../src/components/AiEditSheet';
+import { AiEditSheet, sheetReminderValue, sheetLastDays, sheetSessionKey } from '../src/components/AiEditSheet';
 import { reminderFieldsFromConfig, configFromChipDays } from '../src/lib/reminderSchedule';
 import { formatLastDoneChip, reminderLabelForDraft } from '../src/lib/ai/apply';
 
@@ -41,6 +41,16 @@ describe('AiEditSheet overlay does not cover chips', () => {
     expect(src).not.toMatch(/disabled=\{true\}/);
     expect(src).toMatch(/detail\.noReminder/);
     expect(src).toMatch(/home\.neverLogged/);
+    expect(src).toMatch(/initKeyRef/);
+    expect(src).toMatch(/sheetSessionKey/);
+  });
+});
+
+describe('sheet session key', () => {
+  it('prefers the open-card key so message object identity does not matter', () => {
+    expect(sheetSessionKey('m1', { title: 'Gym' })).toBe('m1');
+    expect(sheetSessionKey('m2', { id: 'act_1', title: 'Gym' })).toBe('m2');
+    expect(sheetSessionKey(null, { id: 'act_1' })).toBe('act_1');
   });
 });
 
@@ -149,5 +159,88 @@ describe('card last-done empty state', () => {
     expect(formatLastDoneChip(null, NOW)).toBe(tLocale('zh-Hant', 'home.neverLogged'));
     setLocale('en');
     expect(formatLastDoneChip(null, NOW)).toBe(tLocale('en', 'home.neverLogged'));
+  });
+});
+
+describe('AiEditSheet keeps in-progress edits across message updates', () => {
+  const today = new Date(NOW).toISOString();
+  const props = (extra) => ({
+    visible: true,
+    itemKey: 'm1',
+    item: offItem({ lastDoneAt: today, reminderDays: null }),
+    onSave: extra.onSave,
+    onClose: extra.onClose || (() => {}),
+    now: NOW,
+    ...extra,
+  });
+
+  it('does not reset chips when the same card item is replaced', () => {
+    const onSave = jest.fn();
+    let tree;
+    act(() => {
+      tree = renderer.create(<AiEditSheet {...props({ onSave })} />);
+    });
+    act(() => { tree.root.findByProps({ testID: 'ai-last-1' }).props.onPress(); });
+    act(() => { tree.root.findByProps({ testID: 'ai-rem-7' }).props.onPress(); });
+    act(() => {
+      tree.update(
+        <AiEditSheet
+          {...props({
+            onSave,
+            item: offItem({ lastDoneAt: today, reminderDays: 30, title: 'Gym' }),
+          })}
+        />,
+      );
+    });
+    act(() => { tree.root.findByProps({ testID: 'ai-sheet-save' }).props.onPress(); });
+    expect(onSave).toHaveBeenCalledTimes(1);
+    const saved = onSave.mock.calls[0][0];
+    expect(sheetLastDays(saved.lastDoneAt, NOW)).toBe(1);
+    expect(saved.reminderDays).toBe(7);
+  });
+
+  it('re-inits when switching to a different card', () => {
+    const onSave = jest.fn();
+    const yesterday = new Date(NOW - 864e5).toISOString();
+    let tree;
+    act(() => {
+      tree = renderer.create(<AiEditSheet {...props({ onSave })} />);
+    });
+    act(() => { tree.root.findByProps({ testID: 'ai-rem-7' }).props.onPress(); });
+    act(() => {
+      tree.update(
+        <AiEditSheet
+          {...props({
+            onSave,
+            itemKey: 'm2',
+            item: offItem({ title: 'Plant', lastDoneAt: yesterday, reminderDays: 14 }),
+          })}
+        />,
+      );
+    });
+    act(() => { tree.root.findByProps({ testID: 'ai-sheet-save' }).props.onPress(); });
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.title).toBe('Plant');
+    expect(sheetLastDays(saved.lastDoneAt, NOW)).toBe(1);
+    expect(saved.reminderDays).toBe(14);
+  });
+
+  it('re-inits after close then open', () => {
+    const onSave = jest.fn();
+    let tree;
+    act(() => {
+      tree = renderer.create(<AiEditSheet {...props({ onSave })} />);
+    });
+    act(() => { tree.root.findByProps({ testID: 'ai-last-1' }).props.onPress(); });
+    act(() => {
+      tree.update(<AiEditSheet {...props({ onSave, visible: false })} />);
+    });
+    act(() => {
+      tree.update(<AiEditSheet {...props({ onSave })} />);
+    });
+    act(() => { tree.root.findByProps({ testID: 'ai-sheet-save' }).props.onPress(); });
+    const saved = onSave.mock.calls[0][0];
+    expect(sheetLastDays(saved.lastDoneAt, NOW)).toBe(0);
+    expect(saved.reminderDays).toBeNull();
   });
 });
