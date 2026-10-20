@@ -24,11 +24,10 @@ function DatePickerField({ value, onChange, now }) {
 
   if (Platform.OS === 'web') {
     return (
-      <View style={styles.picker}>
+      <View style={styles.picker} testID="date-picker">
         {createElement('input', {
           type: 'date',
-          testID: 'date-picker',
-          'data-testid': 'date-picker',
+          'data-testid': 'date-picker-input',
           value: ymd,
           max: maxYmd,
           onChange: (e) => commitYmd(e.target?.value),

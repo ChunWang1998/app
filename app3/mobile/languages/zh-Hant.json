@@ -53,6 +53,7 @@
     "empty": "還沒有要記的事",
     "add": "+ 新增",
     "logged": "已記下今天",
+    "alreadyLogged": "今天已記過了",
     "deleted": "已刪除",
     "neverLogged": "還沒記錄",
     "last": "上次",

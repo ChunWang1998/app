@@ -1,4 +1,5 @@
 import { initRepository, resetRepositoryForTests, reloadRepositoryForTests, addActivity, logActivityNow, logActivityAt, logActivityOnDay, undoLogActivity, undoLogAt, undoHandlerForLog, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, purgeExpiredDeleted, trashDaysLeft, clampIsoToNow, TRASH_DAYS, TRASH_MS, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
+import { createActivity } from '../src/data/models';
 import { sameLocalDay } from '../src/lib/today';
 import * as ent from '../src/lib/entitlements';
 
@@ -250,6 +251,31 @@ describe('repository', () => {
     expect(hist.some((e) => e.at === future)).toBe(false);
     expect(hist.some((e) => e.at === '2026-01-01T00:00:00.000Z')).toBe(true);
     expect(Date.parse(hist[0].at)).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('clamps initial lastDoneAt on create/add and dedupes same-day after a future clamp', async () => {
+    const future = '2099-06-01T00:00:00.000Z';
+    const made = createActivity({ title: 'Seed future', lastDoneAt: future });
+    expect(made.lastDoneAt).not.toBe(future);
+    expect(Date.parse(made.lastDoneAt)).toBeLessThanOrEqual(Date.now());
+    expect(made.history).toHaveLength(1);
+
+    await resetRepositoryForTests();
+    const a = await addActivity({ title: 'Add future', lastDoneAt: future });
+    expect(a.lastDoneAt).not.toBe(future);
+    expect(Date.parse(a.lastDoneAt)).toBeLessThanOrEqual(Date.now());
+
+    await resetRepositoryForTests();
+    const morning = new Date();
+    morning.setHours(8, 0, 0, 0);
+    const b = await addActivity({ title: 'Same day clamp', lastDoneAt: morning.toISOString() });
+    await updateActivity(b.id, {
+      history: [{ at: morning.toISOString() }, { at: future }],
+    });
+    const row = getVisibleActivities()[0];
+    expect(row.history).toHaveLength(1);
+    expect(row.history.some((e) => e.at === future)).toBe(false);
+    expect(sameLocalDay(row.lastDoneAt, new Date().toISOString())).toBe(true);
   });
 
   it('still appends two check-offs when they fall on different local days across midnight', async () => {

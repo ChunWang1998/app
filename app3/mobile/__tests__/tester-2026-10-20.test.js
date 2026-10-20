@@ -41,6 +41,7 @@ describe('F05/F07 last-done date picker', () => {
   it('always renders a date picker, including a pick-a-day chip', () => {
     const src = read('../src/components/DateChips.js');
     expect(src).toMatch(/testID="date-picker"/);
+    expect(src).not.toMatch(/createElement\('input', \{[\s\S]*?testID:/);
     expect(src).toMatch(/type: 'date'/);
     expect(src).toMatch(/date-chip-pick/);
     expect(src).toMatch(/maximumDate/);
@@ -160,6 +161,43 @@ describe('home last-done numeral', () => {
     expect(last.length).toBeLessThan(12);
     expect(ago).toMatch(/2/);
     expect(just.length).toBeGreaterThan(0);
+  });
+});
+
+describe('reminder options stay tappable when off', () => {
+  it('tapping a mode/interval/week/month option turns reminders on', () => {
+    const src = read('../src/screens/ReminderScreen.js');
+    expect(src).not.toMatch(/pointerEvents=\{cfg\.enabled \? 'auto' : 'none'\}/);
+    expect(src).not.toMatch(/pointerEvents=['"]none['"]/);
+    expect(src).toMatch(/function pick\(patch/);
+    expect(src).toMatch(/apply\(\{ enabled: true, \.\.\.patch \}/);
+    expect(src).toMatch(/pick\(\{ mode: m\.mode \}/);
+  });
+});
+
+describe('home list last-done is only in the numeral column', () => {
+  it('does not also show formatLastDoneShort on the left when reminders are off', () => {
+    const home = read('../src/screens/HomeScreen.js');
+    expect(home).toMatch(/formatHomeLastDone/);
+    expect(home).not.toMatch(/formatLastDoneShort/);
+    expect(home).toMatch(/if \(hasReminderOn\)/);
+  });
+});
+
+describe('skipped check-off toast is already logged', () => {
+  it.each(LOCALES)('%s alreadyLogged copy is short and distinct', (locale) => {
+    const again = tLocale(locale, 'home.alreadyLogged');
+    const logged = tLocale(locale, 'home.logged');
+    expect(again.length).toBeGreaterThan(0);
+    expect(again.length).toBeLessThan(28);
+    expect(again).not.toBe(logged);
+  });
+
+  it('home and detail use alreadyLogged when skipped', () => {
+    expect(read('../src/screens/HomeScreen.js')).toMatch(/home\.alreadyLogged/);
+    expect(read('../src/screens/DetailScreen.js')).toMatch(/home\.alreadyLogged/);
+    expect(zh.home.alreadyLogged).toBe('今天已記過了');
+    expect(en.home.alreadyLogged).toBe('Already logged today');
   });
 });
 

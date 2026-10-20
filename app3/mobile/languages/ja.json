@@ -56,6 +56,7 @@
     "empty": "まだ記録がありません",
     "add": "+ 追加",
     "logged": "今日記録済み",
+    "alreadyLogged": "今日は記録済み",
     "deleted": "削除しました",
     "neverLogged": "未記録",
     "last": "前回",

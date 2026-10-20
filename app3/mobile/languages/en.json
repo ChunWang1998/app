@@ -53,6 +53,7 @@
     "empty": "Nothing to track yet",
     "add": "+ Add",
     "logged": "Logged today",
+    "alreadyLogged": "Already logged today",
     "deleted": "Deleted",
     "neverLogged": "Not yet",
     "last": "Last",

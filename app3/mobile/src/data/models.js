@@ -1,11 +1,49 @@
 import { isoYearInRange } from './schema';
 import { reminderFieldsFromConfig, reminderConfigFromActivity } from '../lib/reminderSchedule';
+import { sameLocalDay } from '../lib/today';
 
 export const ICON_DEFAULT = 'brush';
 export const ICON_KINDS = ['brush', 'drop', 'pill', 'leaf', 'bed', 'scissors', 'car', 'eye', 'paw', 'plug', 'dots', 'mono'];
 
 export function nowIso() {
   return new Date().toISOString();
+}
+
+/** Pin a timestamp to now when it is later than now. Invalid values are left alone. */
+export function clampIsoToNow(iso, now = Date.now()) {
+  if (iso == null || iso === '') return iso;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return iso;
+  return t > now ? new Date(now).toISOString() : (typeof iso === 'string' ? iso : new Date(t).toISOString());
+}
+
+export function clampHistoryToNow(history, now = Date.now()) {
+  if (!Array.isArray(history)) return history;
+  return history.map((e) => {
+    if (e == null) return e;
+    if (typeof e === 'string') return clampIsoToNow(e, now);
+    if (typeof e === 'object') return { ...e, at: clampIsoToNow(e.at, now) };
+    return e;
+  });
+}
+
+/** Keep the newest stamp per local calendar day. `entries` should already be newest-first. */
+export function dedupeHistoryByLocalDay(entries) {
+  if (!Array.isArray(entries)) return [];
+  const kept = [];
+  for (const e of entries) {
+    if (!e?.at) continue;
+    if (kept.some((k) => sameLocalDay(k.at, e.at))) continue;
+    kept.push(e);
+  }
+  return kept;
+}
+
+/** Clamp future stamps, normalize, then keep one row per local day. */
+export function prepareHistory(rawHistory, lastDoneAt, now = Date.now()) {
+  return dedupeHistoryByLocalDay(
+    normalizeHistory(clampHistoryToNow(rawHistory, now), clampIsoToNow(lastDoneAt ?? null, now)),
+  );
 }
 
 function normalizeIcon(icon) {
@@ -55,7 +93,7 @@ export function lastDoneFromHistory(history) {
 export function createActivity(input) {
   const id = `act_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
   const ts = nowIso();
-  const history = normalizeHistory(input.history, input.lastDoneAt ?? null);
+  const history = prepareHistory(input.history, input.lastDoneAt ?? null);
   return {
     id,
     title: String(input.title || '').trim() || 'Untitled',

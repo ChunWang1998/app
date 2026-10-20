@@ -17,7 +17,7 @@ import { Mascot } from '../components/Mascot';
 import { UndoToast } from '../components/UndoToast';
 import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { AiComposer } from '../components/AiComposer';
-import { dueInMs, progressRatio, elapsedMs, formatLastDoneShort, formatHomeCountdown, formatHomeLastDone } from '../lib/time';
+import { dueInMs, progressRatio, elapsedMs, formatHomeCountdown, formatHomeLastDone } from '../lib/time';
 import { monogramLetter } from '../lib/suggestIcon';
 import { splitToday, homeMood, dueStatus } from '../lib/today';
 import { CategoryChips } from '../components/CategoryChips';
@@ -88,7 +88,7 @@ export default function HomeScreen() {
     }
     const undo = undoHandlerForLog(a.id, result);
     showToast({
-      text: t('home.logged'),
+      text: t(result.skipped ? 'home.alreadyLogged' : 'home.logged'),
       undo: undo || undefined,
     });
   }
@@ -247,12 +247,13 @@ function Row({ item, onCheck, onOpen, onDelete }) {
   const ratio = progressRatio(item);
   const hasReminderOn = hasReminder(item);
 
-  let status;
-  if (!item.lastDoneAt) status = t('home.neverLogged');
-  else if (!hasReminderOn) status = formatLastDoneShort(item.lastDoneAt, Date.now(), getLocale());
-  else if (ds === 'today' || (due >= 0 && due < 864e5)) status = t('common.today');
-  else if (od) status = `${t('home.overdue')}\u2009${formatHomeCountdown(due)}`;
-  else status = `${t('home.remaining')}\u2009${formatHomeCountdown(due)}`;
+  let status = '';
+  if (hasReminderOn) {
+    if (!item.lastDoneAt) status = t('home.neverLogged');
+    else if (ds === 'today' || (due >= 0 && due < 864e5)) status = t('common.today');
+    else if (od) status = `${t('home.overdue')}\u2009${formatHomeCountdown(due)}`;
+    else status = `${t('home.remaining')}\u2009${formatHomeCountdown(due)}`;
+  }
 
   const renderRight = () => (
     <TouchableOpacity
@@ -273,7 +274,9 @@ function Row({ item, onCheck, onOpen, onDelete }) {
         </View>
         <TouchableOpacity style={styles.tx} onPress={onOpen} activeOpacity={0.7}>
           <Text numberOfLines={1} style={[styles.nm, { color: c.label }]}>{item.title}</Text>
-          <Text numberOfLines={1} style={[styles.st, { color: od ? c.red : c.l2 }]}>{status}</Text>
+          {status ? (
+            <Text numberOfLines={1} style={[styles.st, { color: od ? c.red : c.l2 }]}>{status}</Text>
+          ) : null}
           {hasReminderOn ? (
             <View style={[styles.trk, { backgroundColor: c.track }]}>
               <View

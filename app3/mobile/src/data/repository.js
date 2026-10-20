@@ -1,5 +1,5 @@
 import React from 'react';
-import { createActivity, nowIso, migrateActivity, normalizeHistory, lastDoneFromHistory } from './models';
+import { createActivity, nowIso, migrateActivity, normalizeHistory, lastDoneFromHistory, clampIsoToNow, clampHistoryToNow, prepareHistory } from './models';
 import { doneToday, sameLocalDay } from '../lib/today';
 import { KeyValueStorage, loadState, saveState } from './storage';
 import { isProUnlocked } from '../lib/entitlements';
@@ -69,26 +69,10 @@ function visibleCount(list = state.activities) {
   return (list || []).filter((a) => !a.deletedAt).length;
 }
 
+export { clampIsoToNow };
+
 export const TRASH_DAYS = 3;
 export const TRASH_MS = TRASH_DAYS * 864e5;
-
-/** Pin a timestamp to now when it is later than now. Invalid values are left alone. */
-export function clampIsoToNow(iso, now = Date.now()) {
-  if (iso == null || iso === '') return iso;
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return iso;
-  return t > now ? new Date(now).toISOString() : (typeof iso === 'string' ? iso : new Date(t).toISOString());
-}
-
-function clampHistoryToNow(history, now = Date.now()) {
-  if (!Array.isArray(history)) return history;
-  return history.map((e) => {
-    if (e == null) return e;
-    if (typeof e === 'string') return clampIsoToNow(e, now);
-    if (typeof e === 'object') return { ...e, at: clampIsoToNow(e.at, now) };
-    return e;
-  });
-}
 
 export function isExpiredDeleted(item, now = Date.now()) {
   if (!item?.deletedAt) return false;
@@ -223,16 +207,18 @@ export async function updateActivity(id, changes) {
     if (patch.history !== undefined || patch.lastDoneAt !== undefined) {
       const latest = state.activities.find((a) => a.id === id);
       const prev = historyOf(latest);
-      const nextHist = normalizeHistory(
+      const nextHist = prepareHistory(
         patch.history !== undefined ? patch.history : latest?.history,
         patch.lastDoneAt !== undefined ? patch.lastDoneAt : latest?.lastDoneAt,
+        now,
       );
       if (nextHist.length > prev.length && !(await isProUnlocked())) {
         const again = state.activities.find((a) => a.id === id);
         const prev2 = historyOf(again);
-        const next2 = normalizeHistory(
+        const next2 = prepareHistory(
           patch.history !== undefined ? patch.history : again?.history,
           patch.lastDoneAt !== undefined ? patch.lastDoneAt : again?.lastDoneAt,
+          now,
         );
         if (next2.length > prev2.length && next2.length > FREE_HISTORY_LIMIT) {
           throw freeLimitError(FREE_HISTORY_LIMIT, 'history');
@@ -245,7 +231,7 @@ export async function updateActivity(id, changes) {
       const { icon: _ignored, ...rest } = patch;
       const merged = { ...a, ...rest, updatedAt: ts };
       if (patch.history || patch.lastDoneAt !== undefined) {
-        const history = normalizeHistory(merged.history, merged.lastDoneAt);
+        const history = prepareHistory(merged.history, merged.lastDoneAt, now);
         merged.history = history;
         merged.lastDoneAt = lastDoneFromHistory(history);
       }

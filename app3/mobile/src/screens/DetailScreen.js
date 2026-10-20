@@ -81,7 +81,7 @@ export default function DetailScreen() {
     const undo = undoHandlerForLog(item.id, result);
     setToast({
       id: Date.now(),
-      text: t('home.logged'),
+      text: t(result.skipped ? 'home.alreadyLogged' : 'home.logged'),
       undo: undo || undefined,
     });
   }
