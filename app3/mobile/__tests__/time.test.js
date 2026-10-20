@@ -159,7 +159,8 @@ describe('detail screen units follow the reminder', () => {
     const todayIso = at(2026, 9, 17, 9, 0).toISOString();
     const yesterdayIso = at(2026, 9, 16, 22, 0).toISOString();
     expect(isDetailHeroToday({ reminderDays: null, lastDoneAt: todayIso }, now)).toBe(true);
-    expect(isDetailHeroToday({ reminderDays: 7, lastDoneAt: todayIso }, now)).toBe(false);
+    expect(isDetailHeroToday({ reminderDays: 7, lastDoneAt: todayIso }, now)).toBe(true);
+    expect(isDetailHeroToday({ reminderDays: 1, lastDoneAt: todayIso }, now)).toBe(false);
     expect(isDetailHeroToday({ reminderDays: null, lastDoneAt: yesterdayIso }, now)).toBe(false);
     expect(tLocale('zh-Hant', 'common.today')).toBe('今天');
     expect(tLocale('en', 'common.today')).toBe('Today');

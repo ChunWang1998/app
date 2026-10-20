@@ -246,8 +246,12 @@ export function formatDetailSpan(item, fromTs, toTs, locale) {
   return joinSpanParts(formatDetailSpanParts(item, fromTs, toTs, 2, locale));
 }
 
-/** Detail hero: no-reminder item done today shows 「今天」 instead of 「0 天」. */
+/**
+ * Large elapsed count: calendar-same-day uses localized “Today”
+ * instead of “0 days”. Daily (fine) reminders still show hours.
+ */
 export function isDetailHeroToday(item, now = Date.now()) {
-  if (!item?.lastDoneAt || hasReminder(item)) return false;
-  return localCalendarDays(item.lastDoneAt, now) === 0;
+  if (!item?.lastDoneAt) return false;
+  if (localCalendarDays(item.lastDoneAt, now) !== 0) return false;
+  return detailSpanPrecision(item) !== 'fine';
 }

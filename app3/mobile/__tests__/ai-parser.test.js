@@ -12,10 +12,12 @@ import {
   updateActivity,
   getVisibleActivities,
   logActivityNow,
+  logActivityOnDay,
   FREE_ACTIVITY_LIMIT,
   FREE_HISTORY_LIMIT,
 } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
+import { sameLocalDay } from '../src/lib/today';
 import fs from 'fs';
 import path from 'path';
 
@@ -357,6 +359,21 @@ describe('since copy stays short', () => {
     expect(text).not.toMatch(/逾期/);
     expect(formatNextShort(item, NOW.getTime(), 'zh-Hant').text).toBe('今天');
   });
+
+  it('mentions days only, never hours', () => {
+    setLocale('zh-Hant');
+    const item = {
+      title: '洗床單',
+      lastDoneAt: new Date(2026, 9, 8, 9, 0, 0).toISOString(),
+      reminderDays: 14,
+    };
+    const now = new Date(2026, 9, 20, 16, 0, 0).getTime();
+    const text = sinceCopy(item, now, 'zh-Hant');
+    expect(text).toMatch(/12\s*天/);
+    expect(text).not.toMatch(/小時/);
+    expect(text).not.toMatch(/hour/i);
+    expect(text).not.toMatch(/時間/);
+  });
 });
 
 describe('week list uses reminder due dates', () => {
@@ -412,6 +429,133 @@ describe('repository write queue and free limit', () => {
     const logged = await logActivityNow(a.id);
     expect(logged.previousHistory).toHaveLength(1);
     expect(getVisibleActivities()[0].history.length).toBe(2);
+  });
+});
+
+describe('QA parser-results 38', () => {
+  const QA_NOW = new Date(2026, 9, 20, 16, 0, 0);
+
+  function qa(text, locale) {
+    setLocale(locale);
+    return parseRules(text, { locale, now: QA_NOW });
+  }
+
+  const rows = [
+    { locale: 'zh-Hant', text: '每兩週換濾心，上次是昨天', type: 'create', name: /濾心/, reminderDays: 14, lastDoneDaysAgo: 1 },
+    { locale: 'zh-Hant', text: '每週倒垃圾', type: 'create', name: /倒垃圾/, reminderDays: 7, lastDoneDaysAgo: 0 },
+    { locale: 'zh-Hant', text: '每3個月換牙刷，上次是上個月', type: 'create', name: /牙刷/, reminderDays: 90, lastDoneDaysAgo: 30 },
+    { locale: 'zh-Hant', text: '每天吃維他命', type: 'create', name: /維他命/, reminderDays: 1, lastDoneDaysAgo: 0 },
+    { locale: 'zh-Hant', text: '提醒我每月繳房租', type: 'create', name: /^繳房租$/, reminderDays: 30, lastDoneDaysAgo: 0 },
+    { locale: 'zh-Hant', text: '上週六洗床單，以後每兩週一次', type: 'create', name: /^洗床單$/, reminderDays: 14, lastDoneDaysAgo: 3 },
+    { locale: 'zh-Hant', text: '我多久沒換床單了？', type: 'query_since', name: /床單/ },
+    { locale: 'zh-Hant', text: '上次洗車是什麼時候', type: 'query_since', name: /洗車/ },
+    { locale: 'zh-Hant', text: '這週要做什麼？', type: 'query_week' },
+    { locale: 'zh-Hant', text: '今天有什麼要做', type: 'query_today' },
+    { locale: 'zh-Hant', text: '剛剛洗了車', type: 'log', name: /^洗車$/ },
+    { locale: 'zh-Hant', text: '我剛換了貓砂', type: 'log', name: /貓砂/ },
+    { locale: 'zh-Hant', text: '昨天澆了花', type: 'log', name: /花/, lastDoneDaysAgo: 1 },
+    { locale: 'zh-Hant', text: '洗好碗了', type: 'log', name: /碗/ },
+    { locale: 'zh-Hant', text: '記一下剪頭髮', type: 'create', name: /剪頭髮/, reminderDays: 42, lastDoneDaysAgo: 0 },
+    { locale: 'zh-Hant', text: '三天前換了床單', type: 'log', name: /床單/, lastDoneDaysAgo: 3 },
+    { locale: 'zh-Hant', text: '每隔10天澆花', type: 'create', name: /^澆花$/, reminderDays: 10, lastDoneDaysAgo: 0 },
+    { locale: 'en', text: 'change the filter every 2 weeks, last done yesterday', type: 'create', name: /filter/i, reminderDays: 14, lastDoneDaysAgo: 1 },
+    { locale: 'en', text: 'take out the trash weekly', type: 'create', name: /trash/i, reminderDays: 7, lastDoneDaysAgo: 0 },
+    { locale: 'en', text: 'water the plants every 3 days', type: 'create', name: /plant/i, reminderDays: 3, lastDoneDaysAgo: 0 },
+    { locale: 'en', text: 'how long since I washed the sheets?', type: 'query_since', name: /sheet/i },
+    { locale: 'en', text: 'when did I last wash the car', type: 'query_since', name: /car/i },
+    { locale: 'en', text: 'what is due this week?', type: 'query_week' },
+    { locale: 'en', text: 'what do I need to do today', type: 'query_today' },
+    { locale: 'en', text: 'just washed the car', type: 'log', name: /car/i },
+    { locale: 'en', text: 'I changed the litter', type: 'log', name: /litter/i },
+    { locale: 'en', text: 'watered the plants yesterday', type: 'log', name: /plant/i, lastDoneDaysAgo: 1 },
+    { locale: 'en', text: 'add haircut every 6 weeks', type: 'create', name: /haircut/i, reminderDays: 42, lastDoneDaysAgo: 0 },
+    { locale: 'en', text: 'remind me to pay rent monthly', type: 'create', name: /rent/i, reminderDays: 30, lastDoneDaysAgo: 0 },
+    { locale: 'ja', text: '2週間ごとにフィルター交換、前回は昨日', type: 'create', name: /^フィルター交換$/, reminderDays: 14, lastDoneDaysAgo: 1 },
+    { locale: 'ja', text: '毎週ゴミ出し', type: 'create', name: /ゴミ出し/, reminderDays: 7, lastDoneDaysAgo: 0 },
+    { locale: 'ja', text: '毎日ビタミンを飲む', type: 'create', name: /ビタミン/, reminderDays: 1, lastDoneDaysAgo: 0 },
+    { locale: 'ja', text: 'シーツを最後に洗ったのはいつ？', type: 'query_since', name: /シーツ/ },
+    { locale: 'ja', text: '今週は何をする？', type: 'query_week' },
+    { locale: 'ja', text: 'さっき洗車した', type: 'log', name: /洗車/ },
+    { locale: 'ja', text: '猫砂を替えた', type: 'log', name: /猫砂/ },
+    { locale: 'ja', text: '昨日水やりした', type: 'log', name: /^水やり$/, lastDoneDaysAgo: 1 },
+    { locale: 'ja', text: '3か月ごとに歯ブラシ交換', type: 'create', name: /^歯ブラシ交換$/, reminderDays: 90, lastDoneDaysAgo: 0 },
+  ];
+
+  it('covers all 38 QA sentences', () => {
+    expect(rows).toHaveLength(38);
+  });
+
+  it.each(rows)('$locale $text', ({ locale, text, type, name, reminderDays, lastDoneDaysAgo }) => {
+    const r = qa(text, locale);
+    expect(r.type).toBe(type);
+    if (name) expect(r.name).toMatch(name);
+    else expect(r.name == null || r.name === '').toBe(true);
+    if (reminderDays != null) expect(r.reminderDays).toBe(reminderDays);
+    if (lastDoneDaysAgo != null) expect(r.lastDoneDaysAgo).toBe(lastDoneDaysAgo);
+  });
+
+  it('parses every-N days in all locales', () => {
+    expect(qa('每隔10天澆花', 'zh-Hant').reminderDays).toBe(10);
+    expect(qa('water the plants every 10 days', 'en').reminderDays).toBe(10);
+    expect(qa('10日ごとに水やり', 'ja').reminderDays).toBe(10);
+    expect(qa('Pflanzen alle 10 Tage gießen', 'de').reminderDays).toBe(10);
+    expect(qa('Arroser les plantes tous les 10 jours', 'fr').reminderDays).toBe(10);
+  });
+
+  it('treats English past-tense + time-word as a log', () => {
+    const cleaned = qa('I cleaned the windows yesterday', 'en');
+    expect(cleaned.type).toBe('log');
+    expect(cleaned.name).toMatch(/window/i);
+    expect(cleaned.lastDoneDaysAgo).toBe(1);
+
+    const vacuumed = qa('vacuumed the rug yesterday', 'en');
+    expect(vacuumed.type).toBe('log');
+    expect(vacuumed.lastDoneDaysAgo).toBe(1);
+
+    const folded = qa('I folded the laundry last week', 'en');
+    expect(folded.type).toBe('log');
+    expect(folded.lastDoneDaysAgo).toBe(7);
+
+    const wiped = qa('wiped the counters today', 'en');
+    expect(wiped.type).toBe('log');
+    expect(wiped.lastDoneDaysAgo).toBe(0);
+  });
+
+  it('two consecutive yesterday messages produce only 1 record', async () => {
+    await resetRepositoryForTests();
+    const item = await addActivity({
+      title: 'water the plants',
+      lastDoneAt: new Date(2026, 8, 1, 9, 0, 0).toISOString(),
+    });
+    const now1 = new Date(2026, 9, 20, 16, 0, 0, 0);
+    const now2 = new Date(2026, 9, 20, 16, 0, 0, 80);
+    const first = parseRules('watered the plants yesterday', { locale: 'en', now: now1 });
+    const second = parseRules('watered the plants yesterday', { locale: 'en', now: now2 });
+    expect(first.type).toBe('log');
+    expect(second.type).toBe('log');
+    expect(first.lastDoneAt).not.toBe(second.lastDoneAt);
+    await logActivityOnDay(item.id, first.lastDoneAt);
+    const skip = await logActivityOnDay(item.id, second.lastDoneAt);
+    expect(skip.skipped).toBe(true);
+    const row = getVisibleActivities()[0];
+    expect(row.history.filter((e) => sameLocalDay(e.at, first.lastDoneAt))).toHaveLength(1);
+  });
+
+  it('recognizes due-today queries in ja/de/fr', () => {
+    expect(qa('今日は何をする', 'ja').type).toBe('query_today');
+    expect(qa('Was steht heute an?', 'de').type).toBe('query_today');
+    expect(qa('was ist heute fällig', 'de').type).toBe('query_today');
+    expect(qa("Quoi aujourd'hui ?", 'fr').type).toBe('query_today');
+    expect(qa("qu'est-ce qu'il y a aujourd'hui", 'fr').type).toBe('query_today');
+  });
+});
+
+describe('AiEditSheet now is stable', () => {
+  it('does not default now to Date.now() in the props list', () => {
+    const src = require('fs').readFileSync(require('path').join(__dirname, '../src/components/AiEditSheet.js'), 'utf8');
+    expect(src).not.toMatch(/now\s*=\s*Date\.now\(\)/);
+    expect(src).toMatch(/useRef/);
+    expect(src).toMatch(/nowRef/);
   });
 });
 

@@ -17,7 +17,7 @@ import { Mascot } from '../components/Mascot';
 import { UndoToast } from '../components/UndoToast';
 import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { AiComposer } from '../components/AiComposer';
-import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort } from '../lib/time';
+import { formatSpan, dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort, isDetailHeroToday } from '../lib/time';
 import { monogramLetter } from '../lib/suggestIcon';
 import { splitToday, homeMood, dueStatus } from '../lib/today';
 import { CategoryChips } from '../components/CategoryChips';
@@ -296,7 +296,7 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
           {elapsed == null ? (
             <Text style={[styles.numSmall, { color: c.l2 }]}>—</Text>
           ) : (
-            <Numeral ms={elapsed} just={just} color={c.label} dim={c.l2} preciseTime={preciseTime} />
+            <Numeral item={item} ms={elapsed} just={just} color={c.label} dim={c.l2} preciseTime={preciseTime} />
           )}
         </TouchableOpacity>
         <TouchableOpacity
@@ -314,7 +314,10 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
   );
 }
 
-function Numeral({ ms, just, color, dim, preciseTime }) {
+function Numeral({ item, ms, just, color, dim, preciseTime }) {
+  if (isDetailHeroToday(item)) {
+    return <Text style={[styles.num, { color }]}>{t('common.today')}</Text>;
+  }
   const parts = formatSpanParts(ms, just || !preciseTime ? 1 : 2);
   return (
     <Text style={[styles.num, { color }]}>

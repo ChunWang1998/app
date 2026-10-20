@@ -7,10 +7,10 @@ import {
   configFromChipDays,
   hasReminder,
 } from '../reminderSchedule';
-import { dueInMs, elapsedMs, formatSpan } from '../time';
-import { dueStatus } from '../today';
+import { dueInMs, localCalendarDays } from '../time';
+import { dueStatus, isDueToday } from '../today';
 import { fuzzyMatchItem } from './matchItem';
-import { getLocale, t } from '../../i18n';
+import { getLocale, t, tLocale } from '../../i18n';
 
 function endOfLocalWeek(now) {
   const d = new Date(now);
@@ -29,6 +29,19 @@ export function itemsDueThisWeek(activities, now = Date.now()) {
       return due && due.getTime() <= end;
     })
     .sort((a, b) => dueInMs(a, now) - dueInMs(b, now));
+}
+
+export function itemsDueToday(activities, now = Date.now()) {
+  return (activities || [])
+    .filter((a) => isDueToday(a, now))
+    .sort((a, b) => dueInMs(a, now) - dueInMs(b, now));
+}
+
+function daysOnlySpan(days, locale) {
+  const loc = locale || getLocale();
+  const n = Math.max(0, Math.round(Number(days) || 0));
+  if (n <= 0) return tLocale(loc, 'common.today');
+  return `${n}\u2009${tLocale(loc, 'time.day')}`;
 }
 
 export function formatNextShort(item, now = Date.now(), locale) {
@@ -52,7 +65,8 @@ export function formatWeekDue(item, now = Date.now(), locale) {
   const ms = due.getTime() - now;
   const ds = dueStatus(ms, now);
   if (ds === 'overdue') {
-    return { text: `${t('home.overdue')}\u2009${formatSpan(-ms, locale)}`, red: true };
+    const days = Math.max(1, localCalendarDays(due, now));
+    return { text: `${t('home.overdue')}\u2009${daysOnlySpan(days, locale)}`, red: true };
   }
   if (ds === 'today') return { text: t('common.today'), red: true };
   const wd = t(`reminder.wdName${due.getDay()}`);
@@ -98,9 +112,9 @@ export function resolveItem(name, items) {
 }
 
 export function sinceCopy(item, now = Date.now(), locale) {
-  const elapsed = elapsedMs(item, now);
-  if (elapsed == null) return t('home.neverLogged');
-  const span = formatSpan(elapsed, locale);
+  if (!item?.lastDoneAt) return t('home.neverLogged');
+  const days = Math.max(0, localCalendarDays(item.lastDoneAt, now));
+  const span = daysOnlySpan(days, locale);
   if (!hasReminder(item)) return t('ai.sinceOnly', { span });
   const due = firstDueInstant(item, reminderConfigFromActivity(item), now);
   if (!due) return t('ai.sinceOnly', { span });

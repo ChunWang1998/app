@@ -1,6 +1,6 @@
 import React from 'react';
 import { createActivity, nowIso, migrateActivity, normalizeHistory, lastDoneFromHistory } from './models';
-import { doneToday } from '../lib/today';
+import { doneToday, sameLocalDay } from '../lib/today';
 import { KeyValueStorage, loadState, saveState } from './storage';
 import { isProUnlocked } from '../lib/entitlements';
 import {
@@ -226,6 +226,40 @@ async function logActivityAtUnlocked(id, ts) {
 
 export async function logActivityAt(id, atIso) {
   return enqueueWrite(() => logActivityAtUnlocked(id, atIso || nowIso()));
+}
+
+function existingOnLocalDay(item, atIso) {
+  if (!item) return null;
+  return historyOf(item).find((e) => sameLocalDay(e.at, atIso)) || null;
+}
+
+/**
+ * Log on a local calendar day. If that day already has a history row, skip.
+ * AI backdated logs use this so "yesterday" twice does not create two rows.
+ */
+export async function logActivityOnDay(id, atIso) {
+  return enqueueWrite(async () => {
+    const ts = atIso || nowIso();
+    const item = state.activities.find((a) => a.id === id);
+    const hit = existingOnLocalDay(item, ts);
+    if (hit) {
+      return {
+        skipped: true,
+        previousLastDoneAt: item.lastDoneAt ?? null,
+        previousHistory: Array.isArray(item.history) ? item.history : [],
+        loggedAt: hit.at,
+      };
+    }
+    if (!item) {
+      return {
+        skipped: true,
+        previousLastDoneAt: null,
+        previousHistory: [],
+        loggedAt: ts,
+      };
+    }
+    return { skipped: false, ...(await logActivityAtUnlocked(id, ts)) };
+  });
 }
 
 /**

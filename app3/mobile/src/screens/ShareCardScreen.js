@@ -6,7 +6,7 @@ import { useActivities } from '../data/repository';
 import { useThemeColors } from '../theme/useTheme';
 import { ChevronLeftIcon } from '../components/Icons';
 import { isProUnlocked } from '../lib/entitlements';
-import { elapsedMs, formatSpanParts } from '../lib/time';
+import { elapsedMs, formatSpanParts, isDetailHeroToday } from '../lib/time';
 import ShareCardView from '../share/ShareCardView';
 import { SHARE_SIZES, SHARE_STYLES, canUseStyle, styleById } from '../share/config';
 import { captureCard } from '../share/capture';
@@ -44,6 +44,7 @@ export default function ShareCardScreen() {
   const size = SHARE_SIZES[sizeKey];
   const previewH = Math.round(PREVIEW_W / size.ratio);
   const elapsed = elapsedMs(item);
+  const heroToday = isDetailHeroToday(item);
   const part = elapsed == null ? null : formatSpanParts(elapsed, 1)[0];
 
   async function pickStyle(id) {
@@ -92,8 +93,8 @@ export default function ShareCardScreen() {
             <ShareCardView
               style={theme}
               title={item.title}
-              daysNum={part?.n ?? null}
-              daysUnit={part?.unit || t('time.day')}
+              daysNum={heroToday ? t('common.today') : (part?.n ?? null)}
+              daysUnit={heroToday ? '' : (part?.unit || t('time.day'))}
               icon={item.icon}
               letter={item.title}
               width={size.width}

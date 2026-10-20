@@ -1,4 +1,5 @@
-import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, logActivityAt, undoLogActivity, undoLogAt, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
+import { initRepository, resetRepositoryForTests, addActivity, logActivityNow, logActivityAt, logActivityOnDay, undoLogActivity, undoLogAt, softDeleteActivity, undoDelete, hardDeleteActivity, backfillHistory, getRecentlyDeleted, getVisibleActivities, updateActivity, FREE_ACTIVITY_LIMIT, FREE_HISTORY_LIMIT } from '../src/data/repository';
+import { sameLocalDay } from '../src/lib/today';
 import * as ent from '../src/lib/entitlements';
 
 describe('repository', () => {
@@ -129,6 +130,21 @@ describe('repository', () => {
     expect(third.skipped).toBe(true);
     expect(getVisibleActivities()[0].history).toHaveLength(2);
     expect(getVisibleActivities()[0].lastDoneAt).toBe(nextDay);
+  });
+
+  it('logActivityOnDay skips a second write on the same local calendar day', async () => {
+    await resetRepositoryForTests();
+    const seed = new Date(2026, 8, 1, 9, 0, 0).toISOString();
+    const a = await addActivity({ title: 'Windows', lastDoneAt: seed });
+    const y1 = new Date(2026, 9, 19, 16, 0, 0).toISOString();
+    const y2 = new Date(2026, 9, 19, 16, 0, 0, 50).toISOString();
+    const first = await logActivityOnDay(a.id, y1);
+    expect(first.skipped).toBe(false);
+    const second = await logActivityOnDay(a.id, y2);
+    expect(second.skipped).toBe(true);
+    const row = getVisibleActivities()[0];
+    expect(row.history).toHaveLength(2);
+    expect(row.history.filter((e) => sameLocalDay(e.at, y1))).toHaveLength(1);
   });
 
   it('still appends two check-offs when they fall on different local days across midnight', async () => {

@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useActivities, addActivity, logActivityNow, undoLogAt, FREE_ACTIVITY_LIMIT } from '../data/repository';
+import { useActivities, addActivity, logActivityNow, logActivityOnDay, undoLogAt, FREE_ACTIVITY_LIMIT, getVisibleActivities } from '../data/repository';
+import { nowIso } from '../data/models';
 import { useThemeColors, useTheme } from '../theme/useTheme';
 import { Mascot } from '../components/Mascot';
 import { ChevronLeftIcon, PencilIcon } from '../components/Icons';
@@ -14,7 +15,7 @@ import { AiEditSheet } from '../components/AiEditSheet';
 import { AiVoiceView } from '../components/AiVoiceView';
 import { parseIntent } from '../lib/ai/parseIntent';
 import {
-  draftFromCreate, itemsDueThisWeek, resolveItem, sinceCopy,
+  draftFromCreate, itemsDueThisWeek, itemsDueToday, resolveItem, sinceCopy,
 } from '../lib/ai/apply';
 import { supportsOnDeviceSpeech } from '../lib/ai/speech';
 import { TOAST_MS } from '../components/UndoToast';
@@ -32,6 +33,7 @@ const SUGGEST = [
 
 let seq = 1;
 const nid = () => `m${seq++}`;
+const PAYWALL_RETRY_MS = 10 * 60 * 1000;
 
 export default function AiChatScreen() {
   const nav = useNavigation();
@@ -49,6 +51,9 @@ export default function AiChatScreen() {
   const fromHomeVoice = useRef(!!params?.voice && supportsOnDeviceSpeech());
   const addingIds = useRef(new Set());
   const undoTimers = useRef([]);
+  const pendingPaywall = useRef(null);
+  const handleIntentRef = useRef(null);
+  const onAddRef = useRef(null);
 
   useEffect(() => {
     const tmr = setTimeout(() => scrollRef.current?.scrollToEnd?.({ animated: true }), 50);
@@ -57,29 +62,66 @@ export default function AiChatScreen() {
 
   useEffect(() => () => undoTimers.current.forEach(clearTimeout), []);
 
+  useFocusEffect(useCallback(() => {
+    const pending = pendingPaywall.current;
+    if (!pending) return undefined;
+    pendingPaywall.current = null;
+    let live = true;
+    (async () => {
+      const age = Date.now() - (Number(pending.createdAt) || 0);
+      if (age > PAYWALL_RETRY_MS) return;
+      const pro = await isProUnlocked();
+      if (!live || !pro) return;
+      if (pending.kind === 'intent') {
+        await handleIntentRef.current?.(pending.intent, pending.replyId, {
+          itemId: pending.itemId,
+          at: pending.at,
+        });
+      } else if (pending.kind === 'add') {
+        await onAddRef.current?.({ id: pending.msgId, item: pending.item, state: 'new' });
+      }
+    })();
+    return () => { live = false; };
+  }, []));
+
   function patchMsg(id, patch) {
     setMsgs((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
   }
 
-  async function handleIntent(intent, replyId) {
+  async function handleIntent(intent, replyId, retry) {
     if (intent.type === 'create') {
       const draft = draftFromCreate(intent, { categories, reminderTime });
       patchMsg(replyId, { typing: false, text: t('ai.createIntro'), item: draft, state: 'new', cardOn: true });
       return;
     }
     if (intent.type === 'log') {
-      const item = resolveItem(intent.name, activities);
+      const list = getVisibleActivities();
+      const item = retry?.itemId
+        ? list.find((a) => a.id === retry.itemId)
+        : resolveItem(intent.name, list);
       if (!item) {
-        patchMsg(replyId, { typing: false, text: t('ai.notFound') });
+        patchMsg(replyId, { typing: false, text: t(retry?.itemId ? 'ai.gone' : 'ai.notFound') });
         return;
       }
       let result;
+      const daysAgo = Number(intent.lastDoneDaysAgo);
+      const at = retry?.at || (daysAgo > 0 ? intent.lastDoneAt : nowIso());
       try {
-        result = await logActivityNow(item.id);
+        result = daysAgo > 0
+          ? await logActivityOnDay(item.id, at)
+          : await logActivityNow(item.id, at);
       } catch (e) {
         if (e?.code === 'FREE_LIMIT') {
+          pendingPaywall.current = {
+            kind: 'intent',
+            intent,
+            replyId,
+            itemId: item.id,
+            at,
+            createdAt: Date.now(),
+          };
+          patchMsg(replyId, { typing: false, text: t('ai.limitReached') });
           nav.navigate('Paywall', { reason: e.kind || 'history' });
-          patchMsg(replyId, { typing: false, text: '' });
           return;
         }
         throw e;
@@ -124,6 +166,17 @@ export default function AiChatScreen() {
       });
       return;
     }
+    if (intent.type === 'query_today') {
+      const list = itemsDueToday(activities);
+      const n = list.length;
+      patchMsg(replyId, {
+        typing: false,
+        text: n ? t('ai.todayIntro', { n }) : t('ai.todayEmpty'),
+        list,
+        cardOn: n > 0,
+      });
+      return;
+    }
     if (intent.type === 'query_week') {
       const list = itemsDueThisWeek(activities);
       const n = list.length;
@@ -163,12 +216,13 @@ export default function AiChatScreen() {
     const draft = msg.item;
     if (!draft || msg.state === 'added' || addingIds.current.has(msg.id)) return;
     addingIds.current.add(msg.id);
-    patchMsg(msg.id, { state: 'added' });
+    patchMsg(msg.id, { state: 'added', text: t('ai.createIntro') });
     try {
       const pro = await isProUnlocked();
       if (!pro && activities.length >= FREE_ACTIVITY_LIMIT) {
         addingIds.current.delete(msg.id);
-        patchMsg(msg.id, { state: 'new' });
+        pendingPaywall.current = { kind: 'add', msgId: msg.id, item: draft, createdAt: Date.now() };
+        patchMsg(msg.id, { state: 'new', text: t('ai.limitReached') });
         nav.navigate('Paywall', { reason: 'items' });
         return;
       }
@@ -191,9 +245,16 @@ export default function AiChatScreen() {
     } catch (e) {
       addingIds.current.delete(msg.id);
       patchMsg(msg.id, { state: 'new' });
-      if (e?.code === 'FREE_LIMIT') nav.navigate('Paywall', { reason: e.kind || 'items' });
+      if (e?.code === 'FREE_LIMIT') {
+        pendingPaywall.current = { kind: 'add', msgId: msg.id, item: draft, createdAt: Date.now() };
+        patchMsg(msg.id, { text: t('ai.limitReached') });
+        nav.navigate('Paywall', { reason: e.kind || 'items' });
+      }
     }
   }
+
+  handleIntentRef.current = handleIntent;
+  onAddRef.current = onAdd;
 
   async function onUndo(msg) {
     if (!msg.undo?.loggedAt || !msg.item?.id) return;
