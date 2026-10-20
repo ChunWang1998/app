@@ -75,7 +75,7 @@ public class AppleFoundationModelsModule: Module {
 
     let session = LanguageModelSession(instructions: """
       Extract a habit-tracker intent from the user. On-device only.
-      kind is one of: create, query_since, query_week, log, unknown.
+      kind is one of: create, query_since, query_week, query_today, log, unknown.
       name is the item title only — no cadence or date words.
       lastDonePhrase and reminderPhrase are copied as spoken; do not convert them to dates or numbers.
       """)
@@ -113,7 +113,7 @@ public class AppleFoundationModelsModule: Module {
 @available(iOS 26, *)
 @Generable
 struct TrackerIntent {
-  @Guide(description: "One of: create, query_since, query_week, log, unknown")
+  @Guide(description: "One of: create, query_since, query_week, query_today, log, unknown")
   var kind: String
   @Guide(description: "Item name only, no dates or cadence")
   var name: String?

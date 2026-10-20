@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '../theme/useTheme';
@@ -28,15 +28,17 @@ function daysAgoOf(iso, now) {
   return Math.round((startB - startA) / 864e5);
 }
 
-export function AiEditSheet({ visible, item, onClose, onSave, now = Date.now() }) {
+export function AiEditSheet({ visible, item, onClose, onSave, now }) {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
+  const nowRef = useRef(now ?? Date.now());
   const [lastDays, setLastDays] = useState(0);
   const [remDays, setRemDays] = useState(7);
 
   useEffect(() => {
     if (!visible || !item) return;
-    setLastDays(daysAgoOf(item.lastDoneAt, now) ?? 0);
+    nowRef.current = now ?? Date.now();
+    setLastDays(daysAgoOf(item.lastDoneAt, nowRef.current) ?? 0);
     const v = chipDaysFromConfig(reminderConfigFromActivity(item));
     setRemDays(typeof v === 'number' ? v : (item.reminderDays || 7));
   }, [visible, item, now]);
@@ -44,7 +46,7 @@ export function AiEditSheet({ visible, item, onClose, onSave, now = Date.now() }
   if (!item) return null;
 
   function save() {
-    const lastDoneAt = lastDoneIsoFromDaysAgo(lastDays, now);
+    const lastDoneAt = lastDoneIsoFromDaysAgo(lastDays, nowRef.current);
     const fields = reminderFieldsFromConfig(configFromChipDays(remDays, item));
     onSave({ ...item, lastDoneAt, reminderDays: fields.reminderDays, ...fields });
   }

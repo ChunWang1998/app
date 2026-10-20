@@ -78,8 +78,8 @@ describe('AI add in-flight guard', () => {
     const src = read('../src/screens/AiChatScreen.js');
     expect(src).toMatch(/addingIds/);
     expect(src).toMatch(/msg\.state === 'added'/);
-    expect(src).toMatch(/patchMsg\(msg\.id, \{ state: 'added' \}\)/);
-    const addAt = src.indexOf("patchMsg(msg.id, { state: 'added' })");
+    expect(src).toMatch(/patchMsg\(msg\.id, \{ state: 'added'/);
+    const addAt = src.indexOf("patchMsg(msg.id, { state: 'added'");
     const awaitAt = src.indexOf('await addActivity');
     expect(addAt).toBeGreaterThan(-1);
     expect(awaitAt).toBeGreaterThan(addAt);
@@ -99,5 +99,17 @@ describe('AI undo is per-record and expires', () => {
     const card = read('../src/components/AiIntentCard.js');
     expect(card).toMatch(/\{onUndo \? \(/);
     expect(card).toMatch(/testID="ai-undo"/);
+  });
+});
+
+describe('AI paywall reply', () => {
+  it('always leaves an assistant reply and retries after Pro', () => {
+    const src = read('../src/screens/AiChatScreen.js');
+    expect(src).not.toMatch(/text:\s*''/);
+    expect(src).toMatch(/ai\.limitReached/);
+    expect(src).toMatch(/useFocusEffect/);
+    expect(src).toMatch(/pendingPaywall/);
+    expect(src).toMatch(/isProUnlocked/);
+    expect(src).toMatch(/logActivityAt/);
   });
 });

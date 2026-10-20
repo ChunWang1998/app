@@ -48,7 +48,7 @@ export async function tryFoundationModels(text, ctx = {}) {
       },
       ctx,
     );
-    if (!intent || intent.type === 'unknown' || (intent.type !== 'query_week' && !intent.name)) {
+    if (!intent || intent.type === 'unknown' || (intent.type !== 'query_week' && intent.type !== 'query_today' && !intent.name)) {
       return null;
     }
     return intent;

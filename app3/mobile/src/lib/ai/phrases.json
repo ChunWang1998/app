@@ -1,6 +1,42 @@
 {
   "foldStrip": ["了", "？", "！", "。", "．", "、", "，", "«", "»"],
   "nameNoise": ["change", "changed", "wash", "washed", "replace", "replaced", "water", "watered", "get", "take", "took", "換", "洗", "做", "剪", "交換"],
+  "tenseFold": {
+    "washed": "wash",
+    "changed": "change",
+    "watered": "water",
+    "replaced": "replace",
+    "logged": "log",
+    "finished": "finish"
+  },
+  "numeral": {
+    "zh-Hant": { "零": 0, "一": 1, "二": 2, "兩": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10 },
+    "ja": { "一": 1, "二": 2, "両": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10 },
+    "en": {},
+    "de": {},
+    "fr": {}
+  },
+  "weekdays": {
+    "zh-Hant": { "日": 0, "天": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6 },
+    "ja": { "日": 0, "月": 1, "火": 2, "水": 3, "木": 4, "金": 5, "土": 6 },
+    "en": { "sunday": 0, "sun": 0, "monday": 1, "mon": 1, "tuesday": 2, "tue": 2, "wednesday": 3, "wed": 3, "thursday": 4, "thu": 4, "friday": 5, "fri": 5, "saturday": 6, "sat": 6 },
+    "de": { "sonntag": 0, "montag": 1, "dienstag": 2, "mittwoch": 3, "donnerstag": 4, "freitag": 5, "samstag": 6 },
+    "fr": { "dimanche": 0, "lundi": 1, "mardi": 2, "mercredi": 3, "jeudi": 4, "vendredi": 5, "samedi": 6 }
+  },
+  "nameParticles": {
+    "en": [],
+    "zh-Hant": [],
+    "ja": ["^[にをはがでとへ]+", "[にをはがでとへ]+$"],
+    "de": [],
+    "fr": []
+  },
+  "nameExtraStrip": {
+    "en": ["\\bfrom now on\\b", "\\bgoing forward\\b", "\\bonce\\b"],
+    "zh-Hant": ["以後", "之后", "之後", "一次", "從今"],
+    "ja": ["これから", "以後", "一度"],
+    "de": ["\\bab jetzt\\b", "\\bzukünftig\\b"],
+    "fr": ["\\bd[eé]sormais\\b", "\\bà partir de maintenant\\b"]
+  },
   "queryWeek": {
     "en": [
       "what'?s due this week",
@@ -53,6 +89,52 @@
       "à faire cette semaine"
     ]
   },
+  "queryToday": {
+    "en": [
+      "what'?s due today",
+      "what is due today",
+      "due (or overdue )?today",
+      "to-?do today",
+      "today'?s (tasks?|list|to-?dos?)",
+      "what (should i |do i have to |do i need to |to )?do today",
+      "what do i need to do today",
+      "plan (for )?today"
+    ],
+    "zh-Hant": [
+      "今天有什麼要做",
+      "今天要做什麼",
+      "今天有什麼",
+      "今天該做",
+      "今日要做",
+      "今天的事",
+      "今天排"
+    ],
+    "ja": [
+      "今日は何をする",
+      "今日やる",
+      "今日の予定",
+      "今日すること",
+      "今日は何",
+      "今日のやること"
+    ],
+    "de": [
+      "was steht heute",
+      "heute (zu tun|anstehen|fällig)",
+      "was (soll|muss) ich heute",
+      "was ist heute fällig",
+      "was heute",
+      "plan (für )?heute",
+      "fällige? heute"
+    ],
+    "fr": [
+      "quoi aujourd['’]hui",
+      "qu['’]est-ce qu['’]il y a aujourd['’]hui",
+      "aujourd['’]hui (à faire|à prévoir)",
+      "quoi faire aujourd['’]hui",
+      "échéances? (d['’])?aujourd['’]hui",
+      "à faire aujourd['’]hui"
+    ]
+  },
   "querySince": {
     "en": [
       { "re": "^how long (?:has it been |have i (?:gone )?without |since (?:i )?)(.+?)\\??$", "name": 1 },
@@ -68,10 +150,13 @@
       { "re": "^(.+?)上次是什麼時候？?$", "name": 1 }
     ],
     "ja": [
+      { "re": "^(.+?)を最後に.+のはいつ", "name": 1 },
+      { "re": "^最後に(.+?)したのはいつ", "name": 1 },
+      { "re": "^最後に(.+?)した", "name": 1 },
+      { "re": "^(.+?)のはいつ", "name": 1 },
       { "re": "^(.+?)してからどのくらい", "name": 1 },
       { "re": "^(.+?)ってからどのくらい", "name": 1 },
       { "re": "^(.+?)はどのくらい", "name": 1 },
-      { "re": "^最後に(.+?)した", "name": 1 },
       { "re": "^(.+?)してどれくらい", "name": 1 }
     ],
     "de": [
@@ -107,6 +192,11 @@
       "finished"
     ],
     "zh-Hant": [
+      "我剛剛做了",
+      "我剛剛",
+      "我剛才",
+      "我剛做了",
+      "我剛",
       "剛剛做了",
       "剛剛",
       "剛才",
@@ -151,14 +241,37 @@
   },
   "logSuffixes": {
     "en": [],
-    "zh-Hant": [],
-    "ja": ["した$", "やった$"],
+    "zh-Hant": ["好了$", "了$"],
+    "ja": ["を?替えた$", "を?やった$", "を?した$", "を?った$", "を?んだ$", "を?えた$"],
     "de": [" gemacht$"],
     "fr": []
   },
+  "logPast": {
+    "en": [
+      "^(?:i )?(?:changed|washed|watered|replaced|did|took|logged|finished)\\b",
+      "\\b(?:changed|washed|watered|replaced|did)\\b.+(?:yesterday|today|last (?:week|night|month))"
+    ],
+    "zh-Hant": ["了", "好了"],
+    "ja": ["した", "やった", "替えた", "った", "んだ", "えた"],
+    "de": [
+      "^(?:ich )?(?:habe|hab)\\b",
+      "\\b(?:gewechselt|gewaschen|gegossen|gemacht)\\b"
+    ],
+    "fr": [
+      "^j['’]ai\\b",
+      "\\b(?:changé|lavé|arrosé)\\b"
+    ]
+  },
+  "logNamePrefixes": {
+    "en": ["i ", "i've ", "ive "],
+    "zh-Hant": ["我"],
+    "ja": [],
+    "de": ["ich "],
+    "fr": ["j'ai ", "j’ai ", "je "]
+  },
   "createPrefixes": {
     "en": ["add a new", "add new", "please add", "add ", "track ", "remember to ", "remind me to "],
-    "zh-Hant": ["幫我記一下", "記一下", "新增", "幫我記", "記下"],
+    "zh-Hant": ["幫我記一下", "記一下", "新增", "幫我記", "記下", "提醒我"],
     "ja": ["追加して", "追加", "覚えて", "記録して"],
     "de": ["füge hinzu ", "hinzufügen ", "merke dir ", "erinnere mich an ", "erinnere mich ", "neuen "],
     "fr": ["ajoute un nouvel", "ajoute un ", "ajoute une ", "ajouter ", "ajoute ", "pense à ", "rappelle-moi de ", "rappelle-moi "]
@@ -173,6 +286,7 @@
       { "re": "\\blast week\\b", "days": 7 },
       { "re": "\\ba month ago\\b", "days": 30 },
       { "re": "\\blast month\\b", "days": 30 },
+      { "re": "\\blast (sunday|monday|tuesday|wednesday|thursday|friday|saturday|sun|mon|tue|wed|thu|fri|sat)\\b", "weekdayFrom": 1 },
       { "re": "(\\d+)\\s*days? ago", "daysFrom": 1 },
       { "re": "don't remember|not sure|unknown", "days": null }
     ],
@@ -183,12 +297,14 @@
       { "re": "1\\s*週前", "days": 7 },
       { "re": "一週前", "days": 7 },
       { "re": "1\\s*周前", "days": 7 },
+      { "re": "上週([日天一二三四五六])", "weekdayFrom": 1 },
+      { "re": "上周([日天一二三四五六])", "weekdayFrom": 1 },
       { "re": "上周", "days": 7 },
       { "re": "上週", "days": 7 },
       { "re": "上個月", "days": 30 },
       { "re": "一個月前", "days": 30 },
       { "re": "1\\s*個月前", "days": 30 },
-      { "re": "(\\d+)\\s*天前", "daysFrom": 1 },
+      { "re": "([一二三四五六七八九十兩两\\d]+)\\s*天前", "daysFrom": 1 },
       { "re": "不記得|不確定", "days": null }
     ],
     "ja": [
@@ -237,6 +353,7 @@
       "\\blast week\\b",
       "\\ba month ago\\b",
       "\\blast month\\b",
+      "\\blast (?:sunday|monday|tuesday|wednesday|thursday|friday|saturday|sun|mon|tue|wed|thu|fri|sat)\\b",
       "\\d+\\s*days? ago"
     ],
     "zh-Hant": [
@@ -245,11 +362,11 @@
       "今天",
       "1\\s*週前",
       "一週前",
-      "上週",
-      "上周",
+      "上週[日天一二三四五六]?",
+      "上周[日天一二三四五六]?",
       "上個月",
       "一個月前",
-      "\\d+\\s*天前"
+      "[一二三四五六七八九十兩两\\d]+\\s*天前"
     ],
     "ja": [
       "、?前回は[^、。]*",
@@ -316,6 +433,10 @@
       { "re": "每三個月", "days": 90 },
       { "re": "每3個月", "days": 90 },
       { "re": "每兩個月", "days": 60 },
+      { "re": "每隔\\s*([一二三四五六七八九十兩两\\d]+)\\s*天", "n": 1, "mult": 1 },
+      { "re": "每隔\\s*([一二三四五六七八九十兩两\\d]+)\\s*週", "n": 1, "mult": 7 },
+      { "re": "每隔\\s*([一二三四五六七八九十兩两\\d]+)\\s*周", "n": 1, "mult": 7 },
+      { "re": "每隔\\s*([一二三四五六七八九十兩两\\d]+)\\s*個?月", "n": 1, "mult": 30 },
       { "re": "每天", "days": 1 },
       { "re": "每日", "days": 1 },
       { "re": "每週", "days": 7 },
@@ -323,11 +444,11 @@
       { "re": "每星期", "days": 7 },
       { "re": "每月", "days": 30 },
       { "re": "每年", "days": 365 },
-      { "re": "每\\s*(\\d+)\\s*天", "n": 1, "mult": 1 },
-      { "re": "每\\s*(\\d+)\\s*週", "n": 1, "mult": 7 },
-      { "re": "每\\s*(\\d+)\\s*周", "n": 1, "mult": 7 },
-      { "re": "每\\s*(\\d+)\\s*個?月", "n": 1, "mult": 30 },
-      { "re": "每\\s*(\\d+)\\s*年", "n": 1, "mult": 365 }
+      { "re": "每\\s*([一二三四五六七八九十兩两\\d]+)\\s*天", "n": 1, "mult": 1 },
+      { "re": "每\\s*([一二三四五六七八九十兩两\\d]+)\\s*週", "n": 1, "mult": 7 },
+      { "re": "每\\s*([一二三四五六七八九十兩两\\d]+)\\s*周", "n": 1, "mult": 7 },
+      { "re": "每\\s*([一二三四五六七八九十兩两\\d]+)\\s*個?月", "n": 1, "mult": 30 },
+      { "re": "每\\s*([一二三四五六七八九十兩两\\d]+)\\s*年", "n": 1, "mult": 365 }
     ],
     "ja": [
       { "re": "2週間ごと", "days": 14 },
@@ -338,10 +459,10 @@
       { "re": "毎週", "days": 7 },
       { "re": "毎月", "days": 30 },
       { "re": "毎年", "days": 365 },
-      { "re": "(\\d+)\\s*日ごと", "n": 1, "mult": 1 },
-      { "re": "(\\d+)\\s*週間ごと", "n": 1, "mult": 7 },
-      { "re": "(\\d+)\\s*か?月ごと", "n": 1, "mult": 30 },
-      { "re": "(\\d+)\\s*年ごと", "n": 1, "mult": 365 }
+      { "re": "(\\d+)\\s*日ごとに?", "n": 1, "mult": 1 },
+      { "re": "(\\d+)\\s*週間ごとに?", "n": 1, "mult": 7 },
+      { "re": "(\\d+)\\s*か?月ごとに?", "n": 1, "mult": 30 },
+      { "re": "(\\d+)\\s*年ごとに?", "n": 1, "mult": 365 }
     ],
     "de": [
       { "re": "alle\\s+zwei\\s+wochen", "days": 14 },
@@ -409,11 +530,15 @@
       "每兩周",
       "每三個月",
       "每兩個月",
-      "每\\s*\\d+\\s*天",
-      "每\\s*\\d+\\s*週",
-      "每\\s*\\d+\\s*周",
-      "每\\s*\\d+\\s*個?月",
-      "每\\s*\\d+\\s*年",
+      "每隔\\s*[一二三四五六七八九十兩两\\d]+\\s*天",
+      "每隔\\s*[一二三四五六七八九十兩两\\d]+\\s*週",
+      "每隔\\s*[一二三四五六七八九十兩两\\d]+\\s*周",
+      "每隔\\s*[一二三四五六七八九十兩两\\d]+\\s*個?月",
+      "每\\s*[一二三四五六七八九十兩两\\d]+\\s*天",
+      "每\\s*[一二三四五六七八九十兩两\\d]+\\s*週",
+      "每\\s*[一二三四五六七八九十兩两\\d]+\\s*周",
+      "每\\s*[一二三四五六七八九十兩两\\d]+\\s*個?月",
+      "每\\s*[一二三四五六七八九十兩两\\d]+\\s*年",
       "每天",
       "每日",
       "每週",
@@ -423,11 +548,11 @@
       "每年"
     ],
     "ja": [
-      "\\d+\\s*日ごと",
-      "\\d+\\s*週間ごと",
-      "\\d+\\s*か?月ごと",
-      "\\d+\\s*年ごと",
-      "2週間ごと",
+      "\\d+\\s*日ごとに?",
+      "\\d+\\s*週間ごとに?",
+      "\\d+\\s*か?月ごとに?",
+      "\\d+\\s*年ごとに?",
+      "2週間ごとに?",
       "毎日",
       "毎週",
       "毎月",
