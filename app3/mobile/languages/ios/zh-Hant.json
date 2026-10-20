@@ -1,5 +1,6 @@
 {
   "CFBundleDisplayName": "好久沒了",
+  "NSPhotoLibraryUsageDescription": "把分享卡片圖片存到照片，或用來分享。",
   "NSPhotoLibraryAddUsageDescription": "把分享卡片圖片存到你的照片。",
   "NSCalendarsUsageDescription": "只有在你點「加到行事曆」時，才把項目下次該做的日子加到行事曆，不會讀取你的行程。",
   "NSCalendarsFullAccessUsageDescription": "只有在你點「加到行事曆」時，才把項目下次該做的日子加到行事曆，不會讀取你的行程。",

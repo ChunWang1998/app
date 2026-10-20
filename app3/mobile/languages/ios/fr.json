@@ -1,5 +1,6 @@
 {
   "CFBundleDisplayName": "Been Ages",
+  "NSPhotoLibraryUsageDescription": "Enregistre ou partage une carte dans vos Photos.",
   "NSPhotoLibraryAddUsageDescription": "Enregistre une carte à partager dans vos Photos.",
   "NSCalendarsUsageDescription": "Been Ages n’ajoute la prochaine échéance à votre Calendrier que lorsque vous touchez « Au Calendrier ». Il ne lit jamais vos événements.",
   "NSCalendarsFullAccessUsageDescription": "Been Ages n’ajoute la prochaine échéance à votre Calendrier que lorsque vous touchez « Au Calendrier ». Il ne lit jamais vos événements.",

@@ -1,5 +1,6 @@
 {
   "CFBundleDisplayName": "Been Ages",
+  "NSPhotoLibraryUsageDescription": "Speichert oder teilt eine Anteilskarte in deinen Fotos.",
   "NSPhotoLibraryAddUsageDescription": "Speichert eine Anteilskarte in deinen Fotos.",
   "NSCalendarsUsageDescription": "Been Ages legt das nächste Fälligkeitsdatum nur in deinen Kalender, wenn du auf „In Kalender“ tippst. Termine werden nicht gelesen.",
   "NSCalendarsFullAccessUsageDescription": "Been Ages legt das nächste Fälligkeitsdatum nur in deinen Kalender, wenn du auf „In Kalender“ tippst. Termine werden nicht gelesen.",
