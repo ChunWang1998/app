@@ -135,6 +135,20 @@ export function stripNameExtras(text, locale) {
   return stripList(text, table('nameExtraStrip', locale));
 }
 
+export function stripFuture(text, locale) {
+  return stripList(text, table('futureStrip', locale));
+}
+
+/** True when the utterance is a future plan, not a last-done log. */
+export function looksLikeFutureIntent(text, locale) {
+  const raw = String(text || '');
+  if (!raw.trim()) return false;
+  for (const p of table('futureIntent', locale) || []) {
+    if (new RegExp(p, 'i').test(raw)) return true;
+  }
+  return false;
+}
+
 export function stripPrefixes(text, prefixes) {
   let s = String(text || '').trim();
   const list = [...(prefixes || [])].sort((a, b) => b.length - a.length);

@@ -267,6 +267,7 @@
     "logged": "Logged",
     "undone": "Undone",
     "createIntro": "Got it:",
+    "plannedIntro": "Added:",
     "logIntro": "Logged {name}.",
     "sinceOnly": "{span}.",
     "sinceNext": "{span}. Next {next}.",

@@ -3,7 +3,8 @@ import { parseRules } from '../src/lib/ai/ruleParser';
 import { parseIntent } from '../src/lib/ai/parseIntent';
 import { __setNativeForTests } from '../src/lib/ai/foundationModels';
 import { fuzzyMatchItem } from '../src/lib/ai/matchItem';
-import { draftFromCreate, itemsDueThisWeek, sinceCopy, formatNextShort } from '../src/lib/ai/apply';
+import { hydrateIntent } from '../src/lib/ai/ruleParser';
+import { draftFromCreate, cardFromCreateIntent, itemsDueThisWeek, sinceCopy, formatNextShort } from '../src/lib/ai/apply';
 import { seedCategories } from '../src/lib/categories';
 import {
   resetRepositoryForTests,
@@ -343,6 +344,94 @@ describe('foundation models fallback', () => {
     expect(r.source).toBe('rules');
     expect(r.type).toBe('log');
   });
+
+  it('does not treat FM future plans as done today, even if kind is log', async () => {
+    __setNativeForTests({
+      parseIntent: async () => ({
+        ok: true,
+        kind: 'log',
+        name: 'gym',
+        lastDonePhrase: 'tomorrow',
+        reminderPhrase: '',
+      }),
+    });
+    const r = await parseIntent('I will go to the gym tomorrow', { locale: 'en', now: NOW });
+    expect(r.source).toBe('fm');
+    expect(r.type).toBe('create');
+    expect(r.future).toBe(true);
+    expect(r.lastDoneAt).toBeNull();
+    expect(r.lastDoneDaysAgo).toBeNull();
+    expect(r.reminderDays).toBeNull();
+  });
+});
+
+describe('future plans are not logged as today', () => {
+  const rows = [
+    { locale: 'zh-Hant', text: '明天要去重訓', name: /重訓/ },
+    { locale: 'zh-Hant', text: '下週要重訓', name: /重訓/ },
+    { locale: 'zh-Hant', text: '打算重訓', name: /重訓/ },
+    { locale: 'en', text: 'I will go to the gym tomorrow', name: /gym/i },
+    { locale: 'en', text: 'going to the gym tomorrow', name: /gym/i },
+    { locale: 'ja', text: '明日筋トレする', name: /筋トレ/ },
+    { locale: 'de', text: 'Ich werde morgen trainieren', name: /trainieren/i },
+    { locale: 'fr', text: 'Je vais à la gym demain', name: /gym/i },
+  ];
+
+  it.each(rows)('$locale $text', ({ locale, text, name }) => {
+    const r = parse(text, locale);
+    expect(r.type).toBe('create');
+    expect(r.future).toBe(true);
+    expect(r.name).toMatch(name);
+    expect(r.lastDoneAt).toBeNull();
+    expect(r.lastDoneDaysAgo).toBeNull();
+    expect(r.reminderDays).toBeNull();
+  });
+
+  it('still treats cadence creates as done today', () => {
+    const r = parse('每週倒垃圾', 'zh-Hant');
+    expect(r.type).toBe('create');
+    expect(r.future).toBeUndefined();
+    expect(r.lastDoneDaysAgo).toBe(0);
+    expect(r.reminderDays).toBe(7);
+  });
+
+  it('hydrates FM create phrases without a last-done date', () => {
+    const r = hydrateIntent(
+      { type: 'create', name: '重訓', lastDonePhrase: '', reminderPhrase: '', source: 'fm' },
+      { locale: 'zh-Hant', now: NOW, text: '明天要去重訓' },
+    );
+    expect(r.type).toBe('create');
+    expect(r.future).toBe(true);
+    expect(r.lastDoneAt).toBeNull();
+    expect(r.reminderDays).toBeNull();
+    expect(r.name).toMatch(/重訓/);
+  });
+
+  it('maps an existing item without adding a log, and drafts a new one empty', () => {
+    const existing = {
+      id: 'a1',
+      title: '重訓',
+      lastDoneAt: '2026-01-01T00:00:00.000Z',
+      reminderDays: 7,
+    };
+    const mapped = cardFromCreateIntent(
+      { type: 'create', name: '重訓', future: true, lastDoneAt: null, reminderDays: null },
+      { activities: [existing], categories: seedCategories() },
+    );
+    expect(mapped.mapped).toBe(true);
+    expect(mapped.state).toBe('view');
+    expect(mapped.item.lastDoneAt).toBe(existing.lastDoneAt);
+    expect(mapped.item.reminderDays).toBe(7);
+
+    const fresh = cardFromCreateIntent(
+      { type: 'create', name: '重訓', future: true, lastDoneAt: null, reminderDays: null },
+      { activities: [], categories: seedCategories() },
+    );
+    expect(fresh.mapped).toBe(false);
+    expect(fresh.state).toBe('new');
+    expect(fresh.item.lastDoneAt).toBeNull();
+    expect(fresh.item.reminderDays).toBeNull();
+  });
 });
 
 describe('since copy stays short', () => {
@@ -556,6 +645,20 @@ describe('AiEditSheet now is stable', () => {
     expect(src).not.toMatch(/now\s*=\s*Date\.now\(\)/);
     expect(src).toMatch(/useRef/);
     expect(src).toMatch(/nowRef/);
+  });
+});
+
+describe('AI chat future-plan card', () => {
+  it('maps future creates in memory and still writes through addActivity', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../src/screens/AiChatScreen.js'), 'utf8');
+    expect(src).toMatch(/cardFromCreateIntent/);
+    expect(src).toMatch(/ai\.plannedIntro/);
+    expect(src).toMatch(/Keyboard\.dismiss/);
+    expect(src).toMatch(/await addActivity/);
+    expect(src).not.toMatch(/draftFromCreate/);
+    const repo = fs.readFileSync(path.join(__dirname, '../src/data/repository.js'), 'utf8');
+    expect(repo).toMatch(/function enqueueWrite/);
+    expect(repo).toMatch(/return enqueueWrite\(async \(\) => \{/);
   });
 });
 

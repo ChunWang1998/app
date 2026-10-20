@@ -270,6 +270,7 @@
     "logged": "記録した",
     "undone": "元に戻した",
     "createIntro": "メモします：",
+    "plannedIntro": "追加した：",
     "logIntro": "{name}を記録した。",
     "sinceOnly": "{span}。",
     "sinceNext": "{span}。次は {next}。",

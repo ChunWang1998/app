@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Keyboard,
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,7 +15,7 @@ import { AiEditSheet } from '../components/AiEditSheet';
 import { AiVoiceView } from '../components/AiVoiceView';
 import { parseIntent } from '../lib/ai/parseIntent';
 import {
-  draftFromCreate, itemsDueThisWeek, itemsDueToday, resolveItem, sinceCopy,
+  cardFromCreateIntent, itemsDueThisWeek, itemsDueToday, resolveItem, sinceCopy,
 } from '../lib/ai/apply';
 import { supportsOnDeviceSpeech } from '../lib/ai/speech';
 import { TOAST_MS } from '../components/UndoToast';
@@ -90,8 +90,13 @@ export default function AiChatScreen() {
 
   async function handleIntent(intent, replyId, retry) {
     if (intent.type === 'create') {
-      const draft = draftFromCreate(intent, { categories, reminderTime });
-      patchMsg(replyId, { typing: false, text: t('ai.createIntro'), item: draft, state: 'new', cardOn: true });
+      const card = cardFromCreateIntent(intent, {
+        activities: getVisibleActivities(),
+        categories,
+        reminderTime,
+      });
+      const intro = intent.future ? t('ai.plannedIntro') : t('ai.createIntro');
+      patchMsg(replyId, { typing: false, text: intro, item: card.item, state: card.state, cardOn: true });
       return;
     }
     if (intent.type === 'log') {
@@ -328,7 +333,7 @@ export default function AiChatScreen() {
                             categories={categories}
                             state={m.state}
                             onAdd={() => onAdd(m)}
-                            onEdit={() => setSheet(m.id)}
+                            onEdit={() => { Keyboard.dismiss(); setSheet(m.id); }}
                             onUndo={m.undo ? () => onUndo(m) : undefined}
                           />
                         ) : null}

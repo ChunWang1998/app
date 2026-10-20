@@ -44,6 +44,116 @@
     "de": ["\\bab jetzt\\b", "\\bzukünftig\\b"],
     "fr": ["\\bd[eé]sormais\\b", "\\bà partir de maintenant\\b"]
   },
+  "futureIntent": {
+    "en": [
+      "\\bi(?:['’]m| am) going to\\b",
+      "\\bgoing to\\b",
+      "\\bgonna\\b",
+      "\\bi will\\b",
+      "\\bi['’]ll\\b",
+      "\\bwill\\b",
+      "\\btomorrow\\b",
+      "\\bnext week\\b",
+      "\\bplan(?:ning)? to\\b",
+      "\\bintend(?:ing)? to\\b"
+    ],
+    "zh-Hant": [
+      "明天要去",
+      "明天要",
+      "明天去",
+      "明天",
+      "下週要",
+      "下周要",
+      "下星期要",
+      "下週",
+      "下周",
+      "打算",
+      "準備去",
+      "下次要",
+      "會去"
+    ],
+    "ja": [
+      "明日",
+      "来週",
+      "つもり",
+      "予定"
+    ],
+    "de": [
+      "\\bmorgen\\b",
+      "nächste woche",
+      "naechste woche",
+      "\\bich werde\\b",
+      "\\bwerde\\b",
+      "\\bich will\\b",
+      "\\bvorhaben\\b",
+      "\\bplane\\b"
+    ],
+    "fr": [
+      "\\bdemain\\b",
+      "la semaine prochaine",
+      "\\bje vais\\b",
+      "j['’]ai l['’]intention",
+      "\\bje compte\\b"
+    ]
+  },
+  "futureStrip": {
+    "en": [
+      "\\bi(?:['’]m| am) going to\\b",
+      "\\bgoing to\\b",
+      "\\bgonna\\b",
+      "\\bi will\\b",
+      "\\bi['’]ll\\b",
+      "\\bwill\\b",
+      "\\btomorrow\\b",
+      "\\bnext week\\b",
+      "\\bplan(?:ning)? to\\b",
+      "\\bintend(?:ing)? to\\b",
+      "\\bgo to (?:the )?\\b"
+    ],
+    "zh-Hant": [
+      "明天要去",
+      "明天要",
+      "明天去",
+      "明天",
+      "下週要",
+      "下周要",
+      "下星期要",
+      "下週",
+      "下周",
+      "打算",
+      "準備去",
+      "下次要",
+      "會去",
+      "要去"
+    ],
+    "ja": [
+      "明日",
+      "来週",
+      "つもりだ?",
+      "の?予定",
+      "する$"
+    ],
+    "de": [
+      "\\bich werde\\b",
+      "\\bwerde\\b",
+      "\\bich will\\b",
+      "nächste woche",
+      "naechste woche",
+      "\\bmorgen\\b",
+      "\\bvorhaben\\b",
+      "\\bplane\\b"
+    ],
+    "fr": [
+      "j['’]ai l['’]intention de\\b",
+      "\\bje vais aller\\b",
+      "\\bje vais\\b",
+      "\\bje compte\\b",
+      "la semaine prochaine",
+      "\\bdemain\\b",
+      "\\bà la\\b",
+      "\\bau\\b"
+    ]
+  },
   "queryWeek": {
     "en": [
       "what'?s due this week",

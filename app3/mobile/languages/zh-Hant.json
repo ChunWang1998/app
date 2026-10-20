@@ -267,6 +267,7 @@
     "logged": "已記錄",
     "undone": "已復原",
     "createIntro": "好，幫你記這件：",
+    "plannedIntro": "已幫你加入：",
     "logIntro": "記下了，{name}。",
     "sinceOnly": "{span}了。",
     "sinceNext": "{span}了，下次是 {next}。",

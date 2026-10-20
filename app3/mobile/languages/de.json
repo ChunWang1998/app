@@ -271,6 +271,7 @@
     "logged": "Gemerkt",
     "undone": "Rückgängig",
     "createIntro": "Alles klar:",
+    "plannedIntro": "Hinzugefügt:",
     "logIntro": "{name} gemerkt.",
     "sinceOnly": "{span}.",
     "sinceNext": "{span}. Nächste {next}.",

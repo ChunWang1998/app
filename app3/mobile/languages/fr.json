@@ -271,6 +271,7 @@
     "logged": "Noté",
     "undone": "Annulé",
     "createIntro": "C’est noté :",
+    "plannedIntro": "Ajouté :",
     "logIntro": "{name} noté.",
     "sinceOnly": "{span}.",
     "sinceNext": "{span}. Prochain {next}.",
