@@ -12,6 +12,14 @@ function startOfDay(now) {
   return d.getTime();
 }
 
+/** True when `a` and `b` fall on the same local calendar day. */
+export function sameLocalDay(a, b) {
+  const ta = new Date(a).getTime();
+  const tb = new Date(b).getTime();
+  if (Number.isNaN(ta) || Number.isNaN(tb)) return false;
+  return startOfDay(ta) === startOfDay(tb);
+}
+
 /**
  * Local calendar days: due before today's 00:00 is 'overdue', due any time today is 'today'.
  * `due` is ms until due (negative = late), as from dueInMs. DST-safe (uses local midnights).

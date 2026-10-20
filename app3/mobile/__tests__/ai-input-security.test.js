@@ -110,6 +110,11 @@ describe('AI paywall reply', () => {
     expect(src).toMatch(/useFocusEffect/);
     expect(src).toMatch(/pendingPaywall/);
     expect(src).toMatch(/isProUnlocked/);
-    expect(src).toMatch(/logActivityAt/);
+    expect(src).toMatch(/logActivityOnDay/);
+    expect(src).toMatch(/itemId/);
+    expect(src).toMatch(/ai\.gone/);
+    expect(src).toMatch(/PAYWALL_RETRY_MS/);
+    expect(src).toMatch(/pendingPaywall\.current = null/);
+    expect(src).toMatch(/retry\?\.at/);
   });
 });

@@ -1,13 +1,20 @@
 {
   "foldStrip": ["了", "？", "！", "。", "．", "、", "，", "«", "»"],
-  "nameNoise": ["change", "changed", "wash", "washed", "replace", "replaced", "water", "watered", "get", "take", "took", "換", "洗", "做", "剪", "交換"],
+  "nameNoise": ["change", "changed", "wash", "washed", "replace", "replaced", "water", "watered", "clean", "cleaned", "get", "take", "took", "換", "洗", "做", "剪", "交換"],
   "tenseFold": {
     "washed": "wash",
     "changed": "change",
     "watered": "water",
     "replaced": "replace",
     "logged": "log",
-    "finished": "finish"
+    "finished": "finish",
+    "cleaned": "clean",
+    "vacuumed": "vacuum",
+    "folded": "fold",
+    "wiped": "wipe",
+    "dusted": "dust",
+    "emptied": "empty",
+    "mowed": "mow"
   },
   "numeral": {
     "zh-Hant": { "零": 0, "一": 1, "二": 2, "兩": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10 },
@@ -248,8 +255,9 @@
   },
   "logPast": {
     "en": [
-      "^(?:i )?(?:changed|washed|watered|replaced|did|took|logged|finished)\\b",
-      "\\b(?:changed|washed|watered|replaced|did)\\b.+(?:yesterday|today|last (?:week|night|month))"
+      "^(?:i )?(?:changed|washed|watered|replaced|did|took|logged|finished|cleaned|vacuumed|folded|wiped|dusted|emptied|mowed)\\b",
+      "^(?:i )?[a-z]+ed\\b.+(?:yesterday|today|last (?:week|night|month)|\\d+\\s*days? ago)",
+      "\\b(?:changed|washed|watered|replaced|did|cleaned)\\b.+(?:yesterday|today|last (?:week|night|month)|\\d+\\s*days? ago)"
     ],
     "zh-Hant": ["了", "好了"],
     "ja": ["した", "やった", "替えた", "った", "んだ", "えた"],

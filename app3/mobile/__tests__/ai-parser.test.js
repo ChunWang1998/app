@@ -12,10 +12,12 @@ import {
   updateActivity,
   getVisibleActivities,
   logActivityNow,
+  logActivityOnDay,
   FREE_ACTIVITY_LIMIT,
   FREE_HISTORY_LIMIT,
 } from '../src/data/repository';
 import * as ent from '../src/lib/entitlements';
+import { sameLocalDay } from '../src/lib/today';
 import fs from 'fs';
 import path from 'path';
 
@@ -498,6 +500,45 @@ describe('QA parser-results 38', () => {
     expect(qa('10日ごとに水やり', 'ja').reminderDays).toBe(10);
     expect(qa('Pflanzen alle 10 Tage gießen', 'de').reminderDays).toBe(10);
     expect(qa('Arroser les plantes tous les 10 jours', 'fr').reminderDays).toBe(10);
+  });
+
+  it('treats English past-tense + time-word as a log', () => {
+    const cleaned = qa('I cleaned the windows yesterday', 'en');
+    expect(cleaned.type).toBe('log');
+    expect(cleaned.name).toMatch(/window/i);
+    expect(cleaned.lastDoneDaysAgo).toBe(1);
+
+    const vacuumed = qa('vacuumed the rug yesterday', 'en');
+    expect(vacuumed.type).toBe('log');
+    expect(vacuumed.lastDoneDaysAgo).toBe(1);
+
+    const folded = qa('I folded the laundry last week', 'en');
+    expect(folded.type).toBe('log');
+    expect(folded.lastDoneDaysAgo).toBe(7);
+
+    const wiped = qa('wiped the counters today', 'en');
+    expect(wiped.type).toBe('log');
+    expect(wiped.lastDoneDaysAgo).toBe(0);
+  });
+
+  it('two consecutive yesterday messages produce only 1 record', async () => {
+    await resetRepositoryForTests();
+    const item = await addActivity({
+      title: 'water the plants',
+      lastDoneAt: new Date(2026, 8, 1, 9, 0, 0).toISOString(),
+    });
+    const now1 = new Date(2026, 9, 20, 16, 0, 0, 0);
+    const now2 = new Date(2026, 9, 20, 16, 0, 0, 80);
+    const first = parseRules('watered the plants yesterday', { locale: 'en', now: now1 });
+    const second = parseRules('watered the plants yesterday', { locale: 'en', now: now2 });
+    expect(first.type).toBe('log');
+    expect(second.type).toBe('log');
+    expect(first.lastDoneAt).not.toBe(second.lastDoneAt);
+    await logActivityOnDay(item.id, first.lastDoneAt);
+    const skip = await logActivityOnDay(item.id, second.lastDoneAt);
+    expect(skip.skipped).toBe(true);
+    const row = getVisibleActivities()[0];
+    expect(row.history.filter((e) => sameLocalDay(e.at, first.lastDoneAt))).toHaveLength(1);
   });
 
   it('recognizes due-today queries in ja/de/fr', () => {
