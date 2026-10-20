@@ -59,6 +59,8 @@
     "logged": "Noté aujourd’hui",
     "deleted": "Supprimé",
     "neverLogged": "Pas encore",
+    "last": "Dernière",
+    "justNow": "À l’instant",
     "overdue": "En retard",
     "remaining": "Dans",
     "a11ySettings": "Réglages",
@@ -165,7 +167,8 @@
     "week": "sem",
     "month": "mo",
     "year": "an",
-    "lastDoneLine": "{relative} · Dernière fois {date}"
+    "lastDoneLine": "{relative} · Dernière fois {date}",
+    "ago": "il y a {span}"
   },
   "reminder": {
     "title": "Rappel",

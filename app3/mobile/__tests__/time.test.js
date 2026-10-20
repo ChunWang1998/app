@@ -13,6 +13,8 @@ import {
   formatDetailSpanParts,
   isDetailHeroToday,
   formatHomeCountdown,
+  formatElapsedAgo,
+  formatHomeLastDone,
 } from '../src/lib/time';
 import { tLocale } from '../src/i18n';
 import { setLocale } from '../src/i18n';
@@ -26,6 +28,31 @@ describe('time helpers', () => {
     const parts = formatSpanParts(19 * 864e5 + 7 * 36e5, 2);
     expect(parts[0]).toEqual({ n: 19, unit: '天' });
     expect(parts[1]).toEqual({ n: 7, unit: '小時' });
+  });
+
+  it('home last-done column reads as ago, today, or not yet', () => {
+    const now = new Date(2026, 9, 20, 19, 32, 0).getTime();
+    const twoMin = new Date(now - 2 * 60e3).toISOString();
+    const daily = { reminderDays: 1, lastDoneAt: twoMin };
+    expect(formatElapsedAgo(2 * 60e3, 1, 'zh-Hant')).toBe('2\u2009分鐘前');
+    expect(formatElapsedAgo(2 * 60e3, 1, 'en')).toBe('2\u2009min ago');
+    expect(formatElapsedAgo(2 * 60e3, 1, 'ja')).toBe('2\u2009分前');
+    expect(formatElapsedAgo(2 * 60e3, 1, 'de')).toBe('vor 2\u2009Min');
+    expect(formatElapsedAgo(2 * 60e3, 1, 'fr')).toBe('il y a 2\u2009min');
+    expect(formatHomeLastDone(daily, now, 'zh-Hant')).toEqual({ cap: '上次', value: '2\u2009分鐘前' });
+    expect(formatHomeLastDone({ lastDoneAt: null }, now, 'zh-Hant')).toEqual({
+      cap: '上次',
+      value: '還沒記錄',
+    });
+    expect(formatHomeLastDone({ reminderDays: 7, lastDoneAt: twoMin }, now, 'zh-Hant')).toEqual({
+      cap: '上次',
+      value: '今天',
+    });
+    expect(formatHomeLastDone({ reminderDays: 1, lastDoneAt: new Date(now - 20e3).toISOString() }, now, 'en')).toEqual({
+      cap: 'Last',
+      value: 'Just now',
+    });
+    expect(formatHomeLastDone(daily, now, 'de').cap).toBe('Zuletzt');
   });
 
   it('home countdown uses days, or today when under one day', () => {

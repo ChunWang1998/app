@@ -17,7 +17,7 @@ import { Mascot } from '../components/Mascot';
 import { UndoToast } from '../components/UndoToast';
 import { GearIcon, PlusIcon, CheckIcon, SortIcon } from '../components/Icons';
 import { AiComposer } from '../components/AiComposer';
-import { dueInMs, progressRatio, elapsedMs, formatSpanParts, formatLastDoneShort, isDetailHeroToday, formatHomeCountdown } from '../lib/time';
+import { dueInMs, progressRatio, elapsedMs, formatLastDoneShort, formatHomeCountdown, formatHomeLastDone } from '../lib/time';
 import { monogramLetter } from '../lib/suggestIcon';
 import { splitToday, homeMood, dueStatus } from '../lib/today';
 import { CategoryChips } from '../components/CategoryChips';
@@ -33,7 +33,7 @@ const JUST_MS = 60e3;
 export default function HomeScreen() {
   const nav = useNavigation();
   const c = useThemeColors();
-  const { sort, setSort, preciseTime } = useTheme();
+  const { sort, setSort } = useTheme();
   const insets = useSafeAreaInsets();
   const { activities, categories, ready } = useActivities();
   // Category filter. Adding an item never switches it (stays on All).
@@ -185,7 +185,6 @@ export default function HomeScreen() {
                     onCheck={() => handleCheck(item)}
                     onOpen={() => nav.navigate('Detail', { id: item.id })}
                     onDelete={() => handleDelete(item)}
-                    preciseTime={preciseTime}
                   />
                 ))}
                 {rest.length ? <View style={[styles.todayGap, { backgroundColor: c.band }]} /> : null}
@@ -202,7 +201,6 @@ export default function HomeScreen() {
                 onCheck={() => handleCheck(item)}
                 onOpen={() => nav.navigate('Detail', { id: item.id })}
                 onDelete={() => handleDelete(item)}
-                preciseTime={preciseTime}
               />
             )}
             ListEmptyComponent={data.length === 0 ? (
@@ -237,7 +235,7 @@ export default function HomeScreen() {
   );
 }
 
-function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
+function Row({ item, onCheck, onOpen, onDelete }) {
   const c = useThemeColors();
   const tone = useItemTone(item.icon, item.title);
   const due = item._due;
@@ -291,11 +289,7 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
           ) : null}
         </TouchableOpacity>
         <TouchableOpacity onPress={onOpen} style={styles.numWrap} activeOpacity={0.7}>
-          {elapsed == null ? (
-            <Text style={[styles.numSmall, { color: c.l2 }]}>—</Text>
-          ) : (
-            <Numeral item={item} ms={elapsed} just={just} color={c.label} dim={c.l2} preciseTime={preciseTime} />
-          )}
+          <LastDoneNumeral item={item} color={c.label} dim={c.l2} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={onCheck}
@@ -312,20 +306,23 @@ function Row({ item, onCheck, onOpen, onDelete, preciseTime }) {
   );
 }
 
-function Numeral({ item, ms, just, color, dim, preciseTime }) {
-  if (isDetailHeroToday(item)) {
-    return <Text style={[styles.num, { color }]}>{t('common.today')}</Text>;
-  }
-  const parts = formatSpanParts(ms, just || !preciseTime ? 1 : 2);
+function LastDoneNumeral({ item, color, dim }) {
+  const { cap, value } = formatHomeLastDone(item, Date.now(), getLocale());
   return (
-    <Text style={[styles.num, { color }]}>
-      {parts.map((p, i) => (
-        <Text key={i}>
-          {p.n}
-          <Text style={[styles.numSmall, { color: dim }]}>{p.unit}</Text>
-        </Text>
-      ))}
-    </Text>
+    <View testID="home-last" style={styles.numCol}>
+      <Text testID="home-last-cap" style={[styles.numCap, { color: dim }]} numberOfLines={1}>
+        {cap}
+      </Text>
+      <Text
+        testID="home-last-value"
+        style={[styles.num, { color }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.65}
+      >
+        {value}
+      </Text>
+    </View>
   );
 }
 
@@ -374,8 +371,10 @@ const styles = StyleSheet.create({
   st: { fontSize: 14, marginTop: 3, fontFamily: 'BeenAgesRounded-Regular' },
   trk: { height: 5, borderRadius: 3, marginTop: 8, overflow: 'hidden' },
   trkI: { height: '100%', borderRadius: 3 },
-  numWrap: { width: 108, alignItems: 'flex-end' },
-  num: { fontSize: 30, fontFamily: 'BeenAgesRounded-SemiBold', lineHeight: 34 },
+  numWrap: { maxWidth: 108, minWidth: 64, flexShrink: 0, alignItems: 'flex-end' },
+  numCol: { alignItems: 'flex-end', maxWidth: 108 },
+  numCap: { fontSize: 11, lineHeight: 13, fontFamily: 'BeenAgesRounded-Regular', marginBottom: 1 },
+  num: { fontSize: 22, fontFamily: 'BeenAgesRounded-SemiBold', lineHeight: 26 },
   numSmall: { fontSize: 13, fontFamily: 'BeenAgesRounded-Regular' },
   ck: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   ckDot: { width: 32, height: 32, borderRadius: 16, borderWidth: 2.4, alignItems: 'center', justifyContent: 'center' },

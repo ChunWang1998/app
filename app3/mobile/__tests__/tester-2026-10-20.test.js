@@ -117,6 +117,28 @@ describe('F11 home countdown is days, not minutes', () => {
   });
 });
 
+describe('home last-done numeral', () => {
+  it('shows a Last caption, ago phrasing, and a non-growing column', () => {
+    const home = read('../src/screens/HomeScreen.js');
+    expect(home).toMatch(/formatHomeLastDone/);
+    expect(home).toMatch(/home-last-cap/);
+    expect(home).toMatch(/adjustsFontSizeToFit/);
+    expect(home).toMatch(/flexShrink:\s*0/);
+    expect(home).toMatch(/maxWidth:\s*108/);
+    expect(home).not.toMatch(/width:\s*108/);
+  });
+
+  it.each(LOCALES)('%s last / ago / justNow copy is short', (locale) => {
+    const last = tLocale(locale, 'home.last');
+    const ago = tLocale(locale, 'time.ago', { span: '2' });
+    const just = tLocale(locale, 'home.justNow');
+    expect(last.length).toBeGreaterThan(0);
+    expect(last.length).toBeLessThan(12);
+    expect(ago).toMatch(/2/);
+    expect(just.length).toBeGreaterThan(0);
+  });
+});
+
 describe('recently deleted 3-day window', () => {
   it('purges on launch and foreground via enqueueWrite', () => {
     const repo = read('../src/data/repository.js');

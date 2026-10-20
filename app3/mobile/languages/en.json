@@ -55,6 +55,8 @@
     "logged": "Logged today",
     "deleted": "Deleted",
     "neverLogged": "Not yet",
+    "last": "Last",
+    "justNow": "Just now",
     "overdue": "Overdue",
     "remaining": "In",
     "a11ySettings": "Settings",
@@ -161,7 +163,8 @@
     "week": "w",
     "month": "mo",
     "year": "y",
-    "lastDoneLine": "{relative} · Last done {date}"
+    "lastDoneLine": "{relative} · Last done {date}",
+    "ago": "{span} ago"
   },
   "reminder": {
     "title": "Reminder",

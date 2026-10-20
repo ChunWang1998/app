@@ -59,6 +59,8 @@
     "logged": "Heute gemerkt",
     "deleted": "Gelöscht",
     "neverLogged": "Noch nicht",
+    "last": "Zuletzt",
+    "justNow": "Gerade",
     "overdue": "Überfällig",
     "remaining": "In",
     "a11ySettings": "Einstellungen",
@@ -165,7 +167,8 @@
     "week": "Wo",
     "month": "Mon",
     "year": "J",
-    "lastDoneLine": "{relative} · Zuletzt {date}"
+    "lastDoneLine": "{relative} · Zuletzt {date}",
+    "ago": "vor {span}"
   },
   "reminder": {
     "title": "Erinnerung",

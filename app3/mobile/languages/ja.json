@@ -58,6 +58,8 @@
     "logged": "今日記録済み",
     "deleted": "削除しました",
     "neverLogged": "未記録",
+    "last": "前回",
+    "justNow": "いま",
     "overdue": "期限切れ",
     "remaining": "あと",
     "a11ySettings": "設定",
@@ -164,7 +166,8 @@
     "week": "週",
     "month": "か月",
     "year": "年",
-    "lastDoneLine": "{relative} · 前回 {date}"
+    "lastDoneLine": "{relative} · 前回 {date}",
+    "ago": "{span}前"
   },
   "reminder": {
     "title": "リマインダー",
