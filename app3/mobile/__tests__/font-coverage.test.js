@@ -17,5 +17,9 @@ describe('font subset coverage', () => {
       expect(js).toMatch(name);
       expect(py).toMatch(name);
     }
+    expect(js).toMatch('languages/de.json');
+    expect(js).toMatch('languages/fr.json');
+    expect(py).toMatch('de.json');
+    expect(py).toMatch('fr.json');
   });
 });

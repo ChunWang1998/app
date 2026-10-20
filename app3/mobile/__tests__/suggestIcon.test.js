@@ -20,6 +20,10 @@ describe('suggestIcon', () => {
     expect(suggestIcon('haircut')).toBe('scissors');
     expect(suggestIcon('剪頭髮')).toBe('scissors');
     expect(suggestIcon('散髪')).toBe('scissors');
+    expect(suggestIcon('Zahnbürste')).toBe('brush');
+    expect(suggestIcon('brosse à dents')).toBe('brush');
+    expect(suggestIcon('Bettwäsche')).toBe('bed');
+    expect(suggestIcon('draps')).toBe('bed');
   });
 
   it('covers 60+ household / health / pet / car items and only built-in icons', () => {

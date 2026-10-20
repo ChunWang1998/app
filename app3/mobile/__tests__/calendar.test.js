@@ -110,14 +110,18 @@ describe('add to calendar', () => {
     expect(merged.NSRemindersFullAccessUsageDescription).toMatch(/Reminders app/i);
     expect(merged.NSPhotoLibraryAddUsageDescription).toMatch(/Photos/i);
     expect(appJson.expo.ios.infoPlist.CFBundleDevelopmentRegion).toBe('en');
-    expect(appJson.expo.ios.infoPlist.CFBundleLocalizations).toEqual(['en', 'zh-Hant', 'ja']);
+    expect(appJson.expo.ios.infoPlist.CFBundleLocalizations).toEqual(['en', 'zh-Hant', 'ja', 'de', 'fr']);
     const locales = appJson.expo.locales;
     expect(locales.en).toBe('./languages/ios/en.json');
     expect(locales['zh-Hant']).toBe('./languages/ios/zh-Hant.json');
     expect(locales.ja).toBe('./languages/ios/ja.json');
+    expect(locales.de).toBe('./languages/ios/de.json');
+    expect(locales.fr).toBe('./languages/ios/fr.json');
     const zh = require('../languages/ios/zh-Hant.json');
     const en = require('../languages/ios/en.json');
     const ja = require('../languages/ios/ja.json');
+    const de = require('../languages/ios/de.json');
+    const fr = require('../languages/ios/fr.json');
     const plistKeys = [
       'CFBundleDisplayName',
       'NSCalendarsUsageDescription',
@@ -132,9 +136,13 @@ describe('add to calendar', () => {
     expect(Object.keys(en).sort()).toEqual(plistKeys.slice().sort());
     expect(Object.keys(zh).sort()).toEqual(plistKeys.slice().sort());
     expect(Object.keys(ja).sort()).toEqual(plistKeys.slice().sort());
+    expect(Object.keys(de).sort()).toEqual(plistKeys.slice().sort());
+    expect(Object.keys(fr).sort()).toEqual(plistKeys.slice().sort());
     expect(Object.values(en).every((v) => typeof v === 'string')).toBe(true);
     expect(Object.values(zh).every((v) => typeof v === 'string')).toBe(true);
     expect(Object.values(ja).every((v) => typeof v === 'string')).toBe(true);
+    expect(Object.values(de).every((v) => typeof v === 'string')).toBe(true);
+    expect(Object.values(fr).every((v) => typeof v === 'string')).toBe(true);
     expect(zh.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/項目的下次該做日子/);
     expect(en.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/item's next due date/i);
     expect(zh.NSCalendarsUsageDescription).toMatch(/加到行事曆/);
@@ -142,6 +150,16 @@ describe('add to calendar', () => {
     expect(zh.NSRemindersUsageDescription).toMatch(/「好久沒了」不使用「提醒事項」/);
     expect(en.NSRemindersUsageDescription).toMatch(/Reminders app/i);
     expect(ja.CFBundleDisplayName).toBe('久しぶり');
+    expect(de.CFBundleDisplayName).toBe('Been Ages');
+    expect(fr.CFBundleDisplayName).toBe('Been Ages');
+    expect(de.NSMicrophoneUsageDescription).toMatch(/Mikrofon/);
+    expect(fr.NSMicrophoneUsageDescription).toMatch(/micro/i);
+    expect(de.NSSpeechRecognitionUsageDescription).toMatch(/Gerät/);
+    expect(fr.NSSpeechRecognitionUsageDescription).toMatch(/appareil/);
+    expect(eventTitle({ title: 'TÜV' }, 'de')).toBe('TÜV | Been Ages');
+    expect(eventTitle({ title: 'Ramonage' }, 'fr')).toBe('Ramonage | Been Ages');
+    expect(calendarNote('de')).toBe('Aus Been Ages hinzugefügt');
+    expect(calendarNote('fr')).toBe('Ajouté depuis Been Ages');
     expect(ja.NSCalendarsWriteOnlyAccessUsageDescription).toMatch(/次の予定日/);
     expect(ja.NSCalendarsUsageDescription).toMatch(/カレンダーに追加/);
     expect(ja.NSRemindersUsageDescription).toMatch(/リマインダー/);

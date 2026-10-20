@@ -1,0 +1,11 @@
+{
+  "CFBundleDisplayName": "Been Ages",
+  "NSPhotoLibraryAddUsageDescription": "Speichert eine Anteilskarte in deinen Fotos.",
+  "NSCalendarsUsageDescription": "Been Ages legt das nächste Fälligkeitsdatum nur in deinen Kalender, wenn du auf „In Kalender“ tippst. Termine werden nicht gelesen.",
+  "NSCalendarsFullAccessUsageDescription": "Been Ages legt das nächste Fälligkeitsdatum nur in deinen Kalender, wenn du auf „In Kalender“ tippst. Termine werden nicht gelesen.",
+  "NSCalendarsWriteOnlyAccessUsageDescription": "Legt das nächste Fälligkeitsdatum in deinen Kalender.",
+  "NSRemindersUsageDescription": "Been Ages nutzt nicht die App „Erinnerungen“. Die Hinweise sind lokale Mitteilungen.",
+  "NSRemindersFullAccessUsageDescription": "Been Ages nutzt nicht die App „Erinnerungen“. Die Hinweise sind lokale Mitteilungen.",
+  "NSMicrophoneUsageDescription": "Been Ages nutzt das Mikrofon für Spracheingabe nur auf diesem Gerät.",
+  "NSSpeechRecognitionUsageDescription": "Been Ages wandelt deine Stimme auf diesem iPhone in Text um, um Einträge zu merken oder nachzuschlagen. Die Sprache bleibt auf dem Gerät und wird nicht übers Netz gesendet."
+}

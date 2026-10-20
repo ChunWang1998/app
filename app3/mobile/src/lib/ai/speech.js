@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { getLocale, resolveLocale } from '../../i18n';
 
-const LANG = { en: 'en-US', 'zh-Hant': 'zh-TW', ja: 'ja-JP' };
+const LANG = { en: 'en-US', 'zh-Hant': 'zh-TW', ja: 'ja-JP', de: 'de-DE', fr: 'fr-FR' };
 
 function loadModule() {
   try {
@@ -32,7 +32,8 @@ export function speechLocale(locale) {
 
 /**
  * On-device only. Uses the same app/system language mapping as recognition
- * (`zh-Hant`→`zh-TW`, `ja`→`ja-JP`, `en`→`en-US`). Never falls back to servers.
+ * (`zh-Hant`→`zh-TW`, `ja`→`ja-JP`, `en`→`en-US`, `de`→`de-DE`, `fr`→`fr-FR`).
+ * Never falls back to servers.
  */
 export function supportsOnDeviceSpeech(locale) {
   const tag = locale || getLocale();

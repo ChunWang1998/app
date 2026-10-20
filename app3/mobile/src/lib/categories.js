@@ -6,6 +6,8 @@ import { resolveLocale } from '../i18n';
 import en from '../../languages/en.json';
 import zhHant from '../../languages/zh-Hant.json';
 import ja from '../../languages/ja.json';
+import de from '../../languages/de.json';
+import fr from '../../languages/fr.json';
 
 /** Fixed fallback category. Not stored, cannot be renamed or deleted, always last. */
 export const OTHER_ID = 'other';
@@ -14,7 +16,7 @@ export const MAX_CATEGORIES = 30;
 /** Persist marker. v2 = categories; v3 = item icons follow the category. */
 export const CATEGORIES_STATE_VERSION = 3;
 
-const LOCALES = [en, zhHant, ja];
+const LOCALES = [en, zhHant, ja, de, fr];
 
 function foldName(s) {
   return String(s || '').trim().slice(0, 40).toLowerCase();
@@ -57,7 +59,7 @@ export const DEFAULT_CATEGORIES = [
 
 export { DEFAULT_KEYWORDS };
 
-const KEYWORD_LOCALES = ['en', 'zh-Hant', 'ja'];
+const KEYWORD_LOCALES = ['en', 'zh-Hant', 'ja', 'de', 'fr'];
 
 /**
  * Defaults are an explicit per-locale keyword table, not derived from icons.

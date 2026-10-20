@@ -19,6 +19,8 @@ describe('share cards', () => {
     expect(headlineForDays(47, '天', 'zh')).toBe('好久沒了 47 天');
     expect(headlineForDays(47, '日', 'ja')).toBe('久しぶり 47 日');
     expect(headlineForDays(47, 'd', 'en')).toBe('Been ages 47 d');
+    expect(headlineForDays(47, 'T', 'de')).toBe('Schon ewig 47 T');
+    expect(headlineForDays(47, 'j', 'fr')).toBe('Ça fait longtemps 47 j');
     expect(headlineForDays(47, '天')).not.toMatch(/\d{4}/);
   });
 

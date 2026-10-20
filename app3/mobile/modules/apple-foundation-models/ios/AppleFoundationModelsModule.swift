@@ -102,6 +102,8 @@ public class AppleFoundationModelsModule: Module {
     let tag = locale.trimmingCharacters(in: .whitespacesAndNewlines)
     if tag == "zh-Hant" || tag.lowercased().hasPrefix("zh") { return "zh-TW" }
     if tag.lowercased().hasPrefix("ja") { return "ja-JP" }
+    if tag.lowercased().hasPrefix("de") { return "de-DE" }
+    if tag.lowercased().hasPrefix("fr") { return "fr-FR" }
     if tag.lowercased().hasPrefix("en") { return "en-US" }
     return tag.isEmpty ? "en-US" : tag
   }

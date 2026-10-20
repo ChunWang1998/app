@@ -1,0 +1,11 @@
+{
+  "CFBundleDisplayName": "Been Ages",
+  "NSPhotoLibraryAddUsageDescription": "Enregistre une carte à partager dans vos Photos.",
+  "NSCalendarsUsageDescription": "Been Ages n’ajoute la prochaine échéance à votre Calendrier que lorsque vous touchez « Au Calendrier ». Il ne lit jamais vos événements.",
+  "NSCalendarsFullAccessUsageDescription": "Been Ages n’ajoute la prochaine échéance à votre Calendrier que lorsque vous touchez « Au Calendrier ». Il ne lit jamais vos événements.",
+  "NSCalendarsWriteOnlyAccessUsageDescription": "Ajoute la prochaine échéance d’un élément à votre Calendrier.",
+  "NSRemindersUsageDescription": "Been Ages n’utilise pas l’app Rappels. Ses rappels sont des notifications locales.",
+  "NSRemindersFullAccessUsageDescription": "Been Ages n’utilise pas l’app Rappels. Ses rappels sont des notifications locales.",
+  "NSMicrophoneUsageDescription": "Been Ages utilise le micro pour la saisie vocale sur cet appareil.",
+  "NSSpeechRecognitionUsageDescription": "Been Ages transcrit votre voix sur cet iPhone pour ajouter ou retrouver des éléments. La parole reste sur l’appareil et n’est pas envoyée sur le réseau."
+}

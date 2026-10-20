@@ -89,6 +89,63 @@
       "マットレス",
       "毛布",
       "ベッドメイキング"
+    ],
+    "de": [
+      "Staubsauger",
+      "Besen",
+      "Kehrschaufel",
+      "Farbe",
+      "Waschmittel",
+      "Weichspüler",
+      "Wäsche",
+      "abwaschen",
+      "Geschirr spülen",
+      "duschen",
+      "wischen",
+      "Mopp",
+      "Schwamm",
+      "Toilette",
+      "Badewanne",
+      "Müll rausbringen",
+      "Müll",
+      "recyceln",
+      "Schneidebrett",
+      "Bettwäsche",
+      "Bettlaken",
+      "Kissenbezug",
+      "Kissen",
+      "Bettdecke",
+      "Matratze",
+      "Decke",
+      "bett machen"
+    ],
+    "fr": [
+      "aspirateur",
+      "balai",
+      "pelle",
+      "peinture",
+      "lessive",
+      "adoucissant",
+      "linge",
+      "faire la vaisselle",
+      "vaisselle",
+      "douche",
+      "serpillière",
+      "éponge",
+      "toilettes",
+      "baignoire",
+      "sortir les poubelles",
+      "poubelles",
+      "recycler",
+      "planche à découper",
+      "draps",
+      "housses",
+      "taie",
+      "oreiller",
+      "couette",
+      "matelas",
+      "couverture",
+      "faire le lit"
     ]
   },
   "care": {
@@ -165,6 +222,52 @@
       "コンタクトレンズ",
       "目薬",
       "メガネ"
+    ],
+    "de": [
+      "Zahnbürste",
+      "Zahnpasta",
+      "Zahnseide",
+      "Mundspülung",
+      "Rasierer",
+      "rasieren",
+      "Shampoo",
+      "Seife",
+      "Haarschnitt",
+      "Haare schneiden",
+      "Nägel schneiden",
+      "Friseur",
+      "Salon",
+      "Sonnencreme",
+      "Feuchtigkeitscreme",
+      "Zahnarzt",
+      "Zahnkontrolle",
+      "Kontaktlinsen",
+      "Linsen",
+      "Augentropfen",
+      "Brille"
+    ],
+    "fr": [
+      "brosse à dents",
+      "dentifrice",
+      "fil dentaire",
+      "bain de bouche",
+      "rasoir",
+      "raser",
+      "shampoing",
+      "savon",
+      "coupe de cheveux",
+      "couper les cheveux",
+      "couper les ongles",
+      "coiffeur",
+      "salon",
+      "crème solaire",
+      "crème hydratante",
+      "dentiste",
+      "contrôle dentaire",
+      "lentilles",
+      "lentilles de contact",
+      "gouttes pour les yeux",
+      "lunettes"
     ]
   },
   "pet": {
@@ -206,6 +309,32 @@
       "ノミ",
       "動物病院",
       "ハムスター"
+    ],
+    "de": [
+      "Katzenstreu",
+      "Katzenklo",
+      "Katzenfutter",
+      "Hundefutter",
+      "Tierfutter",
+      "Hund ausführen",
+      "Aquarium",
+      "Vogelfutter",
+      "Flöhe",
+      "Tierarzt",
+      "Hamster"
+    ],
+    "fr": [
+      "litière",
+      "bac à litière",
+      "croquettes chat",
+      "croquettes chien",
+      "nourriture pour animaux",
+      "promener le chien",
+      "aquarium",
+      "graines pour oiseaux",
+      "puces",
+      "vétérinaire",
+      "hamster"
     ]
   },
   "plant": {
@@ -234,6 +363,24 @@
       "盆栽",
       "肥料",
       "剪定"
+    ],
+    "de": [
+      "Pflanzen gießen",
+      "gießen",
+      "Pflanze",
+      "Pflanzen",
+      "Garten",
+      "Dünger",
+      "zurückschneiden"
+    ],
+    "fr": [
+      "arroser les plantes",
+      "arrosage",
+      "plante",
+      "plantes",
+      "jardin",
+      "engrais",
+      "tailler"
     ]
   },
   "car": {
@@ -274,6 +421,31 @@
       "クーラント",
       "エアコンフィルター",
       "フロントガラス"
+    ],
+    "de": [
+      "Autowäsche",
+      "Motoröl",
+      "Reifen",
+      "Scheibenwischer",
+      "TÜV",
+      "Inspektion",
+      "Bremse",
+      "parken",
+      "Kühlmittel",
+      "Innenraumfilter",
+      "Windschutzscheibe"
+    ],
+    "fr": [
+      "lavage auto",
+      "huile moteur",
+      "pneu",
+      "essuie-glace",
+      "contrôle technique",
+      "frein",
+      "parking",
+      "liquide de refroidissement",
+      "filtre d’habitacle",
+      "pare-brise"
     ]
   },
   "health": {
@@ -310,6 +482,31 @@
       "カルシウム",
       "鎮痛剤",
       "体重計"
+    ],
+    "de": [
+      "Vitamin",
+      "Medizin",
+      "Medikament",
+      "Rezept",
+      "Nahrungsergänzung",
+      "Probiotikum",
+      "Kalzium",
+      "Ibuprofen",
+      "Aspirin",
+      "wiegen",
+      "Waage"
+    ],
+    "fr": [
+      "vitamine",
+      "médicament",
+      "ordonnance",
+      "complément",
+      "probiotique",
+      "calcium",
+      "ibuprofène",
+      "aspirine",
+      "se peser",
+      "balance"
     ]
   },
   "appl": {
@@ -361,6 +558,37 @@
       "電球",
       "電池",
       "火災報知"
+    ],
+    "de": [
+      "Wasserfilter",
+      "Hahnfilter",
+      "Luftfilter",
+      "Filter",
+      "Luftbefeuchter",
+      "Luftentfeuchter",
+      "Geschirrspüler",
+      "Kaffeemaschine",
+      "Mikrowelle",
+      "Kühlschrank",
+      "Glühbirne",
+      "Batterie",
+      "Rauchmelder"
+    ],
+    "fr": [
+      "filtre à eau",
+      "filtre robinet",
+      "filtre à air",
+      "filtre",
+      "humidificateur",
+      "déshumidificateur",
+      "lave-vaisselle",
+      "cafetière",
+      "micro-ondes",
+      "frigo",
+      "réfrigérateur",
+      "ampoule",
+      "pile",
+      "détecteur de fumée"
     ]
   }
 }

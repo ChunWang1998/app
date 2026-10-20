@@ -5,7 +5,7 @@ v1.1:
 - History, notes, reminder editor (on/off, interval, time, snooze)
 - Dark mode via Settings → Display (auto / light / dark) and exact time
 - IAP unlock + Restore Purchases + Redeem Code (expo-iap), free tier = 10 items
-- i18n follows the device locale (en, zh-Hant, ja)
+- i18n follows the device locale (en, zh-Hant, ja, de, fr). de and fr UI copy is machine-translated (not natively reviewed).
 - Local reminders with expo-notifications (one per item, iOS 64 cap, snooze)
 - Share cards: line-art, 9:16 and 4:5; one free style, more Pro. System share sheet only
 - Add to Calendar: write-only next-due all-day event, 9:00 alert, no recurrence
