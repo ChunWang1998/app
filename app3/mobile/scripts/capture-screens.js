@@ -34,6 +34,12 @@ async function shot(page, name, url) {
   await shot(page, 'v11-list-zh', '/?demo=1&screen=Home&lang=zh-Hant&mode=light');
   await shot(page, 'v11-list-ja', '/?demo=1&screen=Home&lang=ja&mode=light');
   await shot(page, 'v11-list-en', '/?demo=1&screen=Home&lang=en&mode=light');
+  await shot(page, 'home-de', '/?demo=1&screen=Home&lang=de&mode=light');
+  await shot(page, 'home-fr', '/?demo=1&screen=Home&lang=fr&mode=light');
+  await shot(page, 'paywall-de', '/?demo=1&screen=Paywall&lang=de&mode=light');
+  await shot(page, 'paywall-fr', '/?demo=1&screen=Paywall&lang=fr&mode=light');
+  await shot(page, 'add-de', '/?demo=1&screen=EditNew&lang=de&mode=light');
+  await shot(page, 'add-fr', '/?demo=1&screen=EditNew&lang=fr&mode=light');
   await shot(page, 'v11-edit-zh', '/?demo=1&screen=Edit&lang=zh-Hant&mode=light');
   await shot(page, 'v11-detail-zh', '/?demo=1&screen=Detail&lang=zh-Hant&mode=light');
   await shot(page, 'v11-settings-zh', '/?demo=1&screen=Settings&lang=zh-Hant&mode=light');

@@ -2,15 +2,19 @@ import * as Localization from 'expo-localization';
 import en from '../../languages/en.json';
 import zhHant from '../../languages/zh-Hant.json';
 import ja from '../../languages/ja.json';
+import de from '../../languages/de.json';
+import fr from '../../languages/fr.json';
 
 let current = 'en';
-const bundles = { en, 'zh-Hant': zhHant, ja };
+const bundles = { en, 'zh-Hant': zhHant, ja, de, fr };
 
 export function resolveTag(tag) {
   const loc = String(tag || '').trim().toLowerCase().replace(/_/g, '-');
   if (!loc) return null;
   if (loc === 'ja' || loc.startsWith('ja-')) return 'ja';
   if (loc === 'zh' || loc.startsWith('zh-')) return 'zh-Hant';
+  if (loc === 'de' || loc.startsWith('de-')) return 'de';
+  if (loc === 'fr' || loc.startsWith('fr-')) return 'fr';
   if (loc === 'en' || loc.startsWith('en-')) return 'en';
   return null;
 }

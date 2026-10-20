@@ -16,7 +16,9 @@
         "CFBundleLocalizations": [
           "en",
           "zh-Hant",
-          "ja"
+          "ja",
+          "de",
+          "fr"
         ],
         "CFBundleAllowMixedLocalizations": true,
         "ITSAppUsesNonExemptEncryption": false,
@@ -52,14 +54,20 @@
             "ios": [
               "en",
               "zh-Hant",
-              "ja"
+              "ja",
+              "de",
+              "fr"
             ],
             "android": [
               "en",
               "zh-Hant",
               "zh-TW",
               "zh-HK",
-              "ja"
+              "ja",
+              "de",
+              "de-DE",
+              "fr",
+              "fr-FR"
             ]
           }
         }
@@ -92,7 +100,11 @@
       "zh-Hant": "./languages/ios/zh-Hant.json",
       "zh-TW": "./languages/ios/zh-Hant.json",
       "zh-HK": "./languages/ios/zh-Hant.json",
-      "ja": "./languages/ios/ja.json"
+      "ja": "./languages/ios/ja.json",
+      "de": "./languages/ios/de.json",
+      "de-DE": "./languages/ios/de.json",
+      "fr": "./languages/ios/fr.json",
+      "fr-FR": "./languages/ios/fr.json"
     },
     "extra": {
       "eas": {

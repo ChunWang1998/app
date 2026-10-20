@@ -82,11 +82,26 @@ export function formatDateShort(ts) {
 
 const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+function intlTag(tag) {
+  if (tag === 'de') return 'de-DE';
+  if (tag === 'fr') return 'fr-FR';
+  if (tag === 'zh-Hant') return 'zh-Hant';
+  if (tag === 'ja') return 'ja-JP';
+  return 'en';
+}
+
 export function formatLastDoneDate(ts, locale) {
   if (!ts) return '';
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return '';
   const tag = resolveLocale(locale || getLocale());
+  if (tag === 'de' || tag === 'fr') {
+    try {
+      return new Intl.DateTimeFormat(intlTag(tag), { month: 'short', day: 'numeric' }).format(d);
+    } catch {
+      return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}`;
+    }
+  }
   if (tag === 'en') return `${MONTHS_EN[d.getMonth()]} ${d.getDate()}`;
   return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}`;
 }
@@ -112,6 +127,14 @@ export function formatLastDoneRelative(ts, now = Date.now(), locale) {
   const loc = locale || getLocale();
   if (days <= 0) return tLocale(loc, 'common.today');
   if (days === 1) return tLocale(loc, 'common.yesterday');
+  const tag = resolveLocale(loc);
+  if (tag === 'de' || tag === 'fr') {
+    try {
+      return new Intl.RelativeTimeFormat(tag, { numeric: 'always' }).format(-days, 'day');
+    } catch {
+      return tLocale(loc, 'common.daysAgo', { n: days });
+    }
+  }
   return tLocale(loc, 'common.daysAgo', { n: days });
 }
 

@@ -193,6 +193,6 @@ const styles = StyleSheet.create({
   once: { textAlign: 'center', fontSize: 13, marginTop: 2, fontFamily: 'BeenAgesRounded-Regular' },
   cta: { marginTop: 18, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   ctaText: { fontSize: 18, fontFamily: 'BeenAgesRounded-SemiBold' },
-  links: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 20, paddingVertical: 16 },
+  links: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 20, paddingVertical: 16 },
   linkBtn: { paddingVertical: 4, paddingHorizontal: 4 },
 });

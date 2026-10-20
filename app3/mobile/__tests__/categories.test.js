@@ -12,6 +12,8 @@ import { chipList } from '../src/components/CategoryChips';
 import en from '../languages/en.json';
 import zh from '../languages/zh-Hant.json';
 import ja from '../languages/ja.json';
+import de from '../languages/de.json';
+import fr from '../languages/fr.json';
 
 const read = (rel) => fs.readFileSync(path.join(__dirname, rel), 'utf8');
 const ts = '2026-10-01T00:00:00.000Z';
@@ -36,7 +38,7 @@ describe('default categories', () => {
     expect(kw.appl).toContain('濾水器');
     expect(cats.find((c) => c.id === 'appl').icon).toBe('plug');
     for (const id of cats.map((c) => c.id)) {
-      for (const loc of ['en', 'zh-Hant', 'ja']) {
+      for (const loc of ['en', 'zh-Hant', 'ja', 'de', 'fr']) {
         expect(DEFAULT_KEYWORDS[id][loc].length).toBeGreaterThan(0);
       }
     }
@@ -299,6 +301,10 @@ describe('keyword locale filter', () => {
     );
     expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'zh-Hant' })).not.toContain('take out trash');
     expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'ja' })).toContain('ゴミ出し');
+    expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'de' })).toContain('Müll');
+    expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'de' })).not.toContain('take out trash');
+    expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'fr' })).toContain('draps');
+    expect(keywordsForLocale(clean.keywords, { key: 'clean', locale: 'fr' })).not.toContain('倒垃圾');
     expect(matchCategory('倒垃圾', cats)).toBe('clean');
     expect(matchCategory('take out trash', cats)).toBe('clean');
     expect(matchCategory('ゴミ出し', cats)).toBe('clean');
@@ -337,8 +343,8 @@ describe('icons', () => {
 });
 
 describe('strings', () => {
-  it('category keys exist in en / zh-Hant / ja', () => {
-    for (const l of [en, zh, ja]) {
+  it('category keys exist in en / zh-Hant / ja / de / fr', () => {
+    for (const l of [en, zh, ja, de, fr]) {
       for (const k of ['title', 'all', 'other', 'newCategory', 'name', 'keywords', 'addKeyword', 'deleteMoved', 'limit', 'duplicate', 'auto']) expect(l.category[k]).toBeTruthy();
       for (const k of ['clean', 'care', 'pet', 'plant', 'car', 'health', 'appl']) expect(l.category.defaults[k]).toBeTruthy();
     }

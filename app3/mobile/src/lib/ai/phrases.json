@@ -1,5 +1,5 @@
 {
-  "foldStrip": ["了", "？", "！", "。", "．", "、", "，"],
+  "foldStrip": ["了", "？", "！", "。", "．", "、", "，", "«", "»"],
   "nameNoise": ["change", "changed", "wash", "washed", "replace", "replaced", "water", "watered", "get", "take", "took", "換", "洗", "做", "剪", "交換"],
   "queryWeek": {
     "en": [
@@ -33,6 +33,24 @@
       "今週は何",
       "今週やることは",
       "今週のやること"
+    ],
+    "de": [
+      "was steht diese woche",
+      "diese woche (zu tun|anstehen|fällig)",
+      "was (soll|muss) ich diese woche",
+      "was ist diese woche fällig",
+      "was diese woche",
+      "plan (für )?diese woche",
+      "fällige? diese woche"
+    ],
+    "fr": [
+      "quoi cette semaine",
+      "qu['’]est-ce qu['’]il y a cette semaine",
+      "cette semaine (à faire|à prévoir)",
+      "quoi faire cette semaine",
+      "échéances? (de )?cette semaine",
+      "prévoir cette semaine",
+      "à faire cette semaine"
     ]
   },
   "querySince": {
@@ -55,6 +73,21 @@
       { "re": "^(.+?)はどのくらい", "name": 1 },
       { "re": "^最後に(.+?)した", "name": 1 },
       { "re": "^(.+?)してどれくらい", "name": 1 }
+    ],
+    "de": [
+      { "re": "^wie lange (?:ist es )?her(?:[,.]?\\s+(?:dass ich )?(?:die |das |den |der )?)(.+?)\\??$", "name": 1 },
+      { "re": "^wie lange her[,.]?\\s*(?:die |das |den |der )?(.+?)\\??$", "name": 1 },
+      { "re": "^wann habe ich zuletzt (?:die |das |den |der )?(.+?)\\??$", "name": 1 },
+      { "re": "^seit wann (?:habe ich )?(?:die |das |den |der )?(.+?)\\??$", "name": 1 },
+      { "re": "^wie viele tage (?:ist es )?her(?:[,.]?\\s+(?:dass ich )?(?:die |das |den |der )?)?(.+?)\\??$", "name": 1 },
+      { "re": "^wie lange seit (?:die |das |den |der )?(.+?)\\??$", "name": 1 }
+    ],
+    "fr": [
+      { "re": "^ça fait combien(?: de temps)?(?: que )?(?:j['’]ai |je )?(?:fait )?(.+?)\\??$", "name": 1 },
+      { "re": "^il y a combien de temps(?: que )?(?:j['’]ai |je )?(?:fait )?(.+?)\\??$", "name": 1 },
+      { "re": "^depuis quand(?: (?:j['’]ai |je ))?(.+?)\\??$", "name": 1 },
+      { "re": "^quand (?:est-ce que )?j['’]ai (?:fait )?(.+?)(?: pour la dernière fois)?\\??$", "name": 1 },
+      { "re": "^combien de (?:temps|jours) depuis(?: que )?(?:j['’]ai )?(.+?)\\??$", "name": 1 }
     ]
   },
   "logPrefixes": {
@@ -89,17 +122,46 @@
       "さっき",
       "したばかり",
       "今"
+    ],
+    "de": [
+      "ich habe gerade eben",
+      "ich hab gerade eben",
+      "ich habe gerade",
+      "ich hab gerade",
+      "habe gerade",
+      "hab gerade",
+      "gerade eben",
+      "gerade gemacht",
+      "soeben",
+      "gerade ",
+      "eben "
+    ],
+    "fr": [
+      "je viens juste de ",
+      "je viens juste d'",
+      "je viens juste d’",
+      "je viens de ",
+      "je viens d'",
+      "je viens d’",
+      "viens juste de ",
+      "viens de ",
+      "viens d'",
+      "viens d’"
     ]
   },
   "logSuffixes": {
     "en": [],
     "zh-Hant": [],
-    "ja": ["した$", "やった$"]
+    "ja": ["した$", "やった$"],
+    "de": [" gemacht$"],
+    "fr": []
   },
   "createPrefixes": {
     "en": ["add a new", "add new", "please add", "add ", "track ", "remember to ", "remind me to "],
     "zh-Hant": ["幫我記一下", "記一下", "新增", "幫我記", "記下"],
-    "ja": ["追加して", "追加", "覚えて", "記録して"]
+    "ja": ["追加して", "追加", "覚えて", "記録して"],
+    "de": ["füge hinzu ", "hinzufügen ", "merke dir ", "erinnere mich an ", "erinnere mich ", "neuen "],
+    "fr": ["ajoute un nouvel", "ajoute un ", "ajoute une ", "ajouter ", "ajoute ", "pense à ", "rappelle-moi de ", "rappelle-moi "]
   },
   "lastDone": {
     "en": [
@@ -140,6 +202,29 @@
       { "re": "1ヶ月前", "days": 30 },
       { "re": "(\\d+)\\s*日前", "daysFrom": 1 },
       { "re": "覚えてない|わからない", "days": null }
+    ],
+    "de": [
+      { "re": "letztes mal(?: war)? gestern", "days": 1 },
+      { "re": "\\bgestern\\b", "days": 1 },
+      { "re": "\\bheute\\b", "days": 0 },
+      { "re": "letzte nacht", "days": 1 },
+      { "re": "vor einer woche", "days": 7 },
+      { "re": "letzte woche", "days": 7 },
+      { "re": "vor einem monat", "days": 30 },
+      { "re": "letzten monat", "days": 30 },
+      { "re": "vor\\s+(\\d+)\\s*tagen", "daysFrom": 1 },
+      { "re": "weiß nicht|weiss nicht|unsicher|keine ahnung", "days": null }
+    ],
+    "fr": [
+      { "re": "dernière fois(?: (?:c['’]était|était))? hier", "days": 1 },
+      { "re": "\\bhier\\b", "days": 1 },
+      { "re": "aujourd['’]hui", "days": 0 },
+      { "re": "il y a une semaine", "days": 7 },
+      { "re": "la semaine dernière", "days": 7 },
+      { "re": "il y a un mois", "days": 30 },
+      { "re": "le mois dernier", "days": 30 },
+      { "re": "il y a\\s+(\\d+)\\s*jours?", "daysFrom": 1 },
+      { "re": "je ne sais pas|pas sûr|pas sur|inconnu", "days": null }
     ]
   },
   "lastDoneStrip": {
@@ -176,6 +261,27 @@
       "1か月前",
       "1ヶ月前",
       "\\d+\\s*日前"
+    ],
+    "de": [
+      ",?\\s*letztes mal(?: war)?[^,]*",
+      ",?\\s*zuletzt(?: war)?[^,]*",
+      "\\bgestern\\b",
+      "\\bheute\\b",
+      "vor einer woche",
+      "letzte woche",
+      "vor einem monat",
+      "letzten monat",
+      "vor\\s+\\d+\\s*tagen"
+    ],
+    "fr": [
+      ",?\\s*dernière fois(?: (?:c['’]était|était))?[^,]*",
+      "aujourd['’]hui",
+      "\\bhier\\b",
+      "il y a une semaine",
+      "la semaine dernière",
+      "il y a un mois",
+      "le mois dernier",
+      "il y a\\s+\\d+\\s*jours?"
     ]
   },
   "reminderWord": {
@@ -236,6 +342,51 @@
       { "re": "(\\d+)\\s*週間ごと", "n": 1, "mult": 7 },
       { "re": "(\\d+)\\s*か?月ごと", "n": 1, "mult": 30 },
       { "re": "(\\d+)\\s*年ごと", "n": 1, "mult": 365 }
+    ],
+    "de": [
+      { "re": "alle\\s+zwei\\s+wochen", "days": 14 },
+      { "re": "alle\\s+2\\s+wochen", "days": 14 },
+      { "re": "zweiwöchentlich", "days": 14 },
+      { "re": "alle\\s+zwei\\s+tage", "days": 2 },
+      { "re": "alle\\s+drei\\s+monate", "days": 90 },
+      { "re": "alle\\s+3\\s+monate", "days": 90 },
+      { "re": "vierteljährlich", "days": 90 },
+      { "re": "\\btäglich\\b", "days": 1 },
+      { "re": "\\bwöchentlich\\b", "days": 7 },
+      { "re": "\\bmonatlich\\b", "days": 30 },
+      { "re": "\\bjährlich\\b", "days": 365 },
+      { "re": "alle\\s+(\\d+)\\s+tage", "n": 1, "mult": 1 },
+      { "re": "alle\\s+(\\d+)\\s+wochen", "n": 1, "mult": 7 },
+      { "re": "alle\\s+(\\d+)\\s+monate", "n": 1, "mult": 30 },
+      { "re": "alle\\s+(\\d+)\\s+jahre", "n": 1, "mult": 365 },
+      { "re": "jeden\\s+tag", "days": 1 },
+      { "re": "jede\\s+woche", "days": 7 },
+      { "re": "jeden\\s+monat", "days": 30 },
+      { "re": "jedes\\s+jahr", "days": 365 }
+    ],
+    "fr": [
+      { "re": "toutes les deux semaines", "days": 14 },
+      { "re": "toutes les 2 semaines", "days": 14 },
+      { "re": "toutes les 2 sem\\.?", "days": 14 },
+      { "re": "bihebdomadaire", "days": 14 },
+      { "re": "tous les deux jours", "days": 2 },
+      { "re": "tous les trois mois", "days": 90 },
+      { "re": "tous les 3 mois", "days": 90 },
+      { "re": "trimestriel(?:le)?", "days": 90 },
+      { "re": "\\bquotidien(?:ne)?ment\\b", "days": 1 },
+      { "re": "\\bquotidien(?:ne)?\\b", "days": 1 },
+      { "re": "\\bhebdomadaire\\b", "days": 7 },
+      { "re": "\\bmensuel(?:le)?\\b", "days": 30 },
+      { "re": "\\bannuel(?:le)?\\b", "days": 365 },
+      { "re": "tous les\\s+(\\d+)\\s+jours", "n": 1, "mult": 1 },
+      { "re": "toutes les\\s+(\\d+)\\s+semaines", "n": 1, "mult": 7 },
+      { "re": "toutes les\\s+(\\d+)\\s+sem\\.?", "n": 1, "mult": 7 },
+      { "re": "tous les\\s+(\\d+)\\s+mois", "n": 1, "mult": 30 },
+      { "re": "tous les\\s+(\\d+)\\s+ans", "n": 1, "mult": 365 },
+      { "re": "chaque jour", "days": 1 },
+      { "re": "chaque semaine", "days": 7 },
+      { "re": "chaque mois", "days": 30 },
+      { "re": "chaque année", "days": 365 }
     ]
   },
   "reminderStrip": {
@@ -281,6 +432,37 @@
       "毎週",
       "毎月",
       "毎年"
+    ],
+    "de": [
+      ",?\\s*alle\\s+zwei\\s+wochen",
+      ",?\\s*alle\\s+\\d+\\s+(?:tage|wochen|monate|jahre)",
+      "zweiwöchentlich",
+      "vierteljährlich",
+      "\\btäglich\\b",
+      "\\bwöchentlich\\b",
+      "\\bmonatlich\\b",
+      "\\bjährlich\\b",
+      "jeden\\s+tag",
+      "jede\\s+woche",
+      "jeden\\s+monat",
+      "jedes\\s+jahr"
+    ],
+    "fr": [
+      ",?\\s*toutes les deux semaines",
+      ",?\\s*toutes les\\s+\\d+\\s+semaines",
+      ",?\\s*toutes les\\s+\\d+\\s+sem\\.?",
+      ",?\\s*tous les\\s+\\d+\\s+(?:jours|mois|ans)",
+      "bihebdomadaire",
+      "trimestriel(?:le)?",
+      "\\bquotidien(?:ne)?ment\\b",
+      "\\bquotidien(?:ne)?\\b",
+      "\\bhebdomadaire\\b",
+      "\\bmensuel(?:le)?\\b",
+      "\\bannuel(?:le)?\\b",
+      "chaque jour",
+      "chaque semaine",
+      "chaque mois",
+      "chaque année"
     ]
   }
 }

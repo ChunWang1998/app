@@ -35,6 +35,23 @@ describe('on-device-only speech', () => {
       lang: 'zh-TW',
       requiresOnDeviceRecognition: true,
     });
+    startSpeech({ locale: 'de' });
+    expect(ExpoSpeechRecognitionModule.start.mock.calls[3][0]).toMatchObject({
+      lang: 'de-DE',
+      requiresOnDeviceRecognition: true,
+    });
+    startSpeech({ locale: 'fr-FR' });
+    expect(ExpoSpeechRecognitionModule.start.mock.calls[4][0]).toMatchObject({
+      lang: 'fr-FR',
+      requiresOnDeviceRecognition: true,
+    });
+  });
+
+  it('maps de to de-DE and fr to fr-FR', () => {
+    expect(speechLocale('de')).toBe('de-DE');
+    expect(speechLocale('de-AT')).toBe('de-DE');
+    expect(speechLocale('fr')).toBe('fr-FR');
+    expect(speechLocale('fr-CA')).toBe('fr-FR');
   });
 });
 

@@ -3,6 +3,8 @@ import path from 'path';
 import en from '../languages/en.json';
 import zh from '../languages/zh-Hant.json';
 import ja from '../languages/ja.json';
+import de from '../languages/de.json';
+import fr from '../languages/fr.json';
 import { TOAST_MS } from '../src/components/UndoToast';
 import { doneToday } from '../src/lib/today';
 
@@ -19,6 +21,12 @@ describe('1.1.1 device-test follow-ups', () => {
     expect(en.home.logged).toBe('Logged today');
     expect(zh.home.logged).toBe('已記下今天');
     expect(ja.home.logged).toBe('今日記録済み');
+    expect(de.common.yesterday).toBe('Gestern');
+    expect(fr.common.yesterday).toBe('Hier');
+    expect(de.reminder.daily).toBe('Täglich');
+    expect(fr.reminder.daily).toBe('Tous les jours');
+    expect(de.home.logged).toBe('Heute gemerkt');
+    expect(fr.home.logged).toBe('Noté aujourd’hui');
   });
 
   it('uses one 2s fade toast for home delete/log and detail log', () => {

@@ -74,13 +74,19 @@ describe('last-done copy', () => {
     expect(formatLastDoneLine(ts, now, 'en')).toBe('3 days ago · Last done Oct 11');
     expect(formatLastDoneLine(ts, now, 'zh-Hant')).toBe('3 天前 · 上次做是 10/11');
     expect(formatLastDoneLine(ts, now, 'ja')).toBe('3日前 · 前回 10/11');
+    expect(formatLastDoneRelative(ts, now, 'de')).toBe('vor 3 Tagen');
+    expect(formatLastDoneRelative(ts, now, 'fr')).toBe('il y a 3 jours');
+    const deDate = new Intl.DateTimeFormat('de-DE', { month: 'short', day: 'numeric' }).format(new Date(2026, 9, 11));
+    const frDate = new Intl.DateTimeFormat('fr-FR', { month: 'short', day: 'numeric' }).format(new Date(2026, 9, 11));
+    expect(formatLastDoneDate(ts, 'de')).toBe(deDate);
+    expect(formatLastDoneDate(ts, 'fr')).toBe(frDate);
   });
 
   it('counts calendar days across local midnight, not 24h blocks', () => {
     const { tLocale } = require('../src/i18n');
     const ts = new Date(2026, 9, 13, 23, 0, 0).toISOString();
     const now = new Date(2026, 9, 14, 9, 0, 0).getTime();
-    for (const loc of ['en', 'zh-Hant', 'ja']) {
+    for (const loc of ['en', 'zh-Hant', 'ja', 'de', 'fr']) {
       expect(formatLastDoneRelative(ts, now, loc)).toBe(tLocale(loc, 'common.yesterday'));
       expect(formatLastDoneRelative(ts, now, loc)).not.toBe(tLocale(loc, 'common.today'));
     }

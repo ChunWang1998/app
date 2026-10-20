@@ -9,6 +9,8 @@ import * as ent from '../src/lib/entitlements';
 import en from '../languages/en.json';
 import zh from '../languages/zh-Hant.json';
 import ja from '../languages/ja.json';
+import de from '../languages/de.json';
+import fr from '../languages/fr.json';
 
 const read = (rel) => fs.readFileSync(path.join(__dirname, rel), 'utf8');
 const DAY = 864e5;
@@ -42,6 +44,8 @@ describe('reminder suggestion from name', () => {
     expect(suggestReminderDays('換牙刷')).toBe(90);
     expect(suggestReminderDays('toothbrush')).toBe(90);
     expect(suggestReminderDays('歯ブラシ')).toBe(90);
+    expect(suggestReminderDays('Zahnbürste')).toBe(90);
+    expect(suggestReminderDays('brosse à dents')).toBe(90);
     expect(suggestReminderDays('洗床單')).toBe(14);
     expect(suggestReminderDays('bed sheets')).toBe(14);
     expect(suggestReminderDays('剪頭髮')).toBe(42);
@@ -94,7 +98,7 @@ describe('free limit and paywall', () => {
     expect(parseFreeLimit(' 12 ')).toBe(12);
   });
   it('paywall headline uses the limit in all languages', () => {
-    for (const l of [en, zh, ja]) expect(l.paywall.headline).toMatch(/\{n\}/);
+    for (const l of [en, zh, ja, de, fr]) expect(l.paywall.headline).toMatch(/\{n\}/);
     expect(read('../src/screens/PaywallScreen.js')).toMatch(/paywall\.headline', \{ n: FREE_ACTIVITY_LIMIT \}/);
   });
   it('paywall lists unlimited logs per item in all languages', () => {
@@ -103,7 +107,7 @@ describe('free limit and paywall', () => {
     expect(zh.paywall.history).toBe('每項紀錄無上限');
     expect(ja.paywall.history).toBe('項目ごとの記録は無制限');
     expect(ja.paywall.historySub).toBe('無料は1項目{n}件まで');
-    for (const l of [en, zh, ja]) expect(l.paywall.historySub).toMatch(/\{n\}/);
+    for (const l of [en, zh, ja, de, fr]) expect(l.paywall.historySub).toMatch(/\{n\}/);
     expect(read('../src/screens/PaywallScreen.js')).toMatch(/paywall\.history/);
     expect(read('../src/screens/PaywallScreen.js')).toMatch(/FREE_HISTORY_LIMIT/);
     expect(en.paywall.historyHeadline).toBe('Log more than {n} times');
@@ -143,7 +147,7 @@ describe('today section', () => {
 
 describe('strings', () => {
   it('new keys exist in en / zh-Hant / ja', () => {
-    for (const l of [en, zh, ja]) {
+    for (const l of [en, zh, ja, de, fr]) {
       for (const k of ['weekAgo', 'monthAgo', 'unknown']) expect(l.date[k]).toBeTruthy();
       expect(l.home.dueToday).toBeTruthy();
     }

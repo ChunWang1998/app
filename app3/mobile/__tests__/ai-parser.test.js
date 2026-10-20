@@ -160,6 +160,124 @@ describe('rule parser ja', () => {
   });
 });
 
+describe('rule parser de', () => {
+  const creates = [
+    'Filter alle 2 Wochen wechseln, letztes Mal gestern',
+    'Müll rausbringen jede Woche',
+    'Autowäsche monatlich, letztes Mal vor einer Woche',
+    'Zahnbürste alle 3 Monate',
+    'Pflanzen alle 3 Tage gießen',
+    'täglich Vitamin',
+    'füge hinzu Bettwäsche alle 2 Wochen',
+  ];
+  it.each(creates)('creates from %# %s', (text) => {
+    const r = parse(text, 'de');
+    expect(r.type).toBe('create');
+    expect(r.name.length).toBeGreaterThan(0);
+  });
+
+  it('parses filter create with last-done and reminder', () => {
+    const r = parse('Filter alle 2 Wochen wechseln, letztes Mal gestern', 'de');
+    expect(r.name.toLowerCase()).toMatch(/filter/);
+    expect(r.reminderDays).toBe(14);
+    expect(r.lastDoneDaysAgo).toBe(1);
+  });
+
+  const since = [
+    'Wie lange her, dass ich die Bettwäsche gewaschen habe?',
+    'Wie lange ist es her, dass ich die Bettwäsche gewaschen habe?',
+    'Wann habe ich zuletzt die Bettwäsche gewaschen?',
+    'Seit wann habe ich die Bettwäsche nicht mehr gewaschen?',
+    'Wie lange her, Bettwäsche?',
+  ];
+  it.each(since)('query since %# %s', (text) => {
+    const r = parse(text, 'de');
+    expect(r.type).toBe('query_since');
+    expect(r.name.toLowerCase()).toMatch(/bettwäsche|bettwasche/);
+  });
+
+  const weeks = [
+    'Was steht diese Woche an?',
+    'Was soll ich diese Woche tun?',
+    'Was ist diese Woche fällig?',
+    'Plan für diese Woche',
+  ];
+  it.each(weeks)('query week %# %s', (text) => {
+    expect(parse(text, 'de').type).toBe('query_week');
+  });
+
+  const logs = [
+    'Gerade das Auto gewaschen',
+    'Ich habe gerade die Pflanzen gegossen',
+    'Eben den Müll rausgebracht',
+    'Soeben abgespült',
+  ];
+  it.each(logs)('log %# %s', (text) => {
+    const r = parse(text, 'de');
+    expect(r.type).toBe('log');
+    expect(r.name.length).toBeGreaterThan(0);
+  });
+});
+
+describe('rule parser fr', () => {
+  const creates = [
+    'Changer le filtre toutes les 2 semaines, dernière fois hier',
+    'Sortir les poubelles chaque semaine',
+    'Lavage auto mensuel, dernière fois il y a une semaine',
+    'Brosse à dents tous les 3 mois',
+    'Arroser les plantes tous les 3 jours',
+    'vitamine quotidienne',
+    'ajoute laver les draps toutes les 2 semaines',
+  ];
+  it.each(creates)('creates from %# %s', (text) => {
+    const r = parse(text, 'fr');
+    expect(r.type).toBe('create');
+    expect(r.name.length).toBeGreaterThan(0);
+  });
+
+  it('parses filter create with last-done and reminder', () => {
+    const r = parse('Changer le filtre toutes les 2 semaines, dernière fois hier', 'fr');
+    expect(r.name.toLowerCase()).toMatch(/filtre/);
+    expect(r.reminderDays).toBe(14);
+    expect(r.lastDoneDaysAgo).toBe(1);
+  });
+
+  const since = [
+    "Ça fait combien que j'ai lavé les draps ?",
+    'Ça fait combien de temps que j’ai lavé les draps ?',
+    "Quand j'ai lavé les draps pour la dernière fois ?",
+    'Depuis quand les draps ?',
+    "Combien de jours depuis que j'ai lavé les draps ?",
+  ];
+  it.each(since)('query since %# %s', (text) => {
+    const r = parse(text, 'fr');
+    expect(r.type).toBe('query_since');
+    expect(r.name.toLowerCase()).toMatch(/drap/);
+  });
+
+  const weeks = [
+    'Quoi cette semaine ?',
+    "Qu'est-ce qu'il y a cette semaine",
+    'Quoi faire cette semaine',
+    'Prévoir cette semaine',
+  ];
+  it.each(weeks)('query week %# %s', (text) => {
+    expect(parse(text, 'fr').type).toBe('query_week');
+  });
+
+  const logs = [
+    'Je viens de laver la voiture',
+    "Je viens d'arroser les plantes",
+    'Viens de faire la vaisselle',
+    'Je viens juste de sortir les poubelles',
+  ];
+  it.each(logs)('log %# %s', (text) => {
+    const r = parse(text, 'fr');
+    expect(r.type).toBe('log');
+    expect(r.name.length).toBeGreaterThan(0);
+  });
+});
+
 describe('fuzzy match', () => {
   const items = [
     { id: '1', title: '洗床單' },

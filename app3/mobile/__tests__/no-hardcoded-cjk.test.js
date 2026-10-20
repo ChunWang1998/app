@@ -166,14 +166,39 @@ describe('i18n: no hardcoded CJK in app source', () => {
     expect(hits).toEqual([]);
   });
 
-  it('keeps en, zh-Hant, and ja keys in sync', () => {
+  it('keeps en, zh-Hant, ja, de, and fr keys in sync', () => {
     const en = require('../languages/en.json');
     const zh = require('../languages/zh-Hant.json');
     const ja = require('../languages/ja.json');
+    const de = require('../languages/de.json');
+    const fr = require('../languages/fr.json');
     expect(ja._meta?.status).toBe('machine-draft');
+    expect(de._meta?.status).toBe('machine-draft');
+    expect(fr._meta?.status).toBe('machine-draft');
     const enKeys = keyPaths(en).sort();
     expect(keyPaths(zh).sort()).toEqual(enKeys);
     expect(keyPaths(ja).sort()).toEqual(enKeys);
+    expect(keyPaths(de).sort()).toEqual(enKeys);
+    expect(keyPaths(fr).sort()).toEqual(enKeys);
+  });
+
+  it('marks de and fr as machine-translated and avoids unlock wording', () => {
+    const de = JSON.stringify(require('../languages/de.json'));
+    const fr = JSON.stringify(require('../languages/fr.json'));
+    const deIos = JSON.stringify(require('../languages/ios/de.json'));
+    const frIos = JSON.stringify(require('../languages/ios/fr.json'));
+    expect(de).toMatch(/machine-draft|Machine-translated/i);
+    expect(fr).toMatch(/machine-draft|Machine-translated/i);
+    for (const blob of [de, deIos]) {
+      expect(blob.toLowerCase()).not.toMatch(/freischalten|freigeschaltet|entsperren|unlock/);
+    }
+    for (const blob of [fr, frIos]) {
+      expect(blob.toLowerCase()).not.toMatch(/débloquer|débloqué|unlock/);
+    }
+    expect(require('../languages/de.json').paywall.once).toMatch(/Einmalkauf/);
+    expect(require('../languages/fr.json').paywall.once).toMatch(/Achat unique/);
+    expect(require('../languages/de.json').settings.restore).toBe('Käufe wiederherstellen');
+    expect(require('../languages/fr.json').settings.restore).toBe('Restaurer les achats');
   });
 
   it('does not embed ASC API key fields in eas.json', () => {
