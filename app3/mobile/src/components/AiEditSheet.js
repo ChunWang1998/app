@@ -44,8 +44,8 @@ export function sheetSessionKey(itemKey, item) {
 export function AiEditSheet({ visible, item, itemKey, onClose, onSave, now }) {
   const c = useThemeColors();
   const insets = useSafeAreaInsets();
-  const nowRef = useRef(now ?? Date.now());
   const initKeyRef = useRef(null);
+  const [sheetNow, setSheetNow] = useState(() => now ?? Date.now());
   const [lastAt, setLastAt] = useState(null);
   const [remDays, setRemDays] = useState(null);
 
@@ -58,7 +58,7 @@ export function AiEditSheet({ visible, item, itemKey, onClose, onSave, now }) {
     const key = sheetSessionKey(itemKey, item);
     if (!key || initKeyRef.current === key) return;
     initKeyRef.current = key;
-    nowRef.current = now ?? Date.now();
+    setSheetNow(now ?? Date.now());
     Keyboard.dismiss();
     setLastAt(item.lastDoneAt || null);
     setRemDays(sheetReminderValue(item));
@@ -108,7 +108,7 @@ export function AiEditSheet({ visible, item, itemKey, onClose, onSave, now }) {
           </View>
           <Text style={[styles.lab, { color: c.l2 }]}>{t('edit.last')}</Text>
           <View pointerEvents="auto">
-            <DateChips value={lastAt} onChange={setLastAt} now={nowRef.current} />
+            <DateChips value={lastAt} onChange={setLastAt} now={sheetNow} />
           </View>
           <Text style={[styles.lab, { color: c.l2 }]}>{t('edit.reminder')}</Text>
           <View style={styles.qc} pointerEvents="auto">
