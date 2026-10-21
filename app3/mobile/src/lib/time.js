@@ -17,13 +17,16 @@ const DAY = 864e5;
 const H = 36e5;
 const MIN = 60e3;
 
+/** Months (30-day buckets) start at 60 days so 45 days stays “45 days”, not “1 month”. */
+const MONTH_SPAN_DAYS = 60;
+
 export function formatSpan(ms, locale) {
   const u = (key) => unitLabel(key, locale);
   if (!Number.isFinite(ms) || ms < MIN) return `0\u2009${u('time.min')}`;
   const d = Math.floor(ms / DAY);
   const h = Math.floor((ms % DAY) / H);
   const m = Math.floor((ms % H) / MIN);
-  if (d >= 30) {
+  if (d >= MONTH_SPAN_DAYS) {
     const mo = Math.floor(d / 30);
     const dd = d % 30;
     return `${mo}\u2009${u('time.month')}${dd ? `\u2009${dd}\u2009${u('time.day')}` : ''}`;
@@ -41,7 +44,7 @@ export function formatSpanParts(ms, n = 2, locale) {
   const h = Math.floor((ms % DAY) / H);
   const m = Math.floor((ms % H) / MIN);
   let parts;
-  if (d >= 30) {
+  if (d >= MONTH_SPAN_DAYS) {
     const mo = Math.floor(d / 30);
     const dd = d % 30;
     parts = [{ n: mo, unit: u('time.month') }, ...(dd ? [{ n: dd, unit: u('time.day') }] : [])];
@@ -229,6 +232,22 @@ function formatCoarseDayParts(days, n = 2, locale) {
   return parts.slice(0, n);
 }
 
+/** Elapsed calendar days: count days until 60, then months + leftover days. */
+export function formatRelativeDayParts(days, n = 2, locale) {
+  const u = (key) => unitLabel(key, locale);
+  const d = Math.max(0, Math.floor(Number(days) || 0));
+  if (d < 1) return [{ n: 0, unit: u('time.day') }];
+  if (d < MONTH_SPAN_DAYS) return [{ n: d, unit: u('time.day') }].slice(0, n);
+  if (d >= 365) {
+    const y = Math.floor(d / 365);
+    const rem = d % 365;
+    return [{ n: y, unit: u('time.year') }, ...(rem ? [{ n: rem, unit: u('time.day') }] : [])].slice(0, n);
+  }
+  const mo = Math.floor(d / 30);
+  const dd = d % 30;
+  return [{ n: mo, unit: u('time.month') }, ...(dd ? [{ n: dd, unit: u('time.day') }] : [])].slice(0, n);
+}
+
 function joinSpanParts(parts) {
   return parts.map((p) => `${p.n}\u2009${p.unit}`).join('');
 }
@@ -236,7 +255,10 @@ function joinSpanParts(parts) {
 /** Elapsed span with an “ago” wrapper, e.g. 2 分鐘前 / 2 min ago / vor 2 Min. */
 export function formatElapsedAgo(ms, n = 1, locale) {
   const loc = locale || getLocale();
-  const span = joinSpanParts(formatSpanParts(ms, n, loc));
+  const parts = Number.isFinite(ms) && ms >= DAY
+    ? formatRelativeDayParts(Math.floor(ms / DAY), n, loc)
+    : formatSpanParts(ms, n, loc);
+  const span = joinSpanParts(parts);
   return tLocale(resolveLocale(loc), 'time.ago', { span });
 }
 
@@ -257,6 +279,11 @@ export function formatHomeLastDone(item, now = Date.now(), locale) {
   const ms = elapsedMs(item, now);
   if (ms == null || ms < MIN) {
     return { cap, value: tLocale(tag, 'home.justNow') };
+  }
+  const days = localCalendarDays(item.lastDoneAt, now);
+  if (days >= 1) {
+    const span = joinSpanParts(formatRelativeDayParts(days, 2, loc));
+    return { cap, value: tLocale(tag, 'time.ago', { span }) };
   }
   return { cap, value: formatElapsedAgo(ms, 1, loc) };
 }

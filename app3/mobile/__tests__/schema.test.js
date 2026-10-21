@@ -22,6 +22,10 @@ describe('reminderTime HH:MM', () => {
       expect(() => activitySchema.parse({ ...base, reminderTime })).toThrow();
     }
   });
+
+  it('omitted reminderTime stays optional so migrate can default it', () => {
+    expect(activitySchema.parse(base).reminderTime).toBeUndefined();
+  });
 });
 
 describe('snoozeDays 1–365', () => {

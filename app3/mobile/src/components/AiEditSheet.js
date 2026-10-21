@@ -108,7 +108,7 @@ export function AiEditSheet({ visible, item, itemKey, onClose, onSave, now }) {
           </View>
           <Text style={[styles.lab, { color: c.l2 }]}>{t('edit.last')}</Text>
           <View pointerEvents="auto">
-            <DateChips value={lastAt} onChange={setLastAt} />
+            <DateChips value={lastAt} onChange={setLastAt} now={nowRef.current} />
           </View>
           <Text style={[styles.lab, { color: c.l2 }]}>{t('edit.reminder')}</Text>
           <View style={styles.qc} pointerEvents="auto">
