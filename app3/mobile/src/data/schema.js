@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { sanitizeSnoozeDays } from './snooze';
+import { REMINDER_TIME_RE } from '../lib/reminderSchedule';
 
 export const YEAR_MIN = 2000;
 export const YEAR_MAX = 2100;
@@ -28,7 +29,7 @@ export const activitySchema = z.object({
   history: z.array(historyEntrySchema).max(500).optional(),
   lastDoneAt: isoDateOrNull,
   reminderDays: z.number().int().positive().max(3650).nullable(),
-  reminderTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
+  reminderTime: z.string().regex(REMINDER_TIME_RE).optional(),
   reminderMode: z.enum(['interval', 'week', 'month']).nullable().optional(),
   reminderUnit: z.enum(['d', 'w', 'm', 'y']).optional(),
   reminderN: z.number().int().positive().max(3650).optional(),

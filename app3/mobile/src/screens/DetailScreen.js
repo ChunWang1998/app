@@ -221,9 +221,11 @@ export default function DetailScreen() {
               <BellIcon color={tone.acf} size={16} />
             </View>
             <Text style={[styles.rowTitle, { color: c.label }]}>{remLabel}</Text>
-            <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', marginRight: 6 }}>
-              {formatClockFromTime(item.reminderTime || '09:00')}
-            </Text>
+            {reminderOn ? (
+              <Text style={{ color: c.l2, fontFamily: 'BeenAgesRounded-Regular', marginRight: 6 }}>
+                {formatClockFromTime(item.reminderTime || '09:00')}
+              </Text>
+            ) : null}
             <ChevronRightIcon color={c.l3} />
           </TouchableOpacity>
         </View>

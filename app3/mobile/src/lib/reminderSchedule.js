@@ -20,18 +20,48 @@ export const UNIT_MAX = { d: 365, w: 52, m: 52, y: 10 };
 export const UNIT_STORE_MAX = { d: 3650, w: 52, m: 52, y: 10 };
 export const UNIT_DEFAULT_N = { d: 14, w: 1, m: 1, y: 1 };
 
-const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+export const DEFAULT_REMINDER_TIME = '09:00';
+export const REMINDER_TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function clampClockPart(n, max, fallback) {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v)) return fallback;
+  return Math.min(max, Math.max(0, v));
+}
 
 export function parseHm(time) {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(String(time || '09:00'));
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(time ?? DEFAULT_REMINDER_TIME));
   if (!m) return { h: 9, min: 0 };
-  return { h: Math.min(23, Number(m[1])), min: Math.min(59, Number(m[2])) };
+  return { h: clampClockPart(m[1], 23, 9), min: clampClockPart(m[2], 59, 0) };
 }
 
 export function formatHm(h, min) {
-  const hh = Math.min(23, Math.max(0, Number(h) || 0));
-  const mm = Math.min(59, Math.max(0, Number(min) || 0));
-  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  return `${String(clampClockPart(h, 23, 0)).padStart(2, '0')}:${String(clampClockPart(min, 59, 0)).padStart(2, '0')}`;
+}
+
+/**
+ * Persist / migrate a stored clock time.
+ * Missing → 09:00 (legacy implicit time). Out-of-range hour/minute are clamped.
+ * Unparseable strings return null so import can reject them.
+ */
+export function sanitizeReminderTime(raw) {
+  if (raw == null || raw === '') return DEFAULT_REMINDER_TIME;
+  const s = String(raw).trim();
+  if (REMINDER_TIME_RE.test(s)) return s;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(s);
+  if (!m) return null;
+  return formatHm(m[1], m[2]);
+}
+
+/** Strict import: padded HH:MM only. Omitted field is allowed (caller defaults). */
+export function importedReminderTime(raw) {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== 'string' || !REMINDER_TIME_RE.test(raw)) {
+    const err = new Error('invalid reminderTime');
+    err.code = 'INVALID_REMINDER_TIME';
+    throw err;
+  }
+  return raw;
 }
 
 export function normalizeTime(time) {
@@ -154,7 +184,7 @@ export function defaultReminderConfig() {
     unit: UNIT_DAY,
     weekdays: [1],
     monthDay: 15,
-    time: '09:00',
+    time: DEFAULT_REMINDER_TIME,
     snoozeEnabled: true,
     snoozeDays: 3,
   };
@@ -167,7 +197,7 @@ export function defaultReminderConfig() {
 export function reminderConfigFromActivity(item) {
   const base = defaultReminderConfig();
   if (!item || typeof item !== 'object') return base;
-  const time = TIME_RE.test(item.reminderTime) ? item.reminderTime : (item.reminderTime ? normalizeTime(item.reminderTime) : '09:00');
+  const time = sanitizeReminderTime(item.reminderTime) || DEFAULT_REMINDER_TIME;
   const snoozeEnabled = item.snoozeEnabled !== false;
   const snoozeDays = sanitizeSnoozeDays(item.snoozeDays);
   const weekdays = uniqueSortedWeekdays(item.reminderWeekdays);
@@ -392,7 +422,7 @@ function nextIntervalAfter(anchor, n, unit, time, afterDate) {
  */
 export function firstDueInstant(item, cfg = reminderConfigFromActivity(item), now = Date.now()) {
   if (!cfg?.enabled) return null;
-  const time = cfg.time || '09:00';
+  const time = cfg.time || DEFAULT_REMINDER_TIME;
   const lastDone = item?.lastDoneAt ? new Date(item.lastDoneAt) : null;
   const created = item?.createdAt ? new Date(item.createdAt) : null;
   const skipDayAnchor = lastDone && Number.isFinite(lastDone.getTime()) ? lastDone : null;
@@ -438,7 +468,7 @@ export function firstDueInstant(item, cfg = reminderConfigFromActivity(item), no
 /** Next regular occurrence strictly after `afterDate`. */
 export function nextRegularAfter(item, cfg, afterDate) {
   if (!cfg?.enabled || !afterDate) return null;
-  const time = cfg.time || '09:00';
+  const time = cfg.time || DEFAULT_REMINDER_TIME;
   if (cfg.mode === MODE_WEEK) return nextWeeklyAfter(afterDate, cfg.weekdays, time);
   if (cfg.mode === MODE_MONTH) return nextMonthlyAfter(afterDate, cfg.monthDay, time);
   const anchor = lastAnchor(item);

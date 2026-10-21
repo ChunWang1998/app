@@ -26,6 +26,7 @@ import {
   formatHm,
   parseHm,
   formatNextOccurrence,
+  formatReminderLabel,
   formatWeekdayHint,
   firstDueInstant,
   intervalUnitLabel,
@@ -120,6 +121,7 @@ export default function ReminderScreen() {
   }
 
   async function toggleOn(v) {
+    if (!v) setTimeOpen(false);
     await apply({ enabled: v }, { animate: true });
   }
 
@@ -166,16 +168,16 @@ export default function ReminderScreen() {
             testID="reminder-off"
             onPress={() => toggleOn(false)}
             style={styles.rowOff}
-            accessibilityLabel={t('detail.noReminder')}
+            accessibilityLabel={cfg.enabled ? formatReminderLabel(cfg) : t('detail.noReminder')}
           >
             <Text style={{
-              color: cfg.enabled ? c.label : c.brand,
+              color: c.brand,
               fontSize: 17,
-              fontFamily: cfg.enabled ? 'BeenAgesRounded-Regular' : 'BeenAgesRounded-SemiBold',
+              fontFamily: 'BeenAgesRounded-SemiBold',
               flex: 1,
             }}
             >
-              {t('detail.noReminder')}
+              {formatReminderLabel(cfg)}
             </Text>
           </TouchableOpacity>
         </View>
@@ -239,9 +241,9 @@ export default function ReminderScreen() {
             <SettingsRow
               title={t('reminder.time')}
               onPress={() => {
+                if (!cfg.enabled) return;
                 animate();
                 setTimeOpen((v) => !v);
-                if (!cfg.enabled) pick({});
               }}
               right={(
                 <Text style={{
@@ -259,7 +261,7 @@ export default function ReminderScreen() {
                 hour={h}
                 minute={min}
                 uses24h={uses24h}
-                onChange={(nh, nm) => pick({ time: formatHm(nh, nm) })}
+                onChange={(nh, nm) => apply({ time: formatHm(nh, nm) })}
               />
             ) : null}
             <SettingsRow

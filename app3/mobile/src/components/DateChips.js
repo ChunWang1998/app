@@ -78,11 +78,11 @@ function DatePickerField({ value, onChange, now }) {
  * Quick chips + date picker (any past date, including web).
  * `allowUnknown` adds the "don't remember" chip, which sets value to null.
  */
-export function DateChips({ value, onChange, allowUnknown = true }) {
+export function DateChips({ value, onChange, allowUnknown = true, now: nowProp }) {
   const c = useThemeColors();
   const kinds = allowUnknown ? QUICK_DATES : QUICK_DATES.filter((k) => k !== 'unknown');
-  const selected = quickDateFor(value);
-  const now = new Date();
+  const now = nowProp != null ? new Date(nowProp) : new Date();
+  const selected = quickDateFor(value, now);
   const customOn = !!value && selected == null;
   return (
     <View>
@@ -93,7 +93,7 @@ export function DateChips({ value, onChange, allowUnknown = true }) {
             <TouchableOpacity
               key={k}
               testID={`date-chip-${k}`}
-              onPress={() => onChange(quickDateIso(k))}
+              onPress={() => onChange(quickDateIso(k, now))}
               style={[styles.chip, { backgroundColor: on ? c.brand : c.fill }]}
             >
               <Text style={{ color: on ? c.onbrand : c.label, fontFamily: on ? 'BeenAgesRounded-Bold' : 'BeenAgesRounded-Regular', fontSize: 14 }}>

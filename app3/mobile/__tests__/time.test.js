@@ -15,6 +15,7 @@ import {
   formatHomeCountdown,
   formatElapsedAgo,
   formatHomeLastDone,
+  formatRelativeDayParts,
 } from '../src/lib/time';
 import { tLocale } from '../src/i18n';
 import { setLocale } from '../src/i18n';
@@ -24,6 +25,7 @@ describe('time helpers', () => {
 
   it('formats spans with thin spaces', () => {
     expect(formatSpan(2 * 864e5)).toBe('2\u2009天');
+    expect(formatSpan(45 * 864e5)).toBe('45\u2009天');
     expect(formatSpan(90 * 864e5)).toBe('3\u2009個月');
     const parts = formatSpanParts(19 * 864e5 + 7 * 36e5, 2);
     expect(parts[0]).toEqual({ n: 19, unit: '天' });
@@ -206,5 +208,50 @@ describe('detail screen units follow the reminder', () => {
     const detail = require('fs').readFileSync(require('path').join(__dirname, '../src/screens/DetailScreen.js'), 'utf8');
     expect(detail).toMatch(/isDetailHeroToday/);
     expect(detail).toMatch(/common\.today/);
+  });
+});
+
+describe('relative time stays precise under 60 days', () => {
+  const DAY = 864e5;
+  const LOCALES = ['en', 'zh-Hant', 'ja', 'de', 'fr'];
+
+  it('45 days is a day count in every language, not 1 month', () => {
+    expect(formatRelativeDayParts(45, 2, 'zh-Hant')).toEqual([{ n: 45, unit: '天' }]);
+    expect(formatElapsedAgo(45 * DAY, 2, 'zh-Hant')).toBe('45\u2009天前');
+    expect(formatElapsedAgo(45 * DAY, 2, 'en')).toBe('45\u2009d ago');
+    expect(formatElapsedAgo(45 * DAY, 2, 'ja')).toBe('45\u2009日前');
+    expect(formatElapsedAgo(45 * DAY, 2, 'de')).toBe('vor 45\u2009T');
+    expect(formatElapsedAgo(45 * DAY, 2, 'fr')).toBe('il y a 45\u2009j');
+    for (const loc of LOCALES) {
+      const text = formatElapsedAgo(45 * DAY, 2, loc);
+      expect(text).toMatch(/45/);
+      expect(text).not.toMatch(/1\u2009/);
+    }
+  });
+
+  it('60+ days uses months plus leftover days', () => {
+    expect(formatRelativeDayParts(75, 2, 'zh-Hant')).toEqual([
+      { n: 2, unit: '個月' },
+      { n: 15, unit: '天' },
+    ]);
+    expect(formatElapsedAgo(75 * DAY, 2, 'zh-Hant')).toBe('2\u2009個月15\u2009天前');
+    expect(formatElapsedAgo(75 * DAY, 2, 'en')).toBe('2\u2009mo15\u2009d ago');
+    expect(formatElapsedAgo(75 * DAY, 2, 'ja')).toBe('2\u2009か月15\u2009日前');
+    expect(formatElapsedAgo(75 * DAY, 2, 'de')).toBe('vor 2\u2009Mon15\u2009T');
+    expect(formatElapsedAgo(75 * DAY, 2, 'fr')).toBe('il y a 2\u2009mo15\u2009j');
+  });
+
+  it('home last-done column uses that rule', () => {
+    const now = new Date(2026, 9, 20, 12, 0, 0).getTime();
+    const ago45 = new Date(2026, 8, 5, 12, 0, 0).toISOString();
+    const ago75 = new Date(2026, 7, 6, 12, 0, 0).toISOString();
+    const weekly45 = { reminderDays: 7, lastDoneAt: ago45 };
+    const weekly75 = { reminderDays: 7, lastDoneAt: ago75 };
+    expect(formatHomeLastDone(weekly45, now, 'zh-Hant').value).toBe('45\u2009天前');
+    expect(formatHomeLastDone(weekly45, now, 'en').value).toBe('45\u2009d ago');
+    expect(formatHomeLastDone(weekly75, now, 'zh-Hant').value).toBe('2\u2009個月15\u2009天前');
+    for (const loc of LOCALES) {
+      expect(formatHomeLastDone(weekly45, now, loc).value).toMatch(/45/);
+    }
   });
 });

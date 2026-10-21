@@ -11,6 +11,7 @@ import { CategoryPicker } from '../components/CategoryPicker';
 import { CategoryGlyph } from '../components/CategoryGlyph';
 import { OTHER_ID, OTHER_ICON, matchCategory, categoryName, iconForItem } from '../lib/categories';
 import { ReminderChips } from '../components/ReminderChips';
+import { TimePickerRow } from '../components/TimePickerRow';
 import { monogramLetter } from '../lib/suggestIcon';
 import { ICON_DEFAULT } from '../data/models';
 import { t } from '../i18n';
@@ -212,10 +213,16 @@ export default function EditScreen() {
             <ReminderChips
               value={chipValue}
               onChange={(d) => {
-                setReminderCfg(configFromChipDays(d, { ...reminderCfg, time: defaultTime }));
+                setReminderCfg(configFromChipDays(d, reminderCfg));
               }}
               onMore={openMore}
             />
+            {reminderCfg.enabled ? (
+              <TimePickerRow
+                time={reminderCfg.time}
+                onChange={(time) => setReminderCfg({ ...reminderCfg, time })}
+              />
+            ) : null}
           </View>
         </View>
 

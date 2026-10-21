@@ -678,7 +678,8 @@ describe('AiEditSheet now is stable', () => {
     const src = require('fs').readFileSync(require('path').join(__dirname, '../src/components/AiEditSheet.js'), 'utf8');
     expect(src).not.toMatch(/now\s*=\s*Date\.now\(\)/);
     expect(src).toMatch(/useRef/);
-    expect(src).toMatch(/nowRef/);
+    expect(src).toMatch(/sheetNow/);
+    expect(src).toMatch(/useState\(\(\) => now \?\? Date\.now\(\)\)/);
   });
 });
 
