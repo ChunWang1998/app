@@ -7,7 +7,7 @@ import {
   requestNotificationPermissions,
   enforceReminderBudget,
 } from '../src/notifications/reminders';
-import { resetPrefsForTests, updatePrefs } from '../src/data/prefs';
+import { resetPrefsForTests, updatePrefs, getPrefs } from '../src/data/prefs';
 import { setLocale, t } from '../src/i18n';
 
 describe('nextTriggerDate', () => {
@@ -132,16 +132,23 @@ describe('notificationTitle', () => {
     await resetPrefsForTests();
   });
 
-  it('defaults to a generic title without the item name', () => {
+  it('uses the item name when present', () => {
+    expect(notificationTitle({ title: 'Secret item' })).toBe('Secret item');
+  });
+
+  it('falls back to a generic title when the name is empty', () => {
     setLocale('zh-Hant');
-    expect(notificationTitle({ title: 'Secret item' })).toBe(genericNotificationTitle());
+    expect(notificationTitle({ title: '' })).toBe(genericNotificationTitle());
+    expect(notificationTitle({})).toBe(genericNotificationTitle());
     expect(genericNotificationTitle()).toBe(t('notify.title'));
     expect(genericNotificationTitle()).toBe('好久沒了');
   });
 
-  it('uses the item name only when the setting is on', async () => {
-    await updatePrefs({ showNameInNotifications: true });
+  it('ignores leftover showNameInNotifications prefs', async () => {
+    await updatePrefs({ showNameInNotifications: false });
+    expect(() => getPrefs()).not.toThrow();
     expect(notificationTitle({ title: 'Secret item' })).toBe('Secret item');
+    expect(notificationTitle({ title: '' })).toBe(genericNotificationTitle());
   });
 });
 
@@ -187,13 +194,13 @@ describe('permissions and scheduling', () => {
     expect(Notifications.cancelAllScheduledNotificationsAsync).toHaveBeenCalled();
   });
 
-  it('enforceReminderBudget schedules with a generic title when granted', async () => {
+  it('enforceReminderBudget schedules with the item name when granted', async () => {
     setLocale('zh-Hant');
     await enforceReminderBudget([activity]);
     expect(Notifications.requestPermissionsAsync).not.toHaveBeenCalled();
     expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledTimes(1);
     const arg = Notifications.scheduleNotificationAsync.mock.calls[0][0];
-    expect(arg.content.title).toBe(genericNotificationTitle());
+    expect(arg.content.title).toBe('Secret item');
     expect(arg.content.body).toBe(t('reminder.weekly'));
   });
 

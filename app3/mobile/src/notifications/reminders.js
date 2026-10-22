@@ -1,5 +1,4 @@
 import * as Notifications from 'expo-notifications';
-import { getPrefs } from '../data/prefs';
 import { t } from '../i18n';
 import {
   hasReminder,
@@ -25,10 +24,7 @@ export function nextTriggerDate(activity, now = Date.now()) {
 }
 
 export function notificationTitle(activity) {
-  const prefs = getPrefs();
-  if (prefs.showNameInNotifications === true && activity?.title) {
-    return activity.title;
-  }
+  if (activity?.title) return activity.title;
   return genericNotificationTitle();
 }
 

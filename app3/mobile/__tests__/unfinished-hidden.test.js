@@ -38,7 +38,12 @@ describe('v1.1 ships finished entry points only', () => {
     expect(settings).not.toMatch(/settings\.widgets/);
     expect(settings).toMatch(/settings\.display/);
     expect(settings).toMatch(/settings\.restore/);
-    expect(settings).toMatch(/settings\.notifyWithName/);
+    expect(settings).not.toMatch(/settings\.notifyWithName/);
+    expect(settings).not.toMatch(/showNameInNotifications/);
+    const prefsSrc = fs.readFileSync(path.join(__dirname, '../src/data/prefs.js'), 'utf8');
+    const themeSrc = fs.readFileSync(path.join(__dirname, '../src/theme/ThemeContext.js'), 'utf8');
+    expect(prefsSrc).not.toMatch(/showNameInNotifications/);
+    expect(themeSrc).not.toMatch(/showNameInNotifications/);
     expect(settings).toMatch(/settings\.privacy/);
     expect(settings).not.toMatch(/settings\.export/);
     expect(settings).not.toMatch(/settings\.import/);
