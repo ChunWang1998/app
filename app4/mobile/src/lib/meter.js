@@ -6,15 +6,13 @@
  *
  * displayDb = clamp(dBFS + 100 + offset, 0, 140)
  *
- * At offset 0, 0 dBFS maps to 100 dB. Phone microphones often clip around
- * there; users can add offset in [-20, 20] after comparing with a known meter.
+ * The on-screen number is an exponential moving average of that display dB.
+ * Session max and avg use those same smoothed values (running sum / count /
+ * max — no sample history). Avg is the arithmetic mean of smoothed display
+ * dB, not an energy average. Native -160 dBFS sentinels are ignored.
  *
- * Current, max, and avg all use that same per-sample clamped display value.
- * Avg is the arithmetic mean of those display dB samples (not an energy
- * average, and not map(mean(dBFS))). Samples at the -160 dBFS silence
- * sentinel are ignored so a floor of 0 dB does not pull the average down.
- *
- * This is an estimate, not a professional or legal-grade measurement.
+ * On Stop the last smoothed value is frozen (not replaced by the last raw
+ * sample). This is an estimate, not a professional or legal-grade measurement.
  */
 
 export const OFFSET_BASE = 100;
@@ -66,44 +64,52 @@ export function smoothLevel(previous, next, alpha = DEFAULT_SMOOTH_ALPHA) {
 }
 
 export function createSession() {
-  return { samples: [] };
+  return { count: 0, sum: 0, max: null };
 }
 
-/** Keep usable dBFS only; remap to display dB at read time with the current offset. */
-export function addDbfsSample(session, dbfs) {
-  const base = session && Array.isArray(session.samples) ? session : createSession();
-  if (!isUsableMeteringSample(dbfs)) return base;
-  return { samples: base.samples.concat(dbfs) };
+/** Accumulate one smoothed display dB into O(1) running stats. */
+export function addDisplaySample(session, displayDb) {
+  const base = session && typeof session.count === 'number' ? session : createSession();
+  if (!Number.isFinite(displayDb)) return base;
+  return {
+    count: base.count + 1,
+    sum: base.sum + displayDb,
+    max: base.max == null ? displayDb : Math.max(base.max, displayDb),
+  };
 }
 
-function displaySamples(session, offset = 0) {
-  const out = [];
-  const list = session && Array.isArray(session.samples) ? session.samples : [];
-  for (let i = 0; i < list.length; i += 1) {
-    const d = mapDbfsToDisplayDb(list[i], offset);
-    if (Number.isFinite(d)) out.push(d);
-  }
-  return out;
+export function sessionDisplayStats(session) {
+  if (!session || !session.count) return { max: null, avg: null, count: 0 };
+  return {
+    max: session.max,
+    avg: session.sum / session.count,
+    count: session.count,
+  };
 }
 
 /**
- * Max / avg from the same clamped display series as the current reading.
- * avg = mean(display dB), not map(mean dBFS).
+ * One metering tick while running: smooth the mapped sample and fold it
+ * into session max/avg. Stop must not call this with a final raw sample.
  */
-export function sessionDisplayStats(session, offset = 0) {
-  const displays = displaySamples(session, offset);
-  if (!displays.length) return { max: null, avg: null, count: 0 };
-  let max = displays[0];
-  let sum = 0;
-  for (let i = 0; i < displays.length; i += 1) {
-    const d = displays[i];
-    sum += d;
-    if (d > max) max = d;
-  }
+export function tickMeter(state, dbfs, offset) {
+  const prev = state && typeof state === 'object' ? state : { smoothed: null, session: createSession() };
+  const session = prev.session || createSession();
+  const mapped = mapDbfsToDisplayDb(dbfs, offset);
+  const smoothed = smoothLevel(prev.smoothed, mapped);
   return {
-    max,
-    avg: sum / displays.length,
-    count: displays.length,
+    smoothed,
+    session:
+      Number.isFinite(mapped) && Number.isFinite(smoothed)
+        ? addDisplaySample(session, smoothed)
+        : session,
+  };
+}
+
+/** Stop: keep the last on-screen smoothed value; do not snap to last raw. */
+export function freezeMeter(state) {
+  return {
+    smoothed: state && Number.isFinite(state.smoothed) ? state.smoothed : null,
+    session: (state && state.session) || createSession(),
   };
 }
 

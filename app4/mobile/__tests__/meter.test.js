@@ -14,8 +14,10 @@ import {
   mapDbfsToDisplayDb,
   smoothLevel,
   createSession,
-  addDbfsSample,
+  addDisplaySample,
   sessionDisplayStats,
+  tickMeter,
+  freezeMeter,
   gaugeFill,
   gaugeColor,
   formatDb,
@@ -122,49 +124,87 @@ describe('smoothLevel', () => {
 
 describe('session max/avg', () => {
   it('starts empty and formats as em dash', () => {
-    expect(createSession()).toEqual({ samples: [] });
-    expect(sessionDisplayStats(createSession(), 0)).toEqual({ max: null, avg: null, count: 0 });
+    expect(createSession()).toEqual({ count: 0, sum: 0, max: null });
+    expect(sessionDisplayStats(createSession())).toEqual({ max: null, avg: null, count: 0 });
     expect(formatDb(null)).toBe('—');
   });
 
-  it('uses the same clamped display series for current, max, and avg', () => {
+  it('keeps O(1) running stats instead of a sample log', () => {
     let session = createSession();
-    session = addDbfsSample(session, -40);
-    session = addDbfsSample(session, -20);
-    session = addDbfsSample(session, -30);
-    const mapped = [-40, -20, -30].map((d) => mapDbfsToDisplayDb(d, 0));
-    const stats = sessionDisplayStats(session, 0);
-    expect(stats.count).toBe(3);
-    expect(stats.max).toBe(Math.max(...mapped));
-    expect(stats.avg).toBe(mapped.reduce((a, b) => a + b, 0) / 3);
-    expect(stats.max).toBe(80);
-    expect(stats.avg).toBe(70);
+    for (let i = 0; i < 5000; i += 1) {
+      session = addDisplaySample(session, 40 + (i % 3));
+    }
+    expect(Object.keys(session).sort()).toEqual(['count', 'max', 'sum']);
+    expect(session.count).toBe(5000);
+    expect(session.samples).toBeUndefined();
+  });
+
+  it('uses the same smoothed display series for current, max, and avg', () => {
+    let state = { smoothed: null, session: createSession() };
+    const dbfsList = [-60, -60, -60, -8];
+    const smoothedSeries = [];
+    dbfsList.forEach((dbfs) => {
+      state = tickMeter(state, dbfs, 0);
+      smoothedSeries.push(state.smoothed);
+    });
+    const rawLast = mapDbfsToDisplayDb(-8, 0);
+    expect(rawLast).toBe(92);
+    expect(state.smoothed).toBeLessThan(rawLast);
+    expect(state.smoothed).toBeCloseTo(58.2, 5);
+    const stats = sessionDisplayStats(state.session);
+    expect(stats.max).toBe(Math.max(...smoothedSeries));
+    expect(stats.max).toBeCloseTo(state.smoothed, 5);
+    expect(stats.max).toBeLessThan(rawLast);
+    expect(stats.avg).toBeCloseTo(smoothedSeries.reduce((a, b) => a + b, 0) / smoothedSeries.length, 5);
+    expect(Object.keys(state.session).sort()).toEqual(['count', 'max', 'sum']);
+  });
+
+  it('freezes the last smoothed value on stop instead of the last raw sample', () => {
+    let state = { smoothed: null, session: createSession() };
+    state = tickMeter(state, -60, 0);
+    state = tickMeter(state, -60, 0);
+    state = tickMeter(state, -13, 0);
+    const shown = state.smoothed;
+    const rawLast = mapDbfsToDisplayDb(-13, 0);
+    expect(rawLast).toBe(87);
+    expect(shown).toBeLessThan(rawLast);
+    const frozen = freezeMeter(state);
+    expect(frozen.smoothed).toBe(shown);
+    expect(frozen.smoothed).not.toBe(rawLast);
+    expect(frozen.session).toEqual(state.session);
+    const afterStopRaw = tickMeter(frozen, 0, 0);
+    expect(freezeMeter(frozen).smoothed).toBe(shown);
+    expect(afterStopRaw.smoothed).not.toBe(shown);
   });
 
   it('ignores -160 sentinels so a 0 dB floor does not pull avg down', () => {
-    const offset = -20;
-    let session = createSession();
-    session = addDbfsSample(session, -160);
-    session = addDbfsSample(session, -160);
-    session = addDbfsSample(session, -67);
-    session = addDbfsSample(session, -31);
-    expect(mapDbfsToDisplayDb(-67, offset)).toBe(13);
-    expect(mapDbfsToDisplayDb(-31, offset)).toBe(49);
-    const stats = sessionDisplayStats(session, offset);
+    let state = { smoothed: null, session: createSession() };
+    state = tickMeter(state, -160, -20);
+    state = tickMeter(state, -160, -20);
+    state = tickMeter(state, -67, -20);
+    state = tickMeter(state, -31, -20);
+    expect(mapDbfsToDisplayDb(-67, -20)).toBe(13);
+    expect(mapDbfsToDisplayDb(-31, -20)).toBe(49);
+    const stats = sessionDisplayStats(state.session);
     expect(stats.count).toBe(2);
-    expect(stats.max).toBe(49);
-    expect(stats.avg).toBe(31);
-    const meanDbfs = (-160 + -160 + -67 + -31) / 4;
-    expect(mapDbfsToDisplayDb(meanDbfs, offset)).not.toBe(stats.avg);
+    expect(stats.max).toBe(state.session.max);
+    expect(stats.max).toBeLessThanOrEqual(49);
   });
 
   it('ignores invalid samples', () => {
-    let session = addDbfsSample(createSession(), -40);
-    session = addDbfsSample(session, undefined);
-    session = addDbfsSample(session, NaN);
-    session = addDbfsSample(session, -160);
-    expect(session.samples).toEqual([-40]);
-    expect(sessionDisplayStats(session, 0).max).toBe(60);
+    let session = addDisplaySample(createSession(), 60);
+    session = addDisplaySample(session, undefined);
+    session = addDisplaySample(session, NaN);
+    expect(session.count).toBe(1);
+    expect(sessionDisplayStats(session).max).toBe(60);
+  });
+
+  it('does not re-count the frozen reading when a sentinel arrives', () => {
+    let state = tickMeter({ smoothed: null, session: createSession() }, -40, 0);
+    expect(state.session.count).toBe(1);
+    state = tickMeter(state, -160, 0);
+    expect(state.smoothed).toBe(60);
+    expect(state.session.count).toBe(1);
   });
 });
 

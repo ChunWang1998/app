@@ -2,12 +2,23 @@
  * Delete the short-lived file expo-audio writes while metering.
  *
  * Inject `deleteAsync` in tests. If a delete fails (including a missing-file
- * throw on some platforms), the URI is kept in an in-memory retry list and
- * tried again on the next stop / unmount / start cleanup. Paths are never
- * logged.
+ * throw on some platforms), the URI is kept in an in-memory retry list
+ * (cap PENDING_DISCARD_CAP, oldest dropped) and tried again on the next
+ * stop / unmount / start cleanup. Paths are never logged.
  */
 
+export const PENDING_DISCARD_CAP = 20;
+
 const pendingUris = new Set();
+
+function rememberFailed(fileUri) {
+  if (pendingUris.has(fileUri)) return;
+  while (pendingUris.size >= PENDING_DISCARD_CAP) {
+    const oldest = pendingUris.values().next().value;
+    pendingUris.delete(oldest);
+  }
+  pendingUris.add(fileUri);
+}
 
 function resolveDeleteAsync() {
   try {
@@ -29,6 +40,10 @@ export function pendingDiscardCount() {
   return pendingUris.size;
 }
 
+export function pendingDiscardUrisForTests() {
+  return Array.from(pendingUris);
+}
+
 export function resetPendingDiscardsForTests() {
   pendingUris.clear();
 }
@@ -39,7 +54,7 @@ export async function discardRecordingUri(uri, deleteAsync) {
   if (!fileUri) return false;
   const del = deleteAsync || resolveDeleteAsync();
   if (typeof del !== 'function') {
-    pendingUris.add(fileUri);
+    rememberFailed(fileUri);
     return false;
   }
   try {
@@ -47,7 +62,7 @@ export async function discardRecordingUri(uri, deleteAsync) {
     pendingUris.delete(fileUri);
     return true;
   } catch {
-    pendingUris.add(fileUri);
+    rememberFailed(fileUri);
     return false;
   }
 }

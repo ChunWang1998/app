@@ -1,8 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import {
+  PENDING_DISCARD_CAP,
   discardRecordingUri,
   pendingDiscardCount,
+  pendingDiscardUrisForTests,
   resetPendingDiscardsForTests,
   retryPendingDiscards,
   stopAndDiscardCache,
@@ -78,6 +80,21 @@ describe('pending retry', () => {
     await retryPendingDiscards(del);
     expect(del).not.toHaveBeenCalled();
   });
+
+  it('caps the retry set and drops the oldest', async () => {
+    const del = jest.fn(async () => {
+      throw new Error('busy');
+    });
+    expect(PENDING_DISCARD_CAP).toBe(20);
+    for (let i = 0; i < PENDING_DISCARD_CAP + 5; i += 1) {
+      await discardRecordingUri(`file:///tmp/rec-${i}.m4a`, del);
+    }
+    expect(pendingDiscardCount()).toBe(PENDING_DISCARD_CAP);
+    const queued = pendingDiscardUrisForTests();
+    expect(queued[0]).toBe('file:///tmp/rec-5.m4a');
+    expect(queued).not.toContain('file:///tmp/rec-0.m4a');
+    expect(queued[queued.length - 1]).toBe('file:///tmp/rec-24.m4a');
+  });
 });
 
 describe('stopAndDiscardCache', () => {
@@ -136,5 +153,9 @@ describe('useMetering cleanup call sites', () => {
     expect(src).toMatch(/const stopRecorder = useCallback\(async \(\) => \{[\s\S]*await stopAndDiscardCache\(recorder\)/);
     expect(src).toMatch(/useEffect\(\(\) => \(\) => \{[\s\S]*stopRecorder\(\)/);
     expect(src).toMatch(/requestRecordingPermissionsAsync/);
+    expect(src).toMatch(/tickMeter/);
+    expect(src).toMatch(/freezeMeter/);
+    expect(src).toMatch(/liveRef\.current = false/);
+    expect(src).toMatch(/if \(!running \|\| !liveRef\.current\) return/);
   });
 });

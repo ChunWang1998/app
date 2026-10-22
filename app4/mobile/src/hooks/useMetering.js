@@ -10,12 +10,11 @@ import {
 } from 'expo-audio';
 import { stopAndDiscardCache } from '../lib/discardRecording';
 import {
-  addDbfsSample,
   createSession,
+  freezeMeter,
   isUsableMeteringSample,
-  mapDbfsToDisplayDb,
   sessionDisplayStats,
-  smoothLevel,
+  tickMeter,
 } from '../lib/meter';
 import { shouldShowSettingsHint } from '../lib/openSettings';
 
@@ -27,6 +26,10 @@ const RECORDING_OPTIONS = {
   numberOfChannels: 1,
 };
 
+function emptyMeter() {
+  return { smoothed: null, session: createSession() };
+}
+
 export function useMetering(offset) {
   const recorder = useAudioRecorder(RECORDING_OPTIONS);
   const recorderState = useAudioRecorderState(recorder, POLL_MS);
@@ -34,12 +37,15 @@ export function useMetering(offset) {
   const [running, setRunning] = useState(false);
   const [permission, setPermission] = useState('undetermined');
   const [settingsHint, setSettingsHint] = useState(false);
-  const [dbfs, setDbfs] = useState(null);
   const [smoothed, setSmoothed] = useState(null);
   const [session, setSession] = useState(createSession);
 
   const runningRef = useRef(false);
+  const liveRef = useRef(false);
   const pausedByBackgroundRef = useRef(false);
+  const offsetRef = useRef(offset);
+  const meterRef = useRef(emptyMeter());
+  offsetRef.current = offset;
 
   useEffect(() => {
     runningRef.current = running;
@@ -68,21 +74,14 @@ export function useMetering(offset) {
   }, []);
 
   useEffect(() => {
-    if (!running) return;
+    if (!running || !liveRef.current) return;
     const sample = recorderState?.metering;
     if (!isUsableMeteringSample(sample)) return;
-    setDbfs(sample);
-    setSession((prev) => addDbfsSample(prev, sample));
+    const next = tickMeter(meterRef.current, sample, offsetRef.current);
+    meterRef.current = next;
+    setSmoothed(next.smoothed);
+    setSession(next.session);
   }, [recorderState?.metering, running]);
-
-  useEffect(() => {
-    const mapped = mapDbfsToDisplayDb(dbfs, offset);
-    if (!running) {
-      if (mapped != null) setSmoothed(mapped);
-      return;
-    }
-    setSmoothed((prev) => smoothLevel(prev, mapped));
-  }, [dbfs, offset, running]);
 
   const stopRecorder = useCallback(async () => {
     await stopAndDiscardCache(recorder);
@@ -118,8 +117,10 @@ export function useMetering(offset) {
       await recorder.prepareToRecordAsync();
       recorder.record();
       pausedByBackgroundRef.current = false;
-      setSession(createSession());
-      setDbfs(null);
+      const fresh = emptyMeter();
+      meterRef.current = fresh;
+      liveRef.current = true;
+      setSession(fresh.session);
       setSmoothed(null);
       setRunning(true);
       return true;
@@ -129,6 +130,10 @@ export function useMetering(offset) {
   }, [recorder]);
 
   const stop = useCallback(async () => {
+    liveRef.current = false;
+    meterRef.current = freezeMeter(meterRef.current);
+    setSmoothed(meterRef.current.smoothed);
+    setSession(meterRef.current.session);
     setRunning(false);
     pausedByBackgroundRef.current = false;
     await stopRecorder();
@@ -164,7 +169,7 @@ export function useMetering(offset) {
     stopRecorder().catch(() => {});
   }, [stopRecorder]);
 
-  const stats = sessionDisplayStats(session, offset);
+  const stats = sessionDisplayStats(session);
   const displayDb = Number.isFinite(smoothed) ? smoothed : null;
 
   return {
