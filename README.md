@@ -2,15 +2,15 @@
 
 此 repo 有多個獨立的 Expo app。根目錄的 `package.json`、`app.json`、`eas.json` 是空殼；版本、權限與 EAS 設定都在各 app 目錄裡。
 
-| | app1 | app2 | app3 |
-|---|---|---|---|
-| 名稱 | 諧音猜猜 | 急廁 Go | Been Ages |
-| 目錄 | `app1/game` | `app2/mobile`（正式）；`app2/web` 為舊版 demo | `app3/mobile` |
-| Bundle / package | `com.soundalike.app` | `com.toiletgo.app` | `com.beenages.app` |
-| 版本 | `1.0.0`（`ios.buildNumber` 由 EAS remote 遞增） | `1.1.5`（`ios.buildNumber` `22`，`appVersionSource: local`） | `1.0.0`（`ios.buildNumber` `1`，`appVersionSource: local`） |
-| ASC App ID | `6798265759` | `6798266716` | TBA |
-| 內購 | 無 | 非消耗型 `com.toiletgo.app.fullpack` | 非消耗型 `com.beenages.app.fullpack` |
-| 敏感權限 | 無（播放音效；麥克風已關閉） | 僅使用期間定位 | 無 |
+| | app1 | app2 | app3 | app4 |
+|---|---|---|---|---|
+| 名稱 | 諧音猜猜 | 急廁 Go | Been Ages | Decibel Meter / 分貝計 |
+| 目錄 | `app1/game` | `app2/mobile`（正式）；`app2/web` 為舊版 demo | `app3/mobile` | `app4/mobile` |
+| Bundle / package | `com.soundalike.app` | `com.toiletgo.app` | `com.beenages.app` | `com.example.decibelmeter`（placeholder） |
+| 版本 | `1.0.0`（`ios.buildNumber` 由 EAS remote 遞增） | `1.1.5`（`ios.buildNumber` `22`，`appVersionSource: local`） | `1.0.0`（`ios.buildNumber` `1`，`appVersionSource: local`） | `1.0.0`（`ios.buildNumber` `1`，`appVersionSource: local`） |
+| ASC App ID | `6798265759` | `6798266716` | TBA | placeholder（無） |
+| 內購 | 無 | 非消耗型 `com.toiletgo.app.fullpack` | 非消耗型 `com.beenages.app.fullpack` | 無 |
+| 敏感權限 | 無（播放音效；麥克風已關閉） | 僅使用期間定位 | 無 | 麥克風（expo-audio metering；暫停於背景） |
 
 商店頁（支援／隱私）由 repo 根目錄 `deploy-store-pages.sh` 部署到 GitHub Pages。腳本會掃 `app1`–`app4`，目前只有 app1、app2 有 `store/support.html` 與 `store/privacy.html`。
 
@@ -73,6 +73,20 @@ cd app3/mobile && npm install && npm start
 
 ---
 
+## app4 — Decibel Meter / 分貝計
+
+用 `expo-audio` recorder metering（dBFS）加上使用者校準偏移，估算音量。可在 Expo Go 執行；沒有登入、網路或分析。
+
+```bash
+cd app4/mobile && npm install && npm start
+```
+
+- 顯示公式：`clamp(dBFS + 100 + offset, 0, 140)`（offset -20…+20，本機儲存）
+- 權限：iOS `NSMicrophoneUsageDescription`、Android `RECORD_AUDIO`（`expo-audio` plugin）。背景時暫停 metering
+- `bundleIdentifier` / EAS `projectId` 目前是 placeholder，尚未送審
+
+---
+
 ## 付費版第一次 build
 
 只有 **急廁 Go** 有 App 內購買。第一次打含 IAP 的正式包之前，先在 App Store Connect 與 Google Play Console 建好內購，product ID 與 `com.toiletgo.app.fullpack` 一致，再 `eas build`。商品未建或 ID 不符時，解鎖會失敗，通常要再送一版。
@@ -85,14 +99,14 @@ cd app3/mobile && npm install && npm start
 
 上架前對照各 app 實際呼叫的 API，只保留用到的權限。用途說明要具體；占位符或空泛英文（例如 “Allow app to access your microphone”）會被 Guideline 5.1.1 拒絕。第三方 SDK 只要把 API 打進 binary，就會要求對應的 `Info.plist` 鍵，即使 JS 沒呼叫。
 
-目前兩個 app 的對照：
+目前幾個 app 的對照：
 
-| 檢查 | 諧音猜猜 | 急廁 Go |
-|------|----------|---------|
-| 實際權限 | 無 | 使用期間定位 |
-| 關掉用不到的 | `expo-av` → `microphonePermission: false` | 未裝 image-picker / 相機 / 麥克風 |
-| 用途說明 | 不需要 `*UsageDescription` | 英文預設＋ `languages/*.json` 的繁中、日文 |
-| Android | 無多餘 permission | 僅定位 |
+| 檢查 | 諧音猜猜 | 急廁 Go | 分貝計 |
+|------|----------|---------|--------|
+| 實際權限 | 無 | 使用期間定位 | 麥克風（僅估計音量） |
+| 關掉用不到的 | `expo-av` → `microphonePermission: false` | 未裝 image-picker / 相機 / 麥克風 | 未開背景錄音／播放 |
+| 用途說明 | 不需要 `*UsageDescription` | 英文預設＋ `languages/*.json` 的繁中、日文 | `expo-audio` plugin ＋ `languages/ios/*.json` |
+| Android | 無多餘 permission | 僅定位 | `RECORD_AUDIO`（plugin `recordAudioAndroid`） |
 
 若之後加 `expo-image-picker` 且只用相簿（`launchImageLibraryAsync`），不要設 `cameraPermission`；相機權限容易一併注入預設的 `NSMicrophoneUsageDescription`。只在真的要錄影收音時，才寫具體的麥克風用途說明。
 

@@ -1,0 +1,45 @@
+{
+  "name": "decibel-meter",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "babel-preset-expo": "~57.0.0",
+    "expo": "~57.0.30",
+    "expo-asset": "~57.0.20",
+    "expo-audio": "~57.0.0",
+    "expo-localization": "~57.0.2",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "jest-expo": "~57.0.2"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "testMatch": [
+      "**/__tests__/**/*.test.[jt]s?(x)"
+    ],
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/.expo/",
+      "<rootDir>/.expo-shared/"
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "CFBundleDisplayName": "Decibel Meter",
+  "NSMicrophoneUsageDescription": "The microphone is used only to estimate sound level on this device. Audio is not stored or sent anywhere."
+}

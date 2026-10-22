@@ -1,0 +1,4 @@
+{
+  "CFBundleDisplayName": "分貝計",
+  "NSMicrophoneUsageDescription": "只用麥克風在這台裝置上估計音量。不會儲存或傳送錄音。"
+}

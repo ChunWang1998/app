@@ -1,0 +1,75 @@
+{
+  "expo": {
+    "name": "Decibel Meter",
+    "slug": "decibel-meter",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.decibelmeter",
+      "buildNumber": "1",
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "en",
+        "CFBundleLocalizations": [
+          "en",
+          "zh-Hant"
+        ],
+        "CFBundleAllowMixedLocalizations": true,
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "The microphone is used only to estimate sound level on this device. Audio is not stored or sent anywhere."
+      }
+    },
+    "android": {
+      "package": "com.example.decibelmeter",
+      "adaptiveIcon": {
+        "backgroundColor": "#163A3A",
+        "foregroundImage": "./assets/icon.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "The microphone is used only to estimate sound level on this device. Audio is not stored or sent anywhere.",
+          "recordAudioAndroid": true,
+          "enableBackgroundRecording": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": [
+              "en",
+              "zh-Hant"
+            ],
+            "android": [
+              "en",
+              "zh-Hant",
+              "zh-TW",
+              "zh-HK"
+            ]
+          }
+        }
+      ],
+      "expo-asset"
+    ],
+    "locales": {
+      "en": "./languages/ios/en.json",
+      "zh-Hant": "./languages/ios/zh-Hant.json",
+      "zh-TW": "./languages/ios/zh-Hant.json",
+      "zh-HK": "./languages/ios/zh-Hant.json"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "00000000-0000-0000-0000-000000000000"
+      }
+    }
+  }
+}
