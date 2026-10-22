@@ -1,0 +1,29 @@
+{
+  "app": {
+    "title": "分貝計",
+    "unit": "dB"
+  },
+  "meter": {
+    "start": "開始",
+    "stop": "停止",
+    "max": "最大",
+    "avg": "平均",
+    "estimate": "此為估算值，非專業或法規級測量。"
+  },
+  "permission": {
+    "denied": "要用麥克風才能量聲音大小。聲音不會存下來，也不會傳出去。",
+    "tryAgain": "再試一次",
+    "openSettings": "開啟設定",
+    "settingsHint": "若沒有出現詢問，請到設定開啟麥克風。"
+  },
+  "settings": {
+    "title": "校準",
+    "offset": "調整",
+    "unit": "dB",
+    "offsetHelp": "對照已知分貝計後，可加減最多 20 分貝。",
+    "minus": "減少調整",
+    "plus": "增加調整",
+    "done": "完成",
+    "open": "校準"
+  }
+}

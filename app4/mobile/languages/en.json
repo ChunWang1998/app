@@ -1,0 +1,29 @@
+{
+  "app": {
+    "title": "Decibel Meter",
+    "unit": "dB"
+  },
+  "meter": {
+    "start": "Start",
+    "stop": "Stop",
+    "max": "Max",
+    "avg": "Avg",
+    "estimate": "Approximate reading. Not a professional or legal-grade instrument."
+  },
+  "permission": {
+    "denied": "Microphone is needed to measure sound level. Audio is not saved or sent.",
+    "tryAgain": "Try again",
+    "openSettings": "Open Settings",
+    "settingsHint": "If the prompt does not appear, allow the microphone in Settings."
+  },
+  "settings": {
+    "title": "Calibration",
+    "offset": "Adjust",
+    "unit": "dB",
+    "offsetHelp": "Add or subtract up to 20 dB after comparing with a known meter.",
+    "minus": "Decrease adjust",
+    "plus": "Increase adjust",
+    "done": "Done",
+    "open": "Calibrate"
+  }
+}
