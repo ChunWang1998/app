@@ -24,12 +24,15 @@ describe('placeholders and Expo Go constraints', () => {
     expect(audio[1].enableBackgroundRecording).toBe(false);
     expect(audio[1].enableBackgroundPlayback).toBe(false);
     expect(audio[1].microphonePermission).toMatch(/estimate sound level/i);
+    expect(audio[1].microphonePermission.toLowerCase()).toMatch(/processed on-device/);
+    expect(audio[1].microphonePermission.toLowerCase()).toMatch(/deleted right after/);
     expect(app.expo.ios.infoPlist.NSMicrophoneUsageDescription).toMatch(/estimate sound level/i);
   });
 
   it('stays on Expo SDK 57 with no extra native modules', () => {
     expect(pkg.dependencies.expo).toMatch(/57/);
     expect(pkg.dependencies['expo-audio']).toBeTruthy();
+    expect(pkg.dependencies['expo-file-system']).toBeTruthy();
     expect(pkg.dependencies['react-native-live-audio-fft']).toBeUndefined();
     expect(pkg.dependencies['react-native-audio-api']).toBeUndefined();
     expect(pkg.dependencies['expo-av']).toBeUndefined();

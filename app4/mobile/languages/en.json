@@ -11,7 +11,7 @@
     "estimate": "Approximate reading. Not a professional or legal-grade instrument."
   },
   "permission": {
-    "denied": "Microphone access is needed to estimate sound level. This app does not save or send recordings.",
+    "denied": "Microphone access is needed to estimate sound level. Audio is processed on-device for the level and the temporary file is deleted right after. Nothing is saved or sent.",
     "tryAgain": "Try again",
     "openSettings": "Open Settings"
   },

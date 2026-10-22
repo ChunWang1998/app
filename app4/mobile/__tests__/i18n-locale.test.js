@@ -72,6 +72,21 @@ describe('copy', () => {
     expect(zh.meter.estimate).toMatch(/估算|非專業/);
   });
 
+  it('says audio is on-device, temp file deleted, nothing saved or sent', () => {
+    const en = require('../languages/en.json');
+    const zh = require('../languages/zh-Hant.json');
+    const enIos = require('../languages/ios/en.json');
+    const zhIos = require('../languages/ios/zh-Hant.json');
+    expect(en.permission.denied.toLowerCase()).toMatch(/on-device/);
+    expect(en.permission.denied.toLowerCase()).toMatch(/deleted right after/);
+    expect(en.permission.denied.toLowerCase()).toMatch(/nothing is saved or sent/);
+    expect(enIos.NSMicrophoneUsageDescription.toLowerCase()).toMatch(/processed on-device/);
+    expect(enIos.NSMicrophoneUsageDescription.toLowerCase()).toMatch(/deleted right after/);
+    expect(zh.permission.denied).toMatch(/裝置上/);
+    expect(zh.permission.denied).toMatch(/刪除/);
+    expect(zhIos.NSMicrophoneUsageDescription).toMatch(/立刻刪除/);
+  });
+
   it('does not hardcode CJK in app source', () => {
     const root = path.join(__dirname, '..');
     const skip = new Set(['node_modules', '.git', '.expo', 'dist', 'languages', 'assets', '__tests__']);

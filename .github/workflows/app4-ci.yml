@@ -6,8 +6,11 @@ on:
       - 'app4/mobile/**'
       - '.github/workflows/app4-ci.yml'
 
+permissions:
+  contents: read
+
 jobs:
-  build-test:
+  build-test-audit:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,5 +25,7 @@ jobs:
           cache-dependency-path: app4/mobile/package-lock.json
       - run: npm ci
       - run: npm test --silent
+      - name: Audit (high/critical) with allowlist
+        run: npx audit-ci --config audit-ci.json
       - name: Expo export iOS JS bundle
         run: npx expo export --platform ios --output-dir /tmp/decibel-meter-ios-export

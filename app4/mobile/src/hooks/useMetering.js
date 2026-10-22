@@ -8,6 +8,7 @@ import {
   useAudioRecorder,
   useAudioRecorderState,
 } from 'expo-audio';
+import { stopAndDiscardCache } from '../lib/discardRecording';
 import {
   addDbfsSample,
   createSession,
@@ -80,17 +81,7 @@ export function useMetering(offset) {
   }, [dbfs, offset, running]);
 
   const stopRecorder = useCallback(async () => {
-    try {
-      if (recorder.isRecording) {
-        await recorder.stop();
-      }
-    } catch {
-      try {
-        recorder.pause();
-      } catch {
-        // already stopped
-      }
-    }
+    await stopAndDiscardCache(recorder);
     try {
       await setAudioModeAsync({ allowsRecording: false });
     } catch {
@@ -106,6 +97,7 @@ export function useMetering(offset) {
     }
     setPermission('granted');
     try {
+      await stopAndDiscardCache(recorder);
       await setAudioModeAsync({
         allowsRecording: true,
         playsInSilentMode: true,

@@ -11,6 +11,14 @@ jest.mock('expo-constants', () => ({
   },
 }));
 
+jest.mock('expo-file-system/legacy', () => ({
+  deleteAsync: jest.fn(async () => {}),
+}), { virtual: true });
+
+jest.mock('expo-file-system', () => ({
+  deleteAsync: jest.fn(async () => {}),
+}), { virtual: true });
+
 jest.mock('expo-audio', () => ({
   useAudioRecorder: jest.fn(() => ({
     prepareToRecordAsync: jest.fn(async () => {}),

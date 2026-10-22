@@ -18,7 +18,7 @@
         ],
         "CFBundleAllowMixedLocalizations": true,
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "The microphone is used only to estimate sound level on this device. Audio is not stored or sent anywhere."
+        "NSMicrophoneUsageDescription": "The microphone is used only to estimate sound level on this device. Audio is processed on-device for the level reading; the temporary recording is deleted right after. Nothing is saved or sent."
       }
     },
     "android": {
@@ -35,7 +35,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "The microphone is used only to estimate sound level on this device. Audio is not stored or sent anywhere.",
+          "microphonePermission": "The microphone is used only to estimate sound level on this device. Audio is processed on-device for the level reading; the temporary recording is deleted right after. Nothing is saved or sent.",
           "recordAudioAndroid": true,
           "enableBackgroundRecording": false,
           "enableBackgroundPlayback": false

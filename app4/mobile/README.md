@@ -18,7 +18,9 @@ display dB = clamp(dBFS + 100 + offset, 0, 140)
 
 At offset 0, 0 dBFS maps to 100 dB. Offset is -20…+20 dB (step 1), saved locally with AsyncStorage. The reading is an **estimate**, not a professional or legal-grade instrument.
 
-Metering pauses when the app backgrounds. The app does not upload audio; expo-audio still writes a short-lived cache file while metering, which we never read, play, or export. No account, network, analytics, waveform, spectrum, history, export, or IAP.
+Metering pauses when the app backgrounds. Audio is processed on-device for the level reading only. `expo-audio` writes a short-lived cache file while metering; the app deletes `recorder.uri` (via `expo-file-system`) on stop, on unmount, and before the next start, and never reads, plays, exports, or sends it. No account, network, analytics, waveform, spectrum, history, export, or IAP.
+
+`expo-audio` also adds the Android `MODIFY_AUDIO_SETTINGS` permission (needed later for the Play Data safety / privacy label). It is not a microphone permission; it lets the OS session change things like silent-mode playback while recording.
 
 ## Placeholders
 
