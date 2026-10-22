@@ -10,14 +10,15 @@ function easBlob() {
 }
 
 describe('EAS identifiers and Expo Go constraints', () => {
-  it('uses the repo bundle-id pattern, build 1, version 1.0.0, placeholder EAS projectId', () => {
-    expect(app.expo.ios.bundleIdentifier).toBe('com.decibelmeter.app');
-    expect(app.expo.android.package).toBe('com.decibelmeter.app');
+  it('uses com.tinytoolshed.decibelmeter, build 1, version 1.0.0, and the EAS project', () => {
+    expect(app.expo.ios.bundleIdentifier).toBe('com.tinytoolshed.decibelmeter');
+    expect(app.expo.android.package).toBe('com.tinytoolshed.decibelmeter');
     expect(app.expo.ios.buildNumber).toBe('1');
     expect(app.expo.version).toBe('1.0.0');
     expect(pkg.version).toBe('1.0.0');
-    expect(app.expo.extra.eas.projectId).toBe('00000000-0000-0000-0000-000000000000');
-    expect(app.expo.owner).toBeUndefined();
+    expect(app.expo.owner).toBe('leowang1105');
+    expect(app.expo.extra.eas.projectId).toBe('117e579d-6aec-40ea-8e97-19bc314debcb');
+    expect(app.expo.android.permissions).toEqual(['RECORD_AUDIO', 'MODIFY_AUDIO_SETTINGS']);
   });
 
   it('has development, preview, and production profiles without secrets', () => {
@@ -45,6 +46,19 @@ describe('EAS identifiers and Expo Go constraints', () => {
     expect(mic.toLowerCase()).toMatch(/deleted right away/);
     expect(mic.toLowerCase()).toMatch(/nothing is saved or sent/);
     expect(app.expo.ios.infoPlist.NSMicrophoneUsageDescription).toBe(mic);
+  });
+
+  it('declares photo-library purpose strings so ITMS-90683 is not flagged', () => {
+    const plist = app.expo.ios.infoPlist;
+    expect(plist.NSPhotoLibraryUsageDescription.toLowerCase()).toMatch(/does not access your photos/);
+    expect(plist.NSPhotoLibraryUsageDescription.toLowerCase()).toMatch(/required by a system component/);
+    expect(plist.NSPhotoLibraryAddUsageDescription.toLowerCase()).toMatch(/does not add photos/);
+    expect(plist.NSPhotoLibraryAddUsageDescription.toLowerCase()).toMatch(/required by a system component/);
+  });
+
+  it('ignores credentials.json', () => {
+    const gitignore = fs.readFileSync(path.join(__dirname, '../.gitignore'), 'utf8');
+    expect(gitignore).toMatch(/^credentials\.json$/m);
   });
 
   it('autolinks the local iOS measurement module', () => {
@@ -86,5 +100,7 @@ describe('EAS identifiers and Expo Go constraints', () => {
     expect(hook).toMatch(/recorder\.record\(\);[\s\S]*await enableMeasurementMode\(\)/);
     expect(hook).toMatch(/try \{\s*await enableMeasurementMode\(\);/);
     expect(hook).toMatch(/setAudioModeAsync hardcodes AVAudioSession mode \.default/);
+    expect(hook).toMatch(/await restoreSession\(\)/);
+    expect(hook).toMatch(/const stopRecorder = useCallback\(async \(\) => \{[\s\S]*restoreSession/);
   });
 });

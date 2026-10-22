@@ -8,9 +8,11 @@ import { Platform } from 'react-native';
  * `.default` allows AGC / voice processing, which skews a level meter.
  *
  * Call `enableMeasurementMode()` *after* `setAudioModeAsync` and *after*
- * recording has started so our `.measurement` mode wins. Expo Go does not
- * ship this native module: load is feature-detected and every export
- * no-ops instead of throwing.
+ * recording has started so our `.measurement` mode wins. Call
+ * `restoreSession()` when metering stops so the previous mode is restored
+ * and the session is deactivated with `notifyOthersOnDeactivation`. Expo Go
+ * does not ship this native module: load is feature-detected and every
+ * export no-ops instead of throwing.
  */
 
 function loadNative() {
@@ -44,6 +46,15 @@ export async function enableMeasurementMode() {
   if (typeof native?.enableMeasurementMode !== 'function') return false;
   try {
     return !!(await native.enableMeasurementMode());
+  } catch {
+    return false;
+  }
+}
+
+export async function restoreSession() {
+  if (typeof native?.restoreSession !== 'function') return false;
+  try {
+    return !!(await native.restoreSession());
   } catch {
     return false;
   }

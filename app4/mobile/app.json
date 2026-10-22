@@ -8,7 +8,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.decibelmeter.app",
+      "bundleIdentifier": "com.tinytoolshed.decibelmeter",
       "buildNumber": "1",
       "infoPlist": {
         "CFBundleDevelopmentRegion": "en",
@@ -18,11 +18,17 @@
         ],
         "CFBundleAllowMixedLocalizations": true,
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "The microphone is needed to measure sound level on this device. A temporary recording is deleted right away. Nothing is saved or sent."
+        "NSMicrophoneUsageDescription": "The microphone is needed to measure sound level on this device. A temporary recording is deleted right away. Nothing is saved or sent.",
+        "NSPhotoLibraryUsageDescription": "This app does not access your photos. This text is required by a system component.",
+        "NSPhotoLibraryAddUsageDescription": "This app does not add photos to your library. This text is required by a system component."
       }
     },
     "android": {
-      "package": "com.decibelmeter.app",
+      "package": "com.tinytoolshed.decibelmeter",
+      "permissions": [
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#163A3A",
         "foregroundImage": "./assets/icon.png"
@@ -66,9 +72,10 @@
       "zh-TW": "./languages/ios/zh-Hant.json",
       "zh-HK": "./languages/ios/zh-Hant.json"
     },
+    "owner": "leowang1105",
     "extra": {
       "eas": {
-        "projectId": "00000000-0000-0000-0000-000000000000"
+        "projectId": "117e579d-6aec-40ea-8e97-19bc314debcb"
       }
     }
   }

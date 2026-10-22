@@ -62,6 +62,9 @@ describe('copy', () => {
     const en = require('../languages/en.json');
     const zh = require('../languages/zh-Hant.json');
     expect(keyPaths(zh).sort()).toEqual(keyPaths(en).sort());
+    const enIos = require('../languages/ios/en.json');
+    const zhIos = require('../languages/ios/zh-Hant.json');
+    expect(Object.keys(zhIos).sort()).toEqual(Object.keys(enIos).sort());
   });
 
   it('does not claim professional or legal-grade measurement', () => {
@@ -86,6 +89,11 @@ describe('copy', () => {
     expect(en.settings.plus).not.toBe('Increase adjust');
     expect(zh.settings.minus).toBe('減少調整');
     expect(zh.settings.plus).toBe('增加調整');
+    expect(en.settings.offsetRecalc.toLowerCase()).toMatch(/recalculates the current, max, and average/);
+    expect(zh.settings.offsetRecalc).toMatch(/重新計算/);
+    expect(zh.settings.offsetRecalc).toMatch(/目前/);
+    expect(zh.settings.offsetRecalc).toMatch(/最大/);
+    expect(zh.settings.offsetRecalc).toMatch(/平均/);
     const blob = `${JSON.stringify(en)}\n${JSON.stringify(zh)}`.toLowerCase();
     expect(blob).not.toMatch(/not recorded/);
     expect(JSON.stringify(zh)).not.toMatch(/不會錄下來/);
@@ -105,6 +113,11 @@ describe('copy', () => {
     expect(zhIos.NSMicrophoneUsageDescription).toMatch(/不會傳出去/);
     expect(app.expo.locales['zh-Hant']).toBe('./languages/ios/zh-Hant.json');
     expect(app.expo.locales.en).toBe('./languages/ios/en.json');
+    expect(enIos.NSPhotoLibraryUsageDescription).toBe(app.expo.ios.infoPlist.NSPhotoLibraryUsageDescription);
+    expect(enIos.NSPhotoLibraryAddUsageDescription).toBe(app.expo.ios.infoPlist.NSPhotoLibraryAddUsageDescription);
+    expect(zhIos.NSPhotoLibraryUsageDescription).toMatch(/不會使用你的照片/);
+    expect(zhIos.NSPhotoLibraryUsageDescription).toMatch(/系統元件/);
+    expect(zhIos.NSPhotoLibraryAddUsageDescription).toMatch(/不會把照片加進相簿|不會使用你的照片/);
   });
 
   it('does not hardcode CJK in app source', () => {
@@ -126,5 +139,10 @@ describe('copy', () => {
     };
     walk(root);
     expect(hits).toEqual([]);
+  });
+
+  it('shows the calibration remapping note on the settings sheet', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../src/components/SettingsSheet.js'), 'utf8');
+    expect(src).toMatch(/t\('settings\.offsetRecalc'\)/);
   });
 });

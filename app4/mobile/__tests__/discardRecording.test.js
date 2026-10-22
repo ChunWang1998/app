@@ -156,6 +156,7 @@ describe('useMetering cleanup call sites', () => {
     expect(src).toMatch(/tickMeter\(meterRef\.current, sample\)/);
     expect(src).toMatch(/freezeMeter/);
     expect(src).toMatch(/enableMeasurementMode/);
+    expect(src).toMatch(/restoreSession/);
     expect(src).toMatch(/liveRef\.current = false/);
     expect(src).toMatch(/if \(!running \|\| !liveRef\.current\) return/);
   });

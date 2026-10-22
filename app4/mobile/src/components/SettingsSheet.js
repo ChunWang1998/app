@@ -45,6 +45,7 @@ export default function SettingsSheet({ visible, offset, onChangeOffset, onClose
             </Pressable>
           </View>
           <Text style={styles.help}>{t('settings.offsetHelp')}</Text>
+          <Text style={styles.recalc}>{t('settings.offsetRecalc')}</Text>
           <Pressable onPress={onClose} style={styles.done} accessibilityRole="button">
             <Text style={styles.doneText}>{t('settings.done')}</Text>
           </Pressable>
@@ -111,6 +112,13 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   help: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#6B6560',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  recalc: {
     fontSize: 14,
     lineHeight: 20,
     color: '#6B6560',
