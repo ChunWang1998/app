@@ -1,3 +1,4 @@
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const app = require('../app.json');
@@ -44,6 +45,20 @@ describe('EAS identifiers and Expo Go constraints', () => {
     expect(mic.toLowerCase()).toMatch(/deleted right away/);
     expect(mic.toLowerCase()).toMatch(/nothing is saved or sent/);
     expect(app.expo.ios.infoPlist.NSMicrophoneUsageDescription).toBe(mic);
+  });
+
+  it('autolinks the local iOS measurement module', () => {
+    const raw = execFileSync(
+      'npx',
+      ['expo-modules-autolinking', 'resolve', '--platform', 'ios', '--json'],
+      { cwd: path.join(__dirname, '..'), encoding: 'utf8' },
+    );
+    const resolved = JSON.parse(raw);
+    const names = (resolved.modules || []).map((m) => m.packageName);
+    expect(names).toContain('audio-measurement-session');
+    const local = resolved.modules.find((m) => m.packageName === 'audio-measurement-session');
+    expect(local.pods.map((p) => p.podName)).toEqual(['AudioMeasurementSession']);
+    expect(local.modules.map((m) => m.class)).toEqual(['AudioMeasurementSessionModule']);
   });
 
   it('keeps Expo Go working: SDK 57, no extra store native modules', () => {
