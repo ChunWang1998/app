@@ -5,6 +5,7 @@ on:
     paths:
       - 'app4/mobile/**'
       - '.github/workflows/app4-ci.yml'
+      - 'scripts/check-podspecs.rb'
 
 permissions:
   contents: read
@@ -29,3 +30,6 @@ jobs:
         run: npx audit-ci --config audit-ci.json
       - name: Expo export iOS JS bundle
         run: npx expo export --platform ios --output-dir /tmp/decibel-meter-ios-export
+      - name: Podspec ruby -c and evaluation
+        working-directory: ${{ github.workspace }}
+        run: ruby scripts/check-podspecs.rb

@@ -1,0 +1,25 @@
+name: podspec syntax
+
+on:
+  pull_request:
+    paths:
+      - '**/*.podspec'
+      - 'scripts/check-podspecs.rb'
+      - '.github/workflows/podspec-syntax.yml'
+      - '.github/workflows/app3-ci.yml'
+      - '.github/workflows/app4-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ruby-c-and-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+      - name: ruby -c and evaluate all custom module podspecs
+        run: ruby scripts/check-podspecs.rb

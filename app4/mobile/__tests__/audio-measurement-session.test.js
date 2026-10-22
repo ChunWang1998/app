@@ -102,6 +102,15 @@ describe('native module source', () => {
     expect(js).toMatch(/export async function restoreSession/);
   });
 
+  it('uses Ruby __dir__ in the podspec, not JavaScript __dirname', () => {
+    const spec = fs.readFileSync(
+      path.join(__dirname, '../modules/audio-measurement-session/ios/AudioMeasurementSession.podspec'),
+      'utf8',
+    );
+    expect(spec).toMatch(/File\.join\(__dir__, '\.\.', 'package\.json'\)/);
+    expect(spec).not.toMatch(/__dirname/);
+  });
+
   it('is iOS-only so Expo Go / Android keep the JS fallback', () => {
     const cfg = require('../modules/audio-measurement-session/expo-module.config.json');
     expect(cfg.platforms).toEqual(['ios']);
