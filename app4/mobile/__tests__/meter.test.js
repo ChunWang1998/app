@@ -11,7 +11,9 @@ import {
   clampOffset,
   isValidDbfs,
   isUsableMeteringSample,
+  mapDbfsToBaseDb,
   mapDbfsToDisplayDb,
+  applyOffset,
   smoothLevel,
   createSession,
   addDisplaySample,
@@ -92,10 +94,20 @@ describe('mapDbfsToDisplayDb', () => {
 
   it('returns null for invalid metering samples', () => {
     expect(isValidDbfs(undefined)).toBe(false);
+    expect(mapDbfsToBaseDb(undefined)).toBeNull();
     expect(mapDbfsToDisplayDb(undefined, 0)).toBeNull();
     expect(mapDbfsToDisplayDb(null, 0)).toBeNull();
     expect(mapDbfsToDisplayDb(NaN, 0)).toBeNull();
     expect(mapDbfsToDisplayDb('loud', 0)).toBeNull();
+  });
+
+  it('keeps base dB unclamped so a later offset remap stays exact', () => {
+    expect(mapDbfsToBaseDb(-95)).toBe(5);
+    expect(applyOffset(5, 0)).toBe(5);
+    expect(applyOffset(5, -10)).toBe(0);
+    expect(applyOffset(5, 20)).toBe(25);
+    expect(applyOffset(130, 20)).toBe(140);
+    expect(applyOffset(null, 4)).toBeNull();
   });
 
   it('clamps out-of-range offset before mapping', () => {
@@ -125,7 +137,7 @@ describe('smoothLevel', () => {
 describe('session max/avg', () => {
   it('starts empty and formats as em dash', () => {
     expect(createSession()).toEqual({ count: 0, sum: 0, max: null });
-    expect(sessionDisplayStats(createSession())).toEqual({ max: null, avg: null, count: 0 });
+    expect(sessionDisplayStats(createSession(), 0)).toEqual({ max: null, avg: null, count: 0 });
     expect(formatDb(null)).toBe('—');
   });
 
@@ -144,7 +156,7 @@ describe('session max/avg', () => {
     const dbfsList = [-60, -60, -60, -8];
     const smoothedSeries = [];
     dbfsList.forEach((dbfs) => {
-      state = tickMeter(state, dbfs, 0);
+      state = tickMeter(state, dbfs);
       smoothedSeries.push(state.smoothed);
     });
     const rawLast = mapDbfsToDisplayDb(-8, 0);
@@ -161,9 +173,9 @@ describe('session max/avg', () => {
 
   it('freezes the last smoothed value on stop instead of the last raw sample', () => {
     let state = { smoothed: null, session: createSession() };
-    state = tickMeter(state, -60, 0);
-    state = tickMeter(state, -60, 0);
-    state = tickMeter(state, -13, 0);
+    state = tickMeter(state, -60);
+    state = tickMeter(state, -60);
+    state = tickMeter(state, -13);
     const shown = state.smoothed;
     const rawLast = mapDbfsToDisplayDb(-13, 0);
     expect(rawLast).toBe(87);
@@ -172,22 +184,22 @@ describe('session max/avg', () => {
     expect(frozen.smoothed).toBe(shown);
     expect(frozen.smoothed).not.toBe(rawLast);
     expect(frozen.session).toEqual(state.session);
-    const afterStopRaw = tickMeter(frozen, 0, 0);
+    const afterStopRaw = tickMeter(frozen, 0);
     expect(freezeMeter(frozen).smoothed).toBe(shown);
     expect(afterStopRaw.smoothed).not.toBe(shown);
   });
 
   it('ignores -160 sentinels so a 0 dB floor does not pull avg down', () => {
     let state = { smoothed: null, session: createSession() };
-    state = tickMeter(state, -160, -20);
-    state = tickMeter(state, -160, -20);
-    state = tickMeter(state, -67, -20);
-    state = tickMeter(state, -31, -20);
+    state = tickMeter(state, -160);
+    state = tickMeter(state, -160);
+    state = tickMeter(state, -67);
+    state = tickMeter(state, -31);
     expect(mapDbfsToDisplayDb(-67, -20)).toBe(13);
     expect(mapDbfsToDisplayDb(-31, -20)).toBe(49);
-    const stats = sessionDisplayStats(state.session);
+    const stats = sessionDisplayStats(state.session, -20);
     expect(stats.count).toBe(2);
-    expect(stats.max).toBe(state.session.max);
+    expect(stats.max).toBe(applyOffset(state.session.max, -20));
     expect(stats.max).toBeLessThanOrEqual(49);
   });
 
@@ -200,11 +212,36 @@ describe('session max/avg', () => {
   });
 
   it('does not re-count the frozen reading when a sentinel arrives', () => {
-    let state = tickMeter({ smoothed: null, session: createSession() }, -40, 0);
+    let state = tickMeter({ smoothed: null, session: createSession() }, -40);
     expect(state.session.count).toBe(1);
-    state = tickMeter(state, -160, 0);
+    state = tickMeter(state, -160);
     expect(state.smoothed).toBe(60);
     expect(state.session.count).toBe(1);
+  });
+
+  it('does not reset session max/avg when calibration offset changes', () => {
+    let state = { smoothed: null, session: createSession() };
+    state = tickMeter(state, -40);
+    state = tickMeter(state, -30);
+    const internals = { ...state.session };
+    expect(internals.count).toBe(2);
+    expect(internals.max).toBeCloseTo(state.smoothed, 5);
+
+    const atZero = sessionDisplayStats(state.session, 0);
+    const atPlus = sessionDisplayStats(state.session, 5);
+    const atMinus = sessionDisplayStats(state.session, -8);
+
+    expect(atPlus.count).toBe(2);
+    expect(atMinus.count).toBe(2);
+    expect(atPlus.max).toBeCloseTo(atZero.max + 5, 5);
+    expect(atPlus.avg).toBeCloseTo(atZero.avg + 5, 5);
+    expect(atMinus.max).toBeCloseTo(atZero.max - 8, 5);
+    expect(applyOffset(state.smoothed, 5)).toBeCloseTo(atZero.max + 5, 5);
+    expect(state.session).toEqual(internals);
+
+    state = tickMeter(state, -30);
+    expect(state.session.count).toBe(3);
+    expect(sessionDisplayStats(state.session, 5).count).toBe(3);
   });
 });
 

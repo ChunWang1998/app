@@ -4,14 +4,22 @@
     "appVersionSource": "local"
   },
   "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
     "preview": {
       "distribution": "internal",
       "ios": {
-        "simulator": true
+        "simulator": true,
+        "image": "macos-tahoe-26.5-xcode-26.6"
       }
     },
     "production": {
-      "autoIncrement": false
+      "ios": {
+        "image": "macos-tahoe-26.5-xcode-26.6"
+      },
+      "autoIncrement": true
     }
   }
 }

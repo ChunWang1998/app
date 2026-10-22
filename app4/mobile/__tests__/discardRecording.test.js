@@ -153,8 +153,9 @@ describe('useMetering cleanup call sites', () => {
     expect(src).toMatch(/const stopRecorder = useCallback\(async \(\) => \{[\s\S]*await stopAndDiscardCache\(recorder\)/);
     expect(src).toMatch(/useEffect\(\(\) => \(\) => \{[\s\S]*stopRecorder\(\)/);
     expect(src).toMatch(/requestRecordingPermissionsAsync/);
-    expect(src).toMatch(/tickMeter/);
+    expect(src).toMatch(/tickMeter\(meterRef\.current, sample\)/);
     expect(src).toMatch(/freezeMeter/);
+    expect(src).toMatch(/enableMeasurementMode/);
     expect(src).toMatch(/liveRef\.current = false/);
     expect(src).toMatch(/if \(!running \|\| !liveRef\.current\) return/);
   });

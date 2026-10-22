@@ -1,4 +1,4 @@
 {
   "CFBundleDisplayName": "Decibel Meter",
-  "NSMicrophoneUsageDescription": "The microphone is used only to estimate sound level on this device. Audio is processed on-device for the level reading; the temporary recording is deleted right after. Nothing is saved or sent."
+  "NSMicrophoneUsageDescription": "The microphone is needed to measure sound level on this device. A temporary recording is deleted right away. Nothing is saved or sent."
 }
