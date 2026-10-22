@@ -26,16 +26,17 @@ Metering pauses when the app backgrounds. After Stop, the last **smoothed** read
 
 `expo-audio` `setAudioModeAsync` configures `AVAudioSession` with **mode `.default`** (`AudioModule.setAudioMode` uses `setCategory(category, mode: .default)` when options are empty, or `setCategory(category, options:)` otherwise — a fresh session is still `.default`). That mode allows AGC and voice processing, which we do not want while metering.
 
-The local Expo module `audio-measurement-session` (`modules/audio-measurement-session`) sets category `.playAndRecord` or `.record` and **mode `.measurement`**. JS calls it **after** `setAudioModeAsync` and **after** `recorder.record()` (and again after a foreground resume) so our mode wins. Expo Go does not include the native code: the JS wrapper feature-detects with `requireOptionalNativeModule` / try-catch and no-ops. No crash path.
+The local Expo module `audio-measurement-session` (`modules/audio-measurement-session`) sets category `.playAndRecord` or `.record` and **mode `.measurement`**. JS calls it **after** `setAudioModeAsync` and **after** `recorder.record()` (and again after a foreground resume) so our mode wins. On Stop / unmount, `restoreSession` puts back the previous category/mode when possible and deactivates the session with `notifyOthersOnDeactivation` so other apps' audio can resume. Expo Go does not include the native code: the JS wrapper feature-detects with `requireOptionalNativeModule` / try-catch and no-ops. No crash path.
 
 This has not been verified on a physical iPhone in this change; confirm on a development or production build.
 
 ## EAS
 
-- `ios.bundleIdentifier` / `android.package`: `com.decibelmeter.app`
+- `ios.bundleIdentifier` / `android.package`: `com.tinytoolshed.decibelmeter`
+- `owner`: `leowang1105`; `extra.eas.projectId`: `117e579d-6aec-40ea-8e97-19bc314debcb`
 - `ios.buildNumber`: `"1"`; `version`: `1.0.0`
 - `eas.json` profiles: `development` (dev client), `preview` (iOS simulator), `production` (`autoIncrement: true`)
-- `extra.eas.projectId` is still the placeholder `00000000-0000-0000-0000-000000000000`. Do not put Apple team IDs, ASC app IDs, or credential paths in the repo. Do not run `eas build` / `eas submit` from this app until those are filled in outside the tree.
+- Do not put Apple team IDs, ASC app IDs, or credential paths in the repo (`credentials.json` is gitignored). Do not run `eas build` / `eas submit` from this tree unless asked.
 
 ## Tests
 

@@ -8,7 +8,7 @@ import {
   useAudioRecorder,
   useAudioRecorderState,
 } from 'expo-audio';
-import { enableMeasurementMode } from 'audio-measurement-session';
+import { enableMeasurementMode, restoreSession } from 'audio-measurement-session';
 import { stopAndDiscardCache } from '../lib/discardRecording';
 import {
   applyOffset,
@@ -89,6 +89,11 @@ export function useMetering(offset) {
       await setAudioModeAsync({ allowsRecording: false });
     } catch {
       // audio mode is best-effort
+    }
+    try {
+      await restoreSession();
+    } catch {
+      // Expo Go / session restore is best-effort; never crash
     }
   }, [recorder]);
 
