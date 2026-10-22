@@ -10,10 +10,10 @@ function easBlob() {
 }
 
 describe('EAS identifiers and Expo Go constraints', () => {
-  it('uses com.tinytoolshed.decibelmeter, build 1, version 1.0.0, and the EAS project', () => {
+  it('uses com.tinytoolshed.decibelmeter, build 2, version 1.0.0, and the EAS project', () => {
     expect(app.expo.ios.bundleIdentifier).toBe('com.tinytoolshed.decibelmeter');
     expect(app.expo.android.package).toBe('com.tinytoolshed.decibelmeter');
-    expect(app.expo.ios.buildNumber).toBe('1');
+    expect(app.expo.ios.buildNumber).toBe('2');
     expect(app.expo.version).toBe('1.0.0');
     expect(pkg.version).toBe('1.0.0');
     expect(app.expo.owner).toBe('leowang1105');

@@ -34,7 +34,7 @@ This has not been verified on a physical iPhone in this change; confirm on a dev
 
 - `ios.bundleIdentifier` / `android.package`: `com.tinytoolshed.decibelmeter`
 - `owner`: `leowang1105`; `extra.eas.projectId`: `117e579d-6aec-40ea-8e97-19bc314debcb`
-- `ios.buildNumber`: `"1"`; `version`: `1.0.0`
+- `ios.buildNumber`: `"2"`; `version`: `1.0.0`. Production `autoIncrement` is on, so the next EAS production build becomes 3.
 - `eas.json` profiles: `development` (dev client), `preview` (iOS simulator), `production` (`autoIncrement: true`)
 - Do not put Apple team IDs, ASC app IDs, or credential paths in the repo (`credentials.json` is gitignored). Do not run `eas build` / `eas submit` from this tree unless asked.
 

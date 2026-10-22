@@ -6,13 +6,13 @@
 |---|---|---|---|---|
 | 名稱 | 諧音猜猜 | 急廁 Go | Been Ages | Decibel Meter / 分貝計 |
 | 目錄 | `app1/game` | `app2/mobile`（正式）；`app2/web` 為舊版 demo | `app3/mobile` | `app4/mobile` |
-| Bundle / package | `com.soundalike.app` | `com.toiletgo.app` | `com.beenages.app` | `com.example.decibelmeter`（placeholder） |
-| 版本 | `1.0.0`（`ios.buildNumber` 由 EAS remote 遞增） | `1.1.5`（`ios.buildNumber` `22`，`appVersionSource: local`） | `1.0.0`（`ios.buildNumber` `1`，`appVersionSource: local`） | `1.0.0`（`ios.buildNumber` `1`，`appVersionSource: local`） |
-| ASC App ID | `6798265759` | `6798266716` | TBA | placeholder（無） |
+| Bundle / package | `com.soundalike.app` | `com.toiletgo.app` | `com.beenages.app` | `com.tinytoolshed.decibelmeter` |
+| 版本 | `1.0.0`（`ios.buildNumber` 由 EAS remote 遞增） | `1.1.5`（`ios.buildNumber` `22`，`appVersionSource: local`） | `1.1.1`（`ios.buildNumber` `12`，`appVersionSource: local`） | `1.0.0`（`ios.buildNumber` `2`，`appVersionSource: local`） |
+| ASC App ID | `6798265759` | `6798266716` | TBA | TBA |
 | 內購 | 無 | 非消耗型 `com.toiletgo.app.fullpack` | 非消耗型 `com.beenages.app.fullpack` | 無 |
 | 敏感權限 | 無（播放音效；麥克風已關閉） | 僅使用期間定位 | 無 | 麥克風（expo-audio metering；暫停於背景） |
 
-商店頁（支援／隱私）由 repo 根目錄 `deploy-store-pages.sh` 部署到 GitHub Pages。腳本會掃 `app1`–`app4`，目前只有 app1、app2 有 `store/support.html` 與 `store/privacy.html`。
+商店頁（支援／隱私）由 repo 根目錄 `deploy-store-pages.sh` 部署到 GitHub Pages。合併後在 `main` 執行 `./deploy-store-pages.sh`（不要從功能分支跑，除非你就是要發那一版 HTML）。腳本會複製 `app1`–`app4` 的 `store/support.html` 與 `store/privacy.html`；缺檔會失敗，以免留下 gh-pages 上過期的內容。
 
 ---
 
@@ -83,7 +83,7 @@ cd app4/mobile && npm install && npm start
 
 - 顯示公式：`clamp(dBFS + 100 + offset, 0, 140)`（offset -20…+20，本機儲存）
 - 權限：iOS `NSMicrophoneUsageDescription`、Android `RECORD_AUDIO`（`expo-audio` plugin）。背景時暫停 metering
-- `bundleIdentifier` / EAS `projectId` 目前是 placeholder，尚未送審
+- Bundle：`com.tinytoolshed.decibelmeter`。商店頁：`app4/store/`（合併後跑 `./deploy-store-pages.sh`）
 
 ---
 
