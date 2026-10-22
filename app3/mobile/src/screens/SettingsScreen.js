@@ -5,8 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors, useTheme } from '../theme/useTheme';
 import { restoreProUnlock, canPresentRedeemCode, presentRedeemCodeSheet } from '../lib/iap';
 import { isProUnlocked, subscribePro } from '../lib/entitlements';
-import { getRecentlyDeleted, getCategories, subscribe, refreshReminders } from '../data/repository';
-import { ChevronLeftIcon, CheckIcon, RestoreIcon, LockIcon, PaintIcon, ClockIcon, BellIcon } from '../components/Icons';
+import { getRecentlyDeleted, getCategories, subscribe } from '../data/repository';
+import { ChevronLeftIcon, CheckIcon, RestoreIcon, LockIcon, PaintIcon, ClockIcon } from '../components/Icons';
 import { SettingsRow, SettingsSwitch } from '../components/SettingsRow';
 import { t } from '../i18n';
 import Constants from 'expo-constants';
@@ -27,7 +27,6 @@ export default function SettingsScreen() {
   const {
     appearance, setAppearance, preciseTime, setPreciseTime,
     reminderTime, setReminderTime,
-    showNameInNotifications, setShowNameInNotifications,
   } = useTheme();
   const [pro, setPro] = React.useState(false);
   const [trash, setTrash] = React.useState(() => getRecentlyDeleted().length);
@@ -136,20 +135,6 @@ export default function SettingsScreen() {
             value={reminderTime}
             onPress={cycleTime}
             chev
-          />
-          <SettingsRow
-            icon={<Sq bg="#FF9F0A"><BellIcon color="#fff" size={15} /></Sq>}
-            title={t('settings.notifyWithName')}
-            right={(
-              <SettingsSwitch
-                value={showNameInNotifications}
-                onValueChange={async (v) => {
-                  await setShowNameInNotifications(v);
-                  await refreshReminders();
-                }}
-                accessibilityLabel={t('settings.notifyWithName')}
-              />
-            )}
             last
           />
         </View>

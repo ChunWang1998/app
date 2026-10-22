@@ -22,6 +22,13 @@ describe('v1.1 privacy copy', () => {
     expect(html).not.toMatch(/JSON 或 CSV/);
   });
 
+  it('does not mention the removed notify-with-name setting', () => {
+    expect(html).not.toMatch(/通知含名稱/);
+    expect(html).not.toMatch(/不含項目名稱/);
+    expect(html).toMatch(/通知標題會顯示項目名稱/);
+    expect(html).toMatch(/顯示預覽/);
+  });
+
   it('says local notifications, not no push at all', () => {
     expect(html).toMatch(/使用本機通知，沒有遠端推播/);
     expect(html).not.toMatch(/不使用推播通知/);
