@@ -80,6 +80,10 @@ describe('copy', () => {
     expect(en.permission.denied).toBe('Microphone is needed to measure sound level. Audio is not saved or sent.');
     expect(zh.permission.denied).toBe('要用麥克風才能量聲音大小。聲音不會存下來，也不會傳出去。');
     expect(zh.settings.offset).toBe('調整');
+    expect(en.settings.minus).toBe('Decrease adjustment');
+    expect(en.settings.plus).toBe('Increase adjustment');
+    expect(en.settings.minus).not.toBe('Decrease adjust');
+    expect(en.settings.plus).not.toBe('Increase adjust');
     expect(zh.settings.minus).toBe('減少調整');
     expect(zh.settings.plus).toBe('增加調整');
     const blob = `${JSON.stringify(en)}\n${JSON.stringify(zh)}`.toLowerCase();
@@ -87,12 +91,20 @@ describe('copy', () => {
     expect(JSON.stringify(zh)).not.toMatch(/不會錄下來/);
   });
 
-  it('keeps the system mic purpose string on-device and not stored', () => {
+  it('keeps the system mic purpose string friendly, deleted right away, and not saved', () => {
     const enIos = require('../languages/ios/en.json');
     const zhIos = require('../languages/ios/zh-Hant.json');
-    expect(enIos.NSMicrophoneUsageDescription.toLowerCase()).toMatch(/processed on-device/);
-    expect(enIos.NSMicrophoneUsageDescription.toLowerCase()).toMatch(/deleted right after/);
+    const app = require('../app.json');
+    const en = enIos.NSMicrophoneUsageDescription;
+    expect(en).toBe(app.expo.ios.infoPlist.NSMicrophoneUsageDescription);
+    expect(en.toLowerCase()).toMatch(/needed to measure sound level/);
+    expect(en.toLowerCase()).toMatch(/deleted right away/);
+    expect(en.toLowerCase()).toMatch(/nothing is saved or sent/);
     expect(zhIos.NSMicrophoneUsageDescription).toMatch(/立刻刪除/);
+    expect(zhIos.NSMicrophoneUsageDescription).toMatch(/不會存下來/);
+    expect(zhIos.NSMicrophoneUsageDescription).toMatch(/不會傳出去/);
+    expect(app.expo.locales['zh-Hant']).toBe('./languages/ios/zh-Hant.json');
+    expect(app.expo.locales.en).toBe('./languages/ios/en.json');
   });
 
   it('does not hardcode CJK in app source', () => {

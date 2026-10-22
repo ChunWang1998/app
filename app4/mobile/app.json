@@ -8,7 +8,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.decibelmeter",
+      "bundleIdentifier": "com.decibelmeter.app",
       "buildNumber": "1",
       "infoPlist": {
         "CFBundleDevelopmentRegion": "en",
@@ -18,11 +18,11 @@
         ],
         "CFBundleAllowMixedLocalizations": true,
         "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "The microphone is used only to estimate sound level on this device. Audio is processed on-device for the level reading; the temporary recording is deleted right after. Nothing is saved or sent."
+        "NSMicrophoneUsageDescription": "The microphone is needed to measure sound level on this device. A temporary recording is deleted right away. Nothing is saved or sent."
       }
     },
     "android": {
-      "package": "com.example.decibelmeter",
+      "package": "com.decibelmeter.app",
       "adaptiveIcon": {
         "backgroundColor": "#163A3A",
         "foregroundImage": "./assets/icon.png"
@@ -35,7 +35,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "The microphone is used only to estimate sound level on this device. Audio is processed on-device for the level reading; the temporary recording is deleted right after. Nothing is saved or sent.",
+          "microphonePermission": "The microphone is needed to measure sound level on this device. A temporary recording is deleted right away. Nothing is saved or sent.",
           "recordAudioAndroid": true,
           "enableBackgroundRecording": false,
           "enableBackgroundPlayback": false

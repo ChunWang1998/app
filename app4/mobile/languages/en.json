@@ -21,8 +21,8 @@
     "offset": "Adjust",
     "unit": "dB",
     "offsetHelp": "Add or subtract up to 20 dB after comparing with a known meter.",
-    "minus": "Decrease adjust",
-    "plus": "Increase adjust",
+    "minus": "Decrease adjustment",
+    "plus": "Increase adjustment",
     "done": "Done",
     "open": "Calibrate"
   }

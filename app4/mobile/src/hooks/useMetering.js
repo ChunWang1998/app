@@ -8,8 +8,10 @@ import {
   useAudioRecorder,
   useAudioRecorderState,
 } from 'expo-audio';
+import { enableMeasurementMode } from 'audio-measurement-session';
 import { stopAndDiscardCache } from '../lib/discardRecording';
 import {
+  applyOffset,
   createSession,
   freezeMeter,
   isUsableMeteringSample,
@@ -43,9 +45,7 @@ export function useMetering(offset) {
   const runningRef = useRef(false);
   const liveRef = useRef(false);
   const pausedByBackgroundRef = useRef(false);
-  const offsetRef = useRef(offset);
   const meterRef = useRef(emptyMeter());
-  offsetRef.current = offset;
 
   useEffect(() => {
     runningRef.current = running;
@@ -77,7 +77,7 @@ export function useMetering(offset) {
     if (!running || !liveRef.current) return;
     const sample = recorderState?.metering;
     if (!isUsableMeteringSample(sample)) return;
-    const next = tickMeter(meterRef.current, sample, offsetRef.current);
+    const next = tickMeter(meterRef.current, sample);
     meterRef.current = next;
     setSmoothed(next.smoothed);
     setSession(next.session);
@@ -116,6 +116,15 @@ export function useMetering(offset) {
       });
       await recorder.prepareToRecordAsync();
       recorder.record();
+      // expo-audio's setAudioModeAsync hardcodes AVAudioSession mode .default
+      // (see AudioModule.setAudioMode). Apply .measurement *after* that, once
+      // recording has started, so AGC / voice processing are off in native
+      // builds. Expo Go: enableMeasurementMode feature-detects and no-ops.
+      try {
+        await enableMeasurementMode();
+      } catch {
+        // missing native module or session error: keep expo-audio's session
+      }
       pausedByBackgroundRef.current = false;
       const fresh = emptyMeter();
       meterRef.current = fresh;
@@ -156,6 +165,7 @@ export function useMetering(offset) {
         try {
           recorder.record();
           pausedByBackgroundRef.current = false;
+          enableMeasurementMode().catch(() => {});
         } catch {
           pausedByBackgroundRef.current = false;
         }
@@ -169,8 +179,8 @@ export function useMetering(offset) {
     stopRecorder().catch(() => {});
   }, [stopRecorder]);
 
-  const stats = sessionDisplayStats(session);
-  const displayDb = Number.isFinite(smoothed) ? smoothed : null;
+  const stats = sessionDisplayStats(session, offset);
+  const displayDb = applyOffset(smoothed, offset);
 
   return {
     running,

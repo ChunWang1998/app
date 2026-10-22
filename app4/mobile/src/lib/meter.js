@@ -6,13 +6,16 @@
  *
  * displayDb = clamp(dBFS + 100 + offset, 0, 140)
  *
- * The on-screen number is an exponential moving average of that display dB.
- * Session max and avg use those same smoothed values (running sum / count /
- * max — no sample history). Avg is the arithmetic mean of smoothed display
- * dB, not an energy average. Native -160 dBFS sentinels are ignored.
+ * Smoothing and session max/avg run in *base* space (dBFS + 100) so changing
+ * the calibration offset mid-session remaps the on-screen current/max/avg
+ * without resetting count, sum, or max. Offset is applied only at display
+ * time (then clamped to 0..140). Avg is the arithmetic mean of those remapped
+ * smoothed values, not an energy average. Native -160 dBFS sentinels are
+ * ignored. No sample history is kept (running sum / count / max).
  *
- * On Stop the last smoothed value is frozen (not replaced by the last raw
- * sample). This is an estimate, not a professional or legal-grade measurement.
+ * On Stop the last smoothed *base* value is frozen (not replaced by the last
+ * raw sample). This is an estimate, not a professional or legal-grade
+ * measurement.
  */
 
 export const OFFSET_BASE = 100;
@@ -46,10 +49,21 @@ export function isUsableMeteringSample(dbfs) {
   return Number.isFinite(dbfs) && dbfs > DBFS_SILENCE;
 }
 
+/** dBFS + 100, unclamped. Offset is applied later so calibration can remap. */
+export function mapDbfsToBaseDb(dbfs) {
+  if (!isUsableMeteringSample(dbfs)) return null;
+  return dbfs + OFFSET_BASE;
+}
+
+/** Apply the calibration offset and clamp to the 0..140 display range. */
+export function applyOffset(baseDb, offset = 0) {
+  if (!Number.isFinite(baseDb)) return null;
+  return clamp(baseDb + clampOffset(offset), DISPLAY_MIN, DISPLAY_MAX);
+}
+
 /** Map one dBFS sample to a clamped display dB using the documented formula. */
 export function mapDbfsToDisplayDb(dbfs, offset = 0) {
-  if (!isUsableMeteringSample(dbfs)) return null;
-  return clamp(dbfs + OFFSET_BASE + clampOffset(offset), DISPLAY_MIN, DISPLAY_MAX);
+  return applyOffset(mapDbfsToBaseDb(dbfs), offset);
 }
 
 /**
@@ -67,7 +81,7 @@ export function createSession() {
   return { count: 0, sum: 0, max: null };
 }
 
-/** Accumulate one smoothed display dB into O(1) running stats. */
+/** Accumulate one smoothed base dB (pre-offset) into O(1) running stats. */
 export function addDisplaySample(session, displayDb) {
   const base = session && typeof session.count === 'number' ? session : createSession();
   if (!Number.isFinite(displayDb)) return base;
@@ -78,23 +92,25 @@ export function addDisplaySample(session, displayDb) {
   };
 }
 
-export function sessionDisplayStats(session) {
+export function sessionDisplayStats(session, offset = 0) {
   if (!session || !session.count) return { max: null, avg: null, count: 0 };
   return {
-    max: session.max,
-    avg: session.sum / session.count,
+    max: applyOffset(session.max, offset),
+    avg: applyOffset(session.sum / session.count, offset),
     count: session.count,
   };
 }
 
 /**
- * One metering tick while running: smooth the mapped sample and fold it
- * into session max/avg. Stop must not call this with a final raw sample.
+ * One metering tick while running: smooth the *base* (pre-offset) sample and
+ * fold it into session max/avg. Offset is not applied here so calibration
+ * changes do not reset the session. Stop must not call this with a final
+ * raw sample.
  */
-export function tickMeter(state, dbfs, offset) {
+export function tickMeter(state, dbfs) {
   const prev = state && typeof state === 'object' ? state : { smoothed: null, session: createSession() };
   const session = prev.session || createSession();
-  const mapped = mapDbfsToDisplayDb(dbfs, offset);
+  const mapped = mapDbfsToBaseDb(dbfs);
   const smoothed = smoothLevel(prev.smoothed, mapped);
   return {
     smoothed,
