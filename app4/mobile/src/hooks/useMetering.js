@@ -12,10 +12,12 @@ import { stopAndDiscardCache } from '../lib/discardRecording';
 import {
   addDbfsSample,
   createSession,
+  isUsableMeteringSample,
   mapDbfsToDisplayDb,
   sessionDisplayStats,
   smoothLevel,
 } from '../lib/meter';
+import { shouldShowSettingsHint } from '../lib/openSettings';
 
 const POLL_MS = 100;
 
@@ -31,6 +33,7 @@ export function useMetering(offset) {
 
   const [running, setRunning] = useState(false);
   const [permission, setPermission] = useState('undetermined');
+  const [settingsHint, setSettingsHint] = useState(false);
   const [dbfs, setDbfs] = useState(null);
   const [smoothed, setSmoothed] = useState(null);
   const [session, setSession] = useState(createSession);
@@ -47,8 +50,13 @@ export function useMetering(offset) {
     (async () => {
       try {
         const status = await getRecordingPermissionsAsync();
-        if (!cancelled) {
-          setPermission(status.granted ? 'granted' : status.status || 'denied');
+        if (cancelled) return;
+        if (status.granted) {
+          setPermission('granted');
+          setSettingsHint(false);
+        } else {
+          setPermission(status.status || 'denied');
+          setSettingsHint(shouldShowSettingsHint(status));
         }
       } catch {
         if (!cancelled) setPermission('undetermined');
@@ -59,22 +67,18 @@ export function useMetering(offset) {
     };
   }, []);
 
-  const prevOffsetRef = useRef(offset);
-
   useEffect(() => {
     if (!running) return;
     const sample = recorderState?.metering;
-    if (!Number.isFinite(sample)) return;
+    if (!isUsableMeteringSample(sample)) return;
     setDbfs(sample);
     setSession((prev) => addDbfsSample(prev, sample));
   }, [recorderState?.metering, running]);
 
   useEffect(() => {
     const mapped = mapDbfsToDisplayDb(dbfs, offset);
-    const offsetChanged = prevOffsetRef.current !== offset;
-    prevOffsetRef.current = offset;
-    if (offsetChanged || !running) {
-      setSmoothed(mapped);
+    if (!running) {
+      if (mapped != null) setSmoothed(mapped);
       return;
     }
     setSmoothed((prev) => smoothLevel(prev, mapped));
@@ -90,12 +94,21 @@ export function useMetering(offset) {
   }, [recorder]);
 
   const start = useCallback(async () => {
-    const status = await requestRecordingPermissionsAsync();
+    let status;
+    try {
+      status = await requestRecordingPermissionsAsync();
+    } catch {
+      setPermission('denied');
+      setSettingsHint(true);
+      return false;
+    }
     if (!status.granted) {
       setPermission(status.status || 'denied');
+      setSettingsHint(shouldShowSettingsHint(status, { afterRequest: true }));
       return false;
     }
     setPermission('granted');
+    setSettingsHint(false);
     try {
       await stopAndDiscardCache(recorder);
       await setAudioModeAsync({
@@ -111,7 +124,6 @@ export function useMetering(offset) {
       setRunning(true);
       return true;
     } catch {
-      setPermission('denied');
       return false;
     }
   }, [recorder]);
@@ -153,11 +165,12 @@ export function useMetering(offset) {
   }, [stopRecorder]);
 
   const stats = sessionDisplayStats(session, offset);
-  const displayDb = running || smoothed != null ? smoothed : null;
+  const displayDb = Number.isFinite(smoothed) ? smoothed : null;
 
   return {
     running,
     permission,
+    settingsHint,
     displayDb,
     max: stats.max,
     avg: stats.avg,

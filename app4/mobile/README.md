@@ -16,9 +16,9 @@ Open in Expo Go. Grant the microphone when you tap Start.
 display dB = clamp(dBFS + 100 + offset, 0, 140)
 ```
 
-At offset 0, 0 dBFS maps to 100 dB. Offset is -20…+20 dB (step 1), saved locally with AsyncStorage. The reading is an **estimate**, not a professional or legal-grade instrument.
+At offset 0, 0 dBFS maps to 100 dB. Offset is -20…+20 dB (step 1), saved locally with AsyncStorage. Current, max, and avg use the same per-sample clamped display dB; avg is the arithmetic mean of those samples (not an energy average). Native -160 dBFS silence sentinels are ignored. The reading is an **estimate**, not a professional or legal-grade instrument.
 
-Metering pauses when the app backgrounds. Audio is processed on-device for the level reading only. `expo-audio` writes a short-lived cache file while metering; the app deletes `recorder.uri` (via `expo-file-system`) on stop, on unmount, and before the next start, and never reads, plays, exports, or sends it. No account, network, analytics, waveform, spectrum, history, export, or IAP.
+Metering pauses when the app backgrounds. After Stop, the last reading stays on screen; before the first usable sample after Start, the UI shows "—". Audio is processed on-device for the level reading only. `expo-audio` writes a short-lived cache file while metering; the app deletes `recorder.uri` (via `expo-file-system`) on stop, on unmount, and before the next start, and never reads, plays, exports, or sends it. If a delete fails, the URI is kept in memory (paths are not logged) and retried on the next stop/unmount/start cleanup. No account, network, analytics, waveform, spectrum, history, export, or IAP.
 
 `expo-audio` also adds the Android `MODIFY_AUDIO_SETTINGS` permission (needed later for the Play Data safety / privacy label). It is not a microphone permission; it lets the OS session change things like silent-mode playback while recording.
 

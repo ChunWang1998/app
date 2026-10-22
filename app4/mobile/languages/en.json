@@ -11,9 +11,10 @@
     "estimate": "Approximate reading. Not a professional or legal-grade instrument."
   },
   "permission": {
-    "denied": "Microphone access is needed to estimate sound level. Audio is processed on-device for the level and the temporary file is deleted right after. Nothing is saved or sent.",
+    "denied": "Microphone is needed to measure sound level. Audio is not recorded or sent.",
     "tryAgain": "Try again",
-    "openSettings": "Open Settings"
+    "openSettings": "Open Settings",
+    "settingsHint": "If the prompt does not appear, allow the microphone in Settings."
   },
   "settings": {
     "title": "Calibration",

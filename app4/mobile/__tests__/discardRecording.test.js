@@ -2,57 +2,89 @@ import fs from 'fs';
 import path from 'path';
 import {
   discardRecordingUri,
-  isMissingFileError,
+  pendingDiscardCount,
+  resetPendingDiscardsForTests,
+  retryPendingDiscards,
   stopAndDiscardCache,
 } from '../src/lib/discardRecording';
 
-function missingErr(message = 'File not found') {
-  const err = new Error(message);
-  err.code = 'ENOENT';
-  return err;
-}
-
-describe('isMissingFileError', () => {
-  it('recognizes common missing-file shapes', () => {
-    expect(isMissingFileError(missingErr())).toBe(true);
-    expect(isMissingFileError({ code: 'FileNotFound', message: 'gone' })).toBe(true);
-    expect(isMissingFileError(new Error('Directory not exist'))).toBe(true);
-    expect(isMissingFileError(new Error('permission denied'))).toBe(false);
-    expect(isMissingFileError(null)).toBe(false);
-  });
-});
-
 describe('discardRecordingUri', () => {
+  beforeEach(() => {
+    resetPendingDiscardsForTests();
+  });
+
   it('no-ops on empty uri and does not call deleteAsync', async () => {
     const del = jest.fn(async () => {});
     expect(await discardRecordingUri(null, del)).toBe(false);
     expect(await discardRecordingUri('', del)).toBe(false);
     expect(await discardRecordingUri('   ', del)).toBe(false);
     expect(del).not.toHaveBeenCalled();
+    expect(pendingDiscardCount()).toBe(0);
   });
 
-  it('deletes with idempotent: true', async () => {
+  it('deletes with idempotent: true and clears pending', async () => {
     const del = jest.fn(async () => {});
     expect(await discardRecordingUri('file:///tmp/rec.m4a', del)).toBe(true);
     expect(del).toHaveBeenCalledWith('file:///tmp/rec.m4a', { idempotent: true });
+    expect(pendingDiscardCount()).toBe(0);
   });
 
-  it('ignores missing-file errors', async () => {
-    const del = jest.fn(async () => {
-      throw missingErr();
-    });
-    await expect(discardRecordingUri('file:///tmp/gone.m4a', del)).resolves.toBe(false);
-  });
-
-  it('does not throw when deleteAsync rejects for other reasons', async () => {
+  it('queues a retry when delete fails and does not log the path', async () => {
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
     const del = jest.fn(async () => {
       throw new Error('EACCES');
     });
     await expect(discardRecordingUri('file:///tmp/rec.m4a', del)).resolves.toBe(false);
+    expect(pendingDiscardCount()).toBe(1);
+    const dumped = JSON.stringify([log.mock.calls, warn.mock.calls, error.mock.calls]);
+    expect(dumped).not.toMatch(/file:\/\/\/tmp\/rec/);
+    log.mockRestore();
+    warn.mockRestore();
+    error.mockRestore();
+  });
+});
+
+describe('pending retry', () => {
+  beforeEach(() => {
+    resetPendingDiscardsForTests();
+  });
+
+  it('retries a failed uri on the next stop/unmount cleanup', async () => {
+    const failOnce = new Set(['file:///tmp/old.m4a']);
+    const del = jest.fn(async (uri) => {
+      if (failOnce.has(uri)) {
+        failOnce.delete(uri);
+        throw new Error('busy');
+      }
+    });
+    await discardRecordingUri('file:///tmp/old.m4a', del);
+    expect(pendingDiscardCount()).toBe(1);
+
+    const recorder = {
+      uri: 'file:///tmp/new.m4a',
+      isRecording: false,
+      stop: jest.fn(),
+    };
+    await stopAndDiscardCache(recorder, del);
+    expect(del).toHaveBeenCalledWith('file:///tmp/old.m4a', { idempotent: true });
+    expect(del).toHaveBeenCalledWith('file:///tmp/new.m4a', { idempotent: true });
+    expect(pendingDiscardCount()).toBe(0);
+  });
+
+  it('retryPendingDiscards is a no-op when empty', async () => {
+    const del = jest.fn(async () => {});
+    await retryPendingDiscards(del);
+    expect(del).not.toHaveBeenCalled();
   });
 });
 
 describe('stopAndDiscardCache', () => {
+  beforeEach(() => {
+    resetPendingDiscardsForTests();
+  });
+
   it('stops an active recorder then deletes uri', async () => {
     const del = jest.fn(async () => {});
     const recorder = {
@@ -89,22 +121,6 @@ describe('stopAndDiscardCache', () => {
     expect(del).toHaveBeenCalledWith('file:///tmp/after-stop.m4a', { idempotent: true });
   });
 
-  it('still deletes when stop() throws, ignoring missing files', async () => {
-    const del = jest.fn(async () => {
-      throw missingErr();
-    });
-    const recorder = {
-      uri: 'file:///tmp/x.m4a',
-      isRecording: true,
-      stop: jest.fn(async () => {
-        throw new Error('already stopped');
-      }),
-      pause: jest.fn(),
-    };
-    await expect(stopAndDiscardCache(recorder, del)).resolves.toBe(false);
-    expect(del).toHaveBeenCalled();
-  });
-
   it('no-ops when recorder has no uri', async () => {
     const del = jest.fn(async () => {});
     await stopAndDiscardCache({ uri: null, isRecording: false }, del);
@@ -119,5 +135,6 @@ describe('useMetering cleanup call sites', () => {
     expect(src).toMatch(/const start = useCallback\(async \(\) => \{[\s\S]*await stopAndDiscardCache\(recorder\)[\s\S]*prepareToRecordAsync/);
     expect(src).toMatch(/const stopRecorder = useCallback\(async \(\) => \{[\s\S]*await stopAndDiscardCache\(recorder\)/);
     expect(src).toMatch(/useEffect\(\(\) => \(\) => \{[\s\S]*stopRecorder\(\)/);
+    expect(src).toMatch(/requestRecordingPermissionsAsync/);
   });
 });

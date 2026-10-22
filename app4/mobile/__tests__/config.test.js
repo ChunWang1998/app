@@ -45,5 +45,7 @@ describe('placeholders and Expo Go constraints', () => {
     expect(hook).toMatch(/useAudioRecorderState/);
     expect(hook).toMatch(/AppState\.addEventListener/);
     expect(hook).toMatch(/recorder\.pause\(/);
+    expect(hook).toMatch(/isUsableMeteringSample/);
+    expect(hook).toMatch(/requestRecordingPermissionsAsync/);
   });
 });

@@ -1,13 +1,18 @@
 /**
  * Pure mapping from expo-audio recorder metering (dBFS) to a display estimate.
  *
- * expo-audio `RecorderState.metering` is dBFS, typically about -160 (silence)
- * to 0 (near clipping). It is not A-weighted SPL.
+ * expo-audio `RecorderState.metering` is dBFS, typically about -160 (silence
+ * sentinel) to 0 (near clipping). It is not A-weighted SPL.
  *
  * displayDb = clamp(dBFS + 100 + offset, 0, 140)
  *
  * At offset 0, 0 dBFS maps to 100 dB. Phone microphones often clip around
  * there; users can add offset in [-20, 20] after comparing with a known meter.
+ *
+ * Current, max, and avg all use that same per-sample clamped display value.
+ * Avg is the arithmetic mean of those display dB samples (not an energy
+ * average, and not map(mean(dBFS))). Samples at the -160 dBFS silence
+ * sentinel are ignored so a floor of 0 dB does not pull the average down.
  *
  * This is an estimate, not a professional or legal-grade measurement.
  */
@@ -38,9 +43,14 @@ export function isValidDbfs(dbfs) {
   return Number.isFinite(dbfs);
 }
 
+/** Skip native silence / not-yet-ready sentinels so they do not flash 0 dB. */
+export function isUsableMeteringSample(dbfs) {
+  return Number.isFinite(dbfs) && dbfs > DBFS_SILENCE;
+}
+
 /** Map one dBFS sample to a clamped display dB using the documented formula. */
 export function mapDbfsToDisplayDb(dbfs, offset = 0) {
-  if (!isValidDbfs(dbfs)) return null;
+  if (!isUsableMeteringSample(dbfs)) return null;
   return clamp(dbfs + OFFSET_BASE + clampOffset(offset), DISPLAY_MIN, DISPLAY_MAX);
 }
 
@@ -56,29 +66,44 @@ export function smoothLevel(previous, next, alpha = DEFAULT_SMOOTH_ALPHA) {
 }
 
 export function createSession() {
-  return { count: 0, sum: 0, max: null };
+  return { samples: [] };
 }
 
-/** Accumulate raw dBFS so max/avg can be remapped when offset changes. */
+/** Keep usable dBFS only; remap to display dB at read time with the current offset. */
 export function addDbfsSample(session, dbfs) {
-  if (!session || !isValidDbfs(dbfs)) return session || createSession();
-  return {
-    count: session.count + 1,
-    sum: session.sum + dbfs,
-    max: session.max == null ? dbfs : Math.max(session.max, dbfs),
-  };
+  const base = session && Array.isArray(session.samples) ? session : createSession();
+  if (!isUsableMeteringSample(dbfs)) return base;
+  return { samples: base.samples.concat(dbfs) };
+}
+
+function displaySamples(session, offset = 0) {
+  const out = [];
+  const list = session && Array.isArray(session.samples) ? session.samples : [];
+  for (let i = 0; i < list.length; i += 1) {
+    const d = mapDbfsToDisplayDb(list[i], offset);
+    if (Number.isFinite(d)) out.push(d);
+  }
+  return out;
 }
 
 /**
- * Session average is the mapped mean dBFS (not the mean of already-clamped
- * display values), so changing offset updates max/avg without resampling.
+ * Max / avg from the same clamped display series as the current reading.
+ * avg = mean(display dB), not map(mean dBFS).
  */
 export function sessionDisplayStats(session, offset = 0) {
-  if (!session || !session.count) return { max: null, avg: null, count: 0 };
+  const displays = displaySamples(session, offset);
+  if (!displays.length) return { max: null, avg: null, count: 0 };
+  let max = displays[0];
+  let sum = 0;
+  for (let i = 0; i < displays.length; i += 1) {
+    const d = displays[i];
+    sum += d;
+    if (d > max) max = d;
+  }
   return {
-    max: mapDbfsToDisplayDb(session.max, offset),
-    avg: mapDbfsToDisplayDb(session.sum / session.count, offset),
-    count: session.count,
+    max,
+    avg: sum / displays.length,
+    count: displays.length,
   };
 }
 

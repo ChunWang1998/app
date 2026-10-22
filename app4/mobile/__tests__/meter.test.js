@@ -10,6 +10,7 @@ import {
   clamp,
   clampOffset,
   isValidDbfs,
+  isUsableMeteringSample,
   mapDbfsToDisplayDb,
   smoothLevel,
   createSession,
@@ -73,12 +74,18 @@ describe('mapDbfsToDisplayDb', () => {
     expect(mapDbfsToDisplayDb(-10, -5)).toBe(85);
   });
 
-  it('clamps silence and clipping to the display range', () => {
-    expect(mapDbfsToDisplayDb(DBFS_SILENCE, 0)).toBe(0);
-    expect(mapDbfsToDisplayDb(-160, 0)).toBe(0);
+  it('clamps clipping to the display range', () => {
     expect(mapDbfsToDisplayDb(0, 20)).toBe(120);
     expect(mapDbfsToDisplayDb(50, 0)).toBe(140);
-    expect(mapDbfsToDisplayDb(-200, -20)).toBe(0);
+  });
+
+  it('treats -160 dBFS silence as no reading (not 0 dB)', () => {
+    expect(isUsableMeteringSample(DBFS_SILENCE)).toBe(false);
+    expect(isUsableMeteringSample(-160)).toBe(false);
+    expect(isUsableMeteringSample(-159)).toBe(true);
+    expect(mapDbfsToDisplayDb(-160, 0)).toBeNull();
+    expect(mapDbfsToDisplayDb(-160, -20)).toBeNull();
+    expect(formatDb(mapDbfsToDisplayDb(-160, 0))).toBe('—');
   });
 
   it('returns null for invalid metering samples', () => {
@@ -114,28 +121,49 @@ describe('smoothLevel', () => {
 });
 
 describe('session max/avg', () => {
-  it('starts empty', () => {
-    expect(createSession()).toEqual({ count: 0, sum: 0, max: null });
+  it('starts empty and formats as em dash', () => {
+    expect(createSession()).toEqual({ samples: [] });
     expect(sessionDisplayStats(createSession(), 0)).toEqual({ max: null, avg: null, count: 0 });
+    expect(formatDb(null)).toBe('—');
   });
 
-  it('tracks max dBFS and mean dBFS, then maps with offset', () => {
+  it('uses the same clamped display series for current, max, and avg', () => {
     let session = createSession();
     session = addDbfsSample(session, -40);
     session = addDbfsSample(session, -20);
     session = addDbfsSample(session, -30);
-    expect(session.count).toBe(3);
-    expect(session.max).toBe(-20);
-    expect(session.sum).toBe(-90);
-    expect(sessionDisplayStats(session, 0)).toEqual({ max: 80, avg: 70, count: 3 });
-    expect(sessionDisplayStats(session, 10)).toEqual({ max: 90, avg: 80, count: 3 });
+    const mapped = [-40, -20, -30].map((d) => mapDbfsToDisplayDb(d, 0));
+    const stats = sessionDisplayStats(session, 0);
+    expect(stats.count).toBe(3);
+    expect(stats.max).toBe(Math.max(...mapped));
+    expect(stats.avg).toBe(mapped.reduce((a, b) => a + b, 0) / 3);
+    expect(stats.max).toBe(80);
+    expect(stats.avg).toBe(70);
+  });
+
+  it('ignores -160 sentinels so a 0 dB floor does not pull avg down', () => {
+    const offset = -20;
+    let session = createSession();
+    session = addDbfsSample(session, -160);
+    session = addDbfsSample(session, -160);
+    session = addDbfsSample(session, -67);
+    session = addDbfsSample(session, -31);
+    expect(mapDbfsToDisplayDb(-67, offset)).toBe(13);
+    expect(mapDbfsToDisplayDb(-31, offset)).toBe(49);
+    const stats = sessionDisplayStats(session, offset);
+    expect(stats.count).toBe(2);
+    expect(stats.max).toBe(49);
+    expect(stats.avg).toBe(31);
+    const meanDbfs = (-160 + -160 + -67 + -31) / 4;
+    expect(mapDbfsToDisplayDb(meanDbfs, offset)).not.toBe(stats.avg);
   });
 
   it('ignores invalid samples', () => {
     let session = addDbfsSample(createSession(), -40);
     session = addDbfsSample(session, undefined);
     session = addDbfsSample(session, NaN);
-    expect(session.count).toBe(1);
+    session = addDbfsSample(session, -160);
+    expect(session.samples).toEqual([-40]);
     expect(sessionDisplayStats(session, 0).max).toBe(60);
   });
 });

@@ -7,6 +7,7 @@ import { getOffset, setOffset as persistOffset, subscribePrefs } from '../data/p
 import { t } from '../i18n';
 import { useMetering } from '../hooks/useMetering';
 import { formatDb } from '../lib/meter';
+import { openAppSettings } from '../lib/openSettings';
 
 export default function MeterScreen() {
   const insets = useSafeAreaInsets();
@@ -44,7 +45,14 @@ export default function MeterScreen() {
             <Pressable onPress={meter.start} style={styles.secondary} accessibilityRole="button">
               <Text style={styles.secondaryText}>{t('permission.tryAgain')}</Text>
             </Pressable>
-            <Pressable onPress={() => Linking.openSettings()} style={styles.link} accessibilityRole="button">
+            {meter.settingsHint ? (
+              <Text style={styles.hint}>{t('permission.settingsHint')}</Text>
+            ) : null}
+            <Pressable
+              onPress={() => { openAppSettings(Linking); }}
+              style={styles.link}
+              accessibilityRole="button"
+            >
               <Text style={styles.linkText}>{t('permission.openSettings')}</Text>
             </Pressable>
           </View>
@@ -177,6 +185,13 @@ const styles = StyleSheet.create({
     color: '#1C1A17',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  hint: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#6B6560',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   secondary: {
     backgroundColor: '#1C1A17',

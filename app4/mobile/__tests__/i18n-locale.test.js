@@ -72,18 +72,22 @@ describe('copy', () => {
     expect(zh.meter.estimate).toMatch(/估算|非專業/);
   });
 
-  it('says audio is on-device, temp file deleted, nothing saved or sent', () => {
+  it('uses short denied copy and 調整 for calibration', () => {
     const en = require('../languages/en.json');
     const zh = require('../languages/zh-Hant.json');
+    expect(en.permission.denied).toBe('Microphone is needed to measure sound level. Audio is not recorded or sent.');
+    expect(zh.permission.denied).toBe('要用麥克風才能量聲音大小。聲音不會錄下來，也不會傳出去。');
+    expect(zh.settings.offset).toBe('調整');
+    expect(zh.settings.minus).toBe('減少調整');
+    expect(zh.settings.plus).toBe('增加調整');
+    expect(zh.settings.offset).not.toBe('偏移');
+  });
+
+  it('keeps the system mic purpose string on-device and not stored', () => {
     const enIos = require('../languages/ios/en.json');
     const zhIos = require('../languages/ios/zh-Hant.json');
-    expect(en.permission.denied.toLowerCase()).toMatch(/on-device/);
-    expect(en.permission.denied.toLowerCase()).toMatch(/deleted right after/);
-    expect(en.permission.denied.toLowerCase()).toMatch(/nothing is saved or sent/);
     expect(enIos.NSMicrophoneUsageDescription.toLowerCase()).toMatch(/processed on-device/);
     expect(enIos.NSMicrophoneUsageDescription.toLowerCase()).toMatch(/deleted right after/);
-    expect(zh.permission.denied).toMatch(/裝置上/);
-    expect(zh.permission.denied).toMatch(/刪除/);
     expect(zhIos.NSMicrophoneUsageDescription).toMatch(/立刻刪除/);
   });
 
