@@ -1,0 +1,39 @@
+name: Typefully Schedule Drafts
+
+on:
+  schedule:
+    # Every day at 09:00 UTC (adjust as needed)
+    - cron: '0 9 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  schedule:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # needed if we commit processed files back
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run Typefully scheduler
+        env:
+          TYPEFULLY_API_KEY: ${{ secrets.TYPEFULLY_API_KEY }}
+          # Optional: TYPEFULLY_SOCIAL_SET_ID: ${{ secrets.TYPEFULLY_SOCIAL_SET_ID }}
+        run: python scripts/typefully_schedule.py
+
+      - name: Commit processed drafts (if any)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add shared/drafts/processed/ || true
+          git diff --staged --quiet || git commit -m "chore: mark Typefully drafts as processed [skip ci]"
+          git push || true
