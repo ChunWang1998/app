@@ -35,13 +35,20 @@ def get_social_set_id():
     if SOCIAL_SET_ID:
         return SOCIAL_SET_ID
     resp = requests.get(f"{API_BASE}/social-sets", headers=get_headers(), timeout=30)
-    resp.raise_for_status()
+    print(f"GET /social-sets status: {resp.status_code}")
+    if resp.status_code != 200:
+        print(f"Response body: {resp.text[:1000]}")
+        resp.raise_for_status()
     data = resp.json()
-    sets = data.get("data") or data.get("social_sets") or []
+    # Official response uses "results"
+    sets = data.get("results") or data.get("data") or data.get("social_sets") or []
     if not sets:
-        raise SystemExit("No social sets found. Connect accounts in Typefully first.")
-    # Prefer the first one
-    return str(sets[0].get("id") or sets[0].get("social_set_id"))
+        print(f"Full response: {json.dumps(data, indent=2)[:2000]}")
+        raise SystemExit("No social sets found. Connect your X account in Typefully Settings → Accounts first.")
+    first = sets[0]
+    sid = str(first.get("id") or first.get("social_set_id"))
+    print(f"Found social set: id={sid}, username={first.get('username')}, name={first.get('name')}")
+    return sid
 
 def parse_markdown(content: str) -> dict:
     """Turn markdown into a Typefully payload. Split on --- for threads."""
@@ -52,8 +59,6 @@ def parse_markdown(content: str) -> dict:
     return {
         "platforms": {
             "x": {"posts": posts},
-            # Uncomment or extend for LinkedIn if needed
-            # "linkedin": {"post_text": parts[0]}
         },
         "publish_at": "next-free-slot",
     }
@@ -64,7 +69,6 @@ def process_file(path: Path, social_set_id: str):
 
     if path.suffix == ".json":
         payload = json.loads(content)
-        # Ensure publish_at if not present
         payload.setdefault("publish_at", "next-free-slot")
     elif path.suffix == ".md":
         payload = parse_markdown(content)
@@ -80,14 +84,13 @@ def process_file(path: Path, social_set_id: str):
 
     if resp.status_code in (200, 201):
         print(f"  Scheduled successfully: {path.name}")
-        # Move to processed
         date_dir = DRAFTS_PROCESSED / datetime.utcnow().strftime("%Y-%m-%d")
         date_dir.mkdir(parents=True, exist_ok=True)
         dest = date_dir / path.name
         shutil.move(str(path), str(dest))
         return True
     else:
-        print(f"  Failed ({resp.status_code}): {resp.text[:500]}")
+        print(f"  Failed ({resp.status_code}): {resp.text[:800]}")
         return False
 
 def main():
