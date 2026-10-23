@@ -58,7 +58,10 @@ def parse_markdown(content: str) -> dict:
     posts = [{"text": p} for p in parts]
     return {
         "platforms": {
-            "x": {"posts": posts},
+            "x": {
+                "enabled": True,
+                "posts": posts,
+            },
         },
         "publish_at": "next-free-slot",
     }
@@ -70,6 +73,9 @@ def process_file(path: Path, social_set_id: str):
     if path.suffix == ".json":
         payload = json.loads(content)
         payload.setdefault("publish_at", "next-free-slot")
+        # Ensure enabled is set if platforms.x exists
+        if "platforms" in payload and "x" in payload["platforms"]:
+            payload["platforms"]["x"].setdefault("enabled", True)
     elif path.suffix == ".md":
         payload = parse_markdown(content)
         if not payload:
